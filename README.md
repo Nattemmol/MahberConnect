@@ -7,8 +7,8 @@ Check out the live application here: [https://mahberconnectfrontend.vercel.app/]
 
 ## 📸 Preview
 ![MahberConnect Screenshot](./public/screenshot.png)
-![MahberConnect Screenshot](./public/screenshot 2.png)
-![MahberConnect Screenshot](./public/screenshot 3.png)
+![MahberConnect Screenshot](./public/screenshot-2.png)
+![MahberConnect Screenshot](./public/screenshot-3.png)
 
 ## ✨ Features
 - **Community Financial Management**: Streamline the management of traditional Ethiopian saving and insurance groups.
