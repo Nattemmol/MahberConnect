@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
@@ -58,6 +59,7 @@ export default function EventDetailPage({
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuthStore();
+  const t = useTranslations("EventDetail");
 
   const { data: currentMember } = useQuery({
     queryKey: ["mahber-member", id, user?.id],
@@ -171,12 +173,12 @@ export default function EventDetailPage({
   const checkInMutation = useMutation({
     mutationFn: (token: string) => eventService.checkIn(id, eventId, token),
     onSuccess: () => {
-      toast.success("Successfully checked in!");
+      toast.success(t('checkinSuccess'));
       setShowScanner(false);
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to check in. Please try again.");
+      toast.error(message ?? t('checkinFailed'));
       setShowScanner(false);
     },
   });
@@ -185,7 +187,7 @@ export default function EventDetailPage({
     mutationFn: (memberId: string) =>
       eventService.manualCheckIn(id, eventId, memberId),
     onSuccess: () => {
-      toast.success("Successfully checked in!");
+      toast.success(t('manualCheckinSuccess'));
       queryClient.invalidateQueries({
         queryKey: ["event-attendance", id, eventId],
       });
@@ -193,7 +195,7 @@ export default function EventDetailPage({
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to check in member");
+      toast.error(message ?? t('manualCheckinFailed'));
     },
   });
 
@@ -208,19 +210,19 @@ export default function EventDetailPage({
       queryClient.invalidateQueries({
         queryKey: ["mahber-event", id, eventId],
       });
-      toast.success("Event cancelled successfully");
+      toast.success(t('eventCancelled'));
       setShowCancelDialog(false);
     },
-    onError: () => toast.error("Failed to cancel event"),
+    onError: () => toast.error(t('cancelFailed')),
   });
 
   const processAttendanceMutation = useMutation({
     mutationFn: () => eventService.processAttendance(id, eventId),
     onSuccess: (data) => {
-      toast.success(data.message || "Attendance processing started");
+      toast.success(data.message || t('attendanceProcessing'));
       setShowProcessDialog(false);
     },
-    onError: () => toast.error("Failed to process attendance"),
+    onError: () => toast.error(t('attendanceProcessFailed')),
   });
 
   const sendInvitationsMutation = useMutation({
@@ -228,7 +230,7 @@ export default function EventDetailPage({
       eventService.sendInvitations(id, eventId, memberIds),
     onSuccess: (data) => {
       toast.success(
-        `Invitations sent to ${data.invited} member(s). ${data.already_invited} already invited.`,
+        t('invitationsSent', { invited: data.invited, alreadyInvited: data.already_invited }),
       );
       setShowInviteDialog(false);
       setSelectedMemberIds([]);
@@ -236,31 +238,31 @@ export default function EventDetailPage({
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to send invitations");
+      toast.error(message ?? t('inviteFailed'));
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: () => eventService.registerForEvent(id, eventId),
     onSuccess: () => {
-      toast.success("You have registered for this event!");
+      toast.success(t('registrationSuccess'));
       refetchMyInvitations();
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to register for event");
+      toast.error(message ?? t('registrationFailed'));
     },
   });
 
   const cancelRegistrationMutation = useMutation({
     mutationFn: () => eventService.cancelRegistration(id, eventId),
     onSuccess: () => {
-      toast.success("Registration cancelled");
+      toast.success(t('registrationCancelled'));
       refetchMyInvitations();
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to cancel registration");
+      toast.error(message ?? t('cancelRegFailed'));
     },
   });
 
@@ -273,7 +275,7 @@ export default function EventDetailPage({
       action: "accept" | "decline";
     }) => eventService.respondToInvitation(id, eventId, invitationId, action),
     onSuccess: () => {
-      toast.success("Response recorded");
+      toast.success(t('responseRecorded'));
       refetchMyInvitations();
       queryClient.invalidateQueries({
         queryKey: ["event-invitations", id, eventId],
@@ -281,13 +283,13 @@ export default function EventDetailPage({
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to respond to invitation");
+      toast.error(message ?? t('responseFailed'));
     },
   });
 
   const handleSendInvitations = () => {
     if (selectedMemberIds.length === 0) {
-      toast.error("Please select at least one member");
+      toast.error(t('selectAtLeastOne'));
       return;
     }
     sendInvitationsMutation.mutate(selectedMemberIds);
@@ -311,7 +313,7 @@ export default function EventDetailPage({
     );
   }
 
-  if (!event) return <div>Event not found.</div>;
+  if (!event) return <div>{t('eventNotFound')}</div>;
 
   const now = new Date();
   const isPastEvent = new Date(event.start_time) <= now;
@@ -321,7 +323,7 @@ export default function EventDetailPage({
     <div className="space-y-6">
       <Button variant="ghost" onClick={() => router.back()} className="gap-2">
         <ArrowLeft className="w-4 h-4" />
-        Back to Events
+        {t('backToEvents')}
       </Button>
 
       <PageHeader title={event.title} description={event.description}>
@@ -329,13 +331,13 @@ export default function EventDetailPage({
           <Button variant="outline" asChild className="gap-2">
             <Link href={`/mahbers/${id}/events/${eventId}/attendance`}>
               <List className="w-4 h-4" />
-              Attendance
+              {t('attendance')}
             </Link>
           </Button>
           <Button variant="outline" asChild className="gap-2">
             <Link href={`/mahbers/${id}/events/${eventId}/photos`}>
               <Camera className="w-4 h-4" />
-              Photo Gallery
+              {t('photoGallery')}
             </Link>
           </Button>
           {canManageEventsValue && !event.is_cancelled && (
@@ -343,7 +345,7 @@ export default function EventDetailPage({
               <Button variant="outline" asChild className="gap-2">
                 <Link href={`/mahbers/${id}/events/${eventId}/edit`}>
                   <Pencil className="w-4 h-4" />
-                  Edit
+                  {t('edit')}
                 </Link>
               </Button>
               {!isPastEvent && (
@@ -353,7 +355,7 @@ export default function EventDetailPage({
                   className="gap-2 text-status-warning border-status-warning/30 hover:bg-status-warning/10"
                 >
                   <XCircle className="w-4 h-4" />
-                  Cancel Event
+                  {t('cancelEvent')}
                 </Button>
               )}
             </>
@@ -366,7 +368,7 @@ export default function EventDetailPage({
               className="gap-2"
             >
               <Mail className="w-4 h-4" />
-              Send Invitations
+              {t('sendInvitations')}
             </Button>
           )}
           {/* Host / Admin: Event QR Code */}
@@ -376,7 +378,7 @@ export default function EventDetailPage({
               className="gap-2 bg-gold hover:bg-gold/90"
             >
               <QrCode className="w-4 h-4" />
-              Event QR Code
+              {t('eventQRCode')}
             </Button>
           )}
           {/* Admin: Process Attendance */}
@@ -390,7 +392,7 @@ export default function EventDetailPage({
                 className="gap-2"
               >
                 <History className="w-4 h-4" />
-                Process Attendance
+                {t('processAttendance')}
               </Button>
             )}
         </div>
@@ -399,7 +401,7 @@ export default function EventDetailPage({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Event Details</CardTitle>
+            <CardTitle>{t('eventDetails')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-wrap gap-2">
@@ -420,7 +422,7 @@ export default function EventDetailPage({
               )}
               {event.host_user && (
                 <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5">
-                  Host: {event.host_user.name}
+                  {t('host', { name: event.host_user.name })}
                 </Badge>
               )}
             </div>
@@ -431,7 +433,7 @@ export default function EventDetailPage({
                   <Calendar className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-text-primary">Date</h4>
+                  <h4 className="font-semibold text-text-primary">{t('date')}</h4>
                   <p className="text-text-secondary">
                     {new Date(event.start_time).toLocaleDateString(undefined, {
                       weekday: "long",
@@ -448,7 +450,7 @@ export default function EventDetailPage({
                   <Clock className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-text-primary">Time</h4>
+                  <h4 className="font-semibold text-text-primary">{t('time')}</h4>
                   <p className="text-text-secondary">
                     {new Date(event.start_time).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -468,7 +470,7 @@ export default function EventDetailPage({
                   <MapPin className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-text-primary">Location</h4>
+                  <h4 className="font-semibold text-text-primary">{t('location')}</h4>
                   <p className="text-text-secondary">{event.location}</p>
                 </div>
               </div>
@@ -480,7 +482,7 @@ export default function EventDetailPage({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-text-secondary">
-                Member Check-in
+                {t('memberCheckin')}
               </CardTitle>
               <CheckCircle className="h-4 w-4 text-status-success" />
             </CardHeader>
@@ -494,7 +496,7 @@ export default function EventDetailPage({
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 text-status-success text-sm font-medium">
                             <CheckCircle className="w-4 h-4" />
-                            You are registered for this event
+                            {t('youAreRegistered')}
                           </div>
                           <Button
                             variant="outline"
@@ -503,13 +505,13 @@ export default function EventDetailPage({
                             isLoading={cancelRegistrationMutation.isPending}
                           >
                             <XCircle className="w-4 h-4" />
-                            Cancel Registration
+                            {t('cancelRegistration')}
                           </Button>
                         </div>
                       ) : myRegistration?.status === "invited" ? (
                         <div className="space-y-3">
                           <p className="text-sm text-text-muted">
-                            You have been invited. Let us know if you can attend.
+                            {t('youHaveBeenInvited')}
                           </p>
                           <div className="flex gap-2">
                             <Button
@@ -518,12 +520,12 @@ export default function EventDetailPage({
                               onClick={() => {
                                 const inv = myRegistration.invitation;
                                 eventService.respondToInvitation(id, eventId, inv.id, "accept")
-                                  .then(() => { toast.success("Invitation accepted!"); refetchMyInvitations(); })
-                                  .catch((e) => toast.error(getErrorMessage(e) ?? "Failed to respond"));
+                                  .then(() => { toast.success(t('invitationAccepted')); refetchMyInvitations(); })
+                                  .catch((e) => toast.error(getErrorMessage(e) ?? t('responseFailed')));
                               }}
                             >
                               <CheckSquare className="w-3 h-3" />
-                              Accept
+                              {t('accept')}
                             </Button>
                             <Button
                               variant="outline"
@@ -532,19 +534,19 @@ export default function EventDetailPage({
                               onClick={() => {
                                 const inv = myRegistration.invitation;
                                 eventService.respondToInvitation(id, eventId, inv.id, "decline")
-                                  .then(() => { toast.success("Invitation declined"); refetchMyInvitations(); })
-                                  .catch((e) => toast.error(getErrorMessage(e) ?? "Failed to respond"));
+                                  .then(() => { toast.success(t('invitationDeclined')); refetchMyInvitations(); })
+                                  .catch((e) => toast.error(getErrorMessage(e) ?? t('responseFailed')));
                               }}
                             >
                               <XSquare className="w-3 h-3" />
-                              Decline
+                              {t('decline')}
                             </Button>
                           </div>
                         </div>
                       ) : (
                         <div className="space-y-3">
                           <p className="text-sm text-text-muted">
-                            Register to let the organizer know you will attend.
+                            {t('registerToAttend')}
                           </p>
                           <Button
                             className="w-full gap-2"
@@ -552,20 +554,20 @@ export default function EventDetailPage({
                             isLoading={registerMutation.isPending}
                           >
                             <CheckSquare className="w-4 h-4" />
-                            Register for Event
+                            {t('registerForEvent')}
                           </Button>
                         </div>
                       )}
                       <hr className="border-border-glass" />
                       <p className="text-sm text-text-muted">
-                        Generate your personal QR code to check in.
+                        {t('generateQR')}
                       </p>
                       <Button
                         className="w-full gap-2 bg-gold hover:bg-gold/90"
                         onClick={() => setShowUserQR(true)}
                       >
                         <Zap className="w-4 h-4" />
-                        My Check-in QR
+                        {t('myCheckinQR')}
                       </Button>
                     </>
                   ) : (
@@ -579,7 +581,7 @@ export default function EventDetailPage({
                           onClick={() => setShowScanner(true)}
                         >
                           <Camera className="w-4 h-4" />
-                          Scan Member QR
+                          {t('scanMemberQR')}
                         </Button>
                         <Button
                           variant="outline"
@@ -588,7 +590,7 @@ export default function EventDetailPage({
                           className="gap-2"
                         >
                           <CheckCircle className="w-4 h-4" />
-                          Manual Check-in
+                          {t('manualCheckin')}
                         </Button>
                       </div>
                     </>
@@ -599,8 +601,8 @@ export default function EventDetailPage({
                   <AlertCircle className="w-4 h-4 text-status-warning" />
                   <span className="text-text-muted">
                     {!isPastEvent
-                      ? "Check-in opens when the event starts."
-                      : "Check-in is closed for this event."}
+                      ? t('checkinOpens')
+                      : t('checkinClosed')}
                   </span>
                 </div>
               )}
@@ -612,26 +614,26 @@ export default function EventDetailPage({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-text-secondary">
-                  Invitations
+                  {t('invitations')}
                 </CardTitle>
                 <Mail className="h-4 w-4 text-gold" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-text-secondary">Sent</span>
+                    <span className="text-text-secondary">{t('sent')}</span>
                     <span className="font-semibold">{invitationSummary.total}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-status-success">Accepted</span>
+                    <span className="text-status-success">{t('accepted')}</span>
                     <span className="font-semibold">{invitationSummary.accepted}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-status-error">Declined</span>
+                    <span className="text-status-error">{t('declined')}</span>
                     <span className="font-semibold">{invitationSummary.declined}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-status-warning">Pending</span>
+                    <span className="text-status-warning">{t('pending')}</span>
                     <span className="font-semibold">{invitationSummary.pending}</span>
                   </div>
                 </div>
@@ -642,7 +644,7 @@ export default function EventDetailPage({
           <Card className="bg-gradient-to-br from-gold/10 to-background-dark">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-text-secondary">
-                Checked In
+                {t('checkedIn')}
               </CardTitle>
               <Users className="h-4 w-4 text-gold" />
             </CardHeader>
@@ -652,7 +654,7 @@ export default function EventDetailPage({
               </div>
               {isAttendanceError && (
                 <p className="text-xs text-status-warning mt-1">
-                  Attendance list unavailable
+                  {t('attendanceUnavailable')}
                 </p>
               )}
               {isPastEvent && !isAttendanceError && (
@@ -663,7 +665,7 @@ export default function EventDetailPage({
                 >
                   <Link href={`/mahbers/${id}/events/${eventId}/attendance`}>
                     <List className="w-3 h-3 mr-1" />
-                    View List
+                    {t('viewList')}
                   </Link>
                 </Button>
               )}
@@ -676,24 +678,23 @@ export default function EventDetailPage({
       <Dialog
         isOpen={showCancelDialog}
         onClose={() => setShowCancelDialog(false)}
-        title="Cancel Event"
-        description="Are you sure you want to cancel this event? This action cannot be undone."
+        title={t('cancelTitle')}
+        description={t('cancelDesc')}
       >
         <div className="flex flex-col gap-4 py-4">
           <p className="text-sm text-text-secondary">
-            Cancelling this event will notify all members. This action cannot be
-            reversed.
+            {t('cancelWarning')}
           </p>
           <div className="flex justify-end gap-3">
             <Button variant="ghost" onClick={() => setShowCancelDialog(false)}>
-              Keep Event
+              {t('keepEvent')}
             </Button>
             <Button
               variant="destructive"
               onClick={() => cancelMutation.mutate()}
               isLoading={cancelMutation.isPending}
             >
-              Cancel Event
+              {t('cancelEventBtn')}
             </Button>
           </div>
         </div>
@@ -703,13 +704,12 @@ export default function EventDetailPage({
       <Dialog
         isOpen={showProcessDialog}
         onClose={() => setShowProcessDialog(false)}
-        title="Process Attendance"
-        description="This will calculate absence fines for members who did not attend this mandatory event."
+        title={t('processTitle')}
+        description={t('processDesc')}
       >
         <div className="flex flex-col gap-4 py-4">
           <p className="text-sm text-text-secondary">
-            Members who did not check in will be automatically fined according
-            to the mahber's fine policy. This action cannot be undone.
+            {t('processWarning')}
           </p>
           <div className="flex justify-end gap-3">
             <Button variant="ghost" onClick={() => setShowProcessDialog(false)}>
@@ -719,7 +719,7 @@ export default function EventDetailPage({
               onClick={() => processAttendanceMutation.mutate()}
               isLoading={processAttendanceMutation.isPending}
             >
-              Process Fines
+              {t('processFines')}
             </Button>
           </div>
         </div>
@@ -732,13 +732,13 @@ export default function EventDetailPage({
           setShowInviteDialog(false);
           setSelectedMemberIds([]);
         }}
-        title="Send Event Invitations"
-        description="Select members to invite to this event. Invitations will be sent via in-app, push, email, and SMS."
+        title={t('sendInvitesTitle')}
+        description={t('sendInvitesDesc')}
       >
         <div className="flex flex-col gap-4 py-4 max-h-80 overflow-y-auto">
           {activeMembers.length === 0 ? (
             <p className="text-sm text-text-secondary text-center py-8">
-              No active members to invite.
+              {t('noActiveMembers')}
             </p>
           ) : (
             activeMembers.map((member: any) => (
@@ -763,7 +763,7 @@ export default function EventDetailPage({
                 </button>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-text-primary">
-                    {member.user?.name ?? "Unknown Member"}
+                    {member.user?.name ?? t('unknownMember')}
                   </p>
                   <p className="text-xs text-text-muted">
                     {member.user?.phone ?? ""}
@@ -780,7 +780,7 @@ export default function EventDetailPage({
         </div>
         <div className="flex justify-between items-center pt-2 border-t border-border-glass">
           <p className="text-xs text-text-muted">
-            {selectedMemberIds.length} selected
+            {t('selectedCount', { count: selectedMemberIds.length })}
           </p>
           <div className="flex gap-3">
             <Button
@@ -790,7 +790,7 @@ export default function EventDetailPage({
                 setSelectedMemberIds([]);
               }}
             >
-              Cancel
+              {t('keepEvent')}
             </Button>
             <Button
               onClick={handleSendInvitations}
@@ -799,7 +799,7 @@ export default function EventDetailPage({
               className="gap-2"
             >
               <Mail className="w-4 h-4" />
-              Send Invitations
+              {t('send')}
             </Button>
           </div>
         </div>
@@ -809,8 +809,8 @@ export default function EventDetailPage({
       <Dialog
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}
-        title="Scan Member QR Code"
-        description="Point your camera at the member's QR code to record their check-in."
+        title={t('scanQRTitle')}
+        description={t('scanQRDesc')}
       >
         <div className="py-4">
           <QRScanner
@@ -824,19 +824,19 @@ export default function EventDetailPage({
       <Dialog
         isOpen={showManualDialog}
         onClose={() => setShowManualDialog(false)}
-        title="Manual Check-in"
-        description="Select a member to mark as attended."
+        title={t('manualCheckinTitle')}
+        description={t('manualCheckinDesc')}
       >
         <div className="flex flex-col gap-3 py-2 max-h-80 overflow-y-auto">
           <Input
-            placeholder="Search members..."
+            placeholder={t('searchMembers')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="mb-2"
           />
           {activeMembers.length === 0 ? (
             <p className="text-sm text-text-secondary text-center py-8">
-              No active members available.
+              {t('noActiveMembersAvailable')}
             </p>
           ) : (
             filteredActiveMembers.map((member: any) => (
@@ -857,7 +857,7 @@ export default function EventDetailPage({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-text-primary truncate">
-                    {member.user?.name ?? "Unknown Member"}
+                    {member.user?.name ?? t('unknownMember')}
                   </p>
                   <p className="text-xs text-text-muted truncate">
                     {member.user?.phone ?? ""}
@@ -874,8 +874,8 @@ export default function EventDetailPage({
       <Dialog
         isOpen={showQR}
         onClose={() => setShowQR(false)}
-        title="Event QR Code"
-        description="Display this QR code for members to scan and check-in upon arrival."
+        title={t('eventQRTitle')}
+        description={t('eventQRDesc')}
       >
         <div className="flex flex-col items-center justify-center py-6 space-y-6">
           {isQRLoading ? (
@@ -887,15 +887,14 @@ export default function EventDetailPage({
                 variant="outline"
                 onClick={() => downloadQRCode(qrCode.qr_code, `${event?.title ?? "event"}-qr.png`)}
               >
-                Download QR
+                {t('downloadQR')}
               </Button>
             </>
           ) : (
-            <div className="text-status-error">Failed to load QR Code</div>
+            <div className="text-status-error">{t('qrLoadFailed')}</div>
           )}
           <p className="text-sm text-center text-text-secondary max-w-[250px]">
-            Display this QR code for members to scan and check in upon arrival
-            at the event.
+            {t('qrDisplayDesc')}
           </p>
         </div>
       </Dialog>
@@ -904,8 +903,8 @@ export default function EventDetailPage({
       <Dialog
         isOpen={showUserQR}
         onClose={() => setShowUserQR(false)}
-        title="My Check-in QR Code"
-        description="Show this QR code to an admin to check in at the event."
+        title={t('myQRTitle')}
+        description={t('myQRDesc')}
       >
         <div className="flex flex-col items-center justify-center py-6 space-y-6">
           {isUserQRLoading ? (
@@ -917,15 +916,14 @@ export default function EventDetailPage({
                 variant="outline"
                 onClick={() => downloadQRCode(userQRCode.qr_code, `${event?.title ?? "checkin"}-qr.png`)}
               >
-                Download QR
+                {t('downloadQR')}
               </Button>
             </>
           ) : (
-            <div className="text-status-error">Failed to generate QR Code</div>
+            <div className="text-status-error">{t('qrGenerateFailed')}</div>
           )}
           <p className="text-sm text-center text-text-secondary max-w-[250px]">
-            Present this QR code to an admin at the venue for check-in. You can
-            screenshot it for offline use.
+            {t('myQRDisplayDesc')}
           </p>
         </div>
       </Dialog>

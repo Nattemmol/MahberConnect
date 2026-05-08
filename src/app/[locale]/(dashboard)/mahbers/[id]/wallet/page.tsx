@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { use, useState } from "react";
+import { useTranslations } from "next-intl";
 import { financialService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -41,6 +42,7 @@ export default function WalletPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("Wallet");
   const [memberFilter, setMemberFilter] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<LedgerEntry | null>(null);
 
@@ -55,8 +57,8 @@ export default function WalletPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Wallet & Ledger"
-        description="Real-time balance tracking and historical ledger of organization funds."
+        title={t("title")}
+        description={t("pageDesc")}
       />
 
       {/* Balance Banner */}
@@ -69,7 +71,7 @@ export default function WalletPage({
             </div>
             <div>
               <p className="text-sm font-semibold tracking-wider text-text-secondary uppercase">
-                Group Balance
+                {t("groupBalance")}
               </p>
               <h2 className="text-3xl md:text-4xl font-extrabold text-gold tracking-tight mt-1">
                 {parseFloat(balance).toLocaleString(undefined, {
@@ -84,7 +86,7 @@ export default function WalletPage({
           <div className="flex gap-3 w-full md:w-auto">
             <Button asChild className="w-full md:w-auto bg-gold hover:bg-gold-dark text-black font-semibold shadow-md shadow-gold/10">
               <Link href={`/mahbers/${id}/payments/initiate`}>
-                Make Contribution
+                {t("makeContribution")}
               </Link>
             </Button>
           </div>
@@ -96,7 +98,7 @@ export default function WalletPage({
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-2.5 h-4.5 w-4.5 text-text-muted" />
           <Input
-            placeholder="Filter by Member ID..."
+            placeholder={t("filterByMemberId")}
             value={memberFilter}
             onChange={(e) => setMemberFilter(e.target.value)}
             className="pl-10"
@@ -104,7 +106,7 @@ export default function WalletPage({
         </div>
         {memberFilter && (
           <Button variant="ghost" onClick={() => setMemberFilter("")} size="sm">
-            Clear Filter
+            {t("clearFilter")}
           </Button>
         )}
       </div>
@@ -120,19 +122,19 @@ export default function WalletPage({
       ) : entries.length === 0 ? (
         <div className="text-center py-16 glass border-border-glass rounded-card">
           <Info className="w-12 h-12 text-text-muted mx-auto mb-4" />
-          <p className="text-text-secondary text-lg">No ledger entries found.</p>
-          <p className="text-text-muted text-sm mt-1">Transactions will appear here once payments are processed.</p>
+          <p className="text-text-secondary text-lg">{t("noEntries")}</p>
+          <p className="text-text-muted text-sm mt-1">{t("noEntriesDesc")}</p>
         </div>
       ) : (
         <div className="glass rounded-card overflow-hidden border border-border-glass">
           <Table>
             <TableHeader className="bg-background-surface">
               <TableRow>
-                <TableHead className="w-[140px]">Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="w-[120px]">Type</TableHead>
-                <TableHead className="text-right w-[150px]">Amount (ETB)</TableHead>
-                <TableHead className="text-right w-[150px]">Balance</TableHead>
+                <TableHead className="w-[140px]">{t("date")}</TableHead>
+                <TableHead>{t("description")}</TableHead>
+                <TableHead className="w-[120px]">{t("type")}</TableHead>
+                <TableHead className="text-right w-[150px]">{t("amount")}</TableHead>
+                <TableHead className="text-right w-[150px]">{t("balance")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -204,21 +206,21 @@ export default function WalletPage({
       <Dialog
         isOpen={!!selectedEntry}
         onClose={() => setSelectedEntry(null)}
-        title="Transaction Details"
-        description="Comprehensive details of the selected ledger entry."
+        title={t("transactionDetails")}
+        description={t("detailsDesc")}
       >
         {selectedEntry && (
           <div className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-4 border-b border-border pb-4 text-sm">
               <div>
-                <span className="text-text-muted block text-xs">Date & Time</span>
+                <span className="text-text-muted block text-xs">{t("dateTime")}</span>
                 <span className="font-semibold text-text-primary flex items-center gap-1.5 mt-0.5">
                   <Calendar className="w-4 h-4 text-gold" />
                   {new Date(selectedEntry.created_at).toLocaleString()}
                 </span>
               </div>
               <div>
-                <span className="text-text-muted block text-xs">Transaction ID</span>
+                <span className="text-text-muted block text-xs">{t("transactionId")}</span>
                 <span className="font-mono text-text-primary text-xs mt-1 block select-all bg-background-surface p-1 rounded border border-border">
                   {selectedEntry.id}
                 </span>
@@ -227,7 +229,7 @@ export default function WalletPage({
 
             <div className="space-y-3 pb-2">
               <div>
-                <span className="text-text-muted block text-xs">Description</span>
+                <span className="text-text-muted block text-xs">{t("description")}</span>
                 <span className="font-medium text-text-primary mt-0.5 block leading-relaxed">
                   {selectedEntry.description}
                 </span>
@@ -235,20 +237,20 @@ export default function WalletPage({
 
               <div className="grid grid-cols-3 gap-2 pt-2">
                 <div className="bg-background-surface p-2.5 rounded-lg border border-border">
-                  <span className="text-text-muted text-[10px] uppercase font-semibold">Type</span>
+                  <span className="text-text-muted text-[10px] uppercase font-semibold">{t("type")}</span>
                   <span className="font-bold text-text-primary block mt-0.5 text-sm">
                     {selectedEntry.transaction_type}
                   </span>
                 </div>
                 <div className="bg-background-surface p-2.5 rounded-lg border border-border">
-                  <span className="text-text-muted text-[10px] uppercase font-semibold">Amount</span>
+                  <span className="text-text-muted text-[10px] uppercase font-semibold">{t("amount")}</span>
                   <span className={`font-bold block mt-0.5 text-sm ${parseFloat(selectedEntry.amount) >= 0 ? "text-status-success" : "text-status-error"}`}>
                     {parseFloat(selectedEntry.amount) >= 0 ? "+" : ""}
                     {parseFloat(selectedEntry.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="bg-background-surface p-2.5 rounded-lg border border-border">
-                  <span className="text-text-muted text-[10px] uppercase font-semibold">Balance After</span>
+                  <span className="text-text-muted text-[10px] uppercase font-semibold">{t("balanceAfter")}</span>
                   <span className="font-bold text-text-primary block mt-0.5 text-sm">
                     {parseFloat(selectedEntry.running_balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
@@ -259,26 +261,26 @@ export default function WalletPage({
             {/* Links to associated entities */}
             {(selectedEntry.payment_id || selectedEntry.fine_id || selectedEntry.lottery_id) && (
               <div className="border-t border-border pt-4 space-y-2">
-                <span className="text-text-muted block text-xs font-semibold">Associated Subsystem Records</span>
+                <span className="text-text-muted block text-xs font-semibold">{t("associatedRecords")}</span>
                 <div className="flex flex-wrap gap-2">
                   {selectedEntry.payment_id && (
                     <Button asChild size="sm" variant="outline" className="border-gold/30 hover:bg-gold/10">
                       <Link href={`/mahbers/${id}/payments`}>
-                        View Payments
+                        {t("viewPayments")}
                       </Link>
                     </Button>
                   )}
                   {selectedEntry.fine_id && (
                     <Button asChild size="sm" variant="outline" className="border-red-500/20 hover:bg-red-500/5 text-status-error">
                       <Link href={`/mahbers/${id}/fines`}>
-                        View Associated Fine
+                        {t("viewFine")}
                       </Link>
                     </Button>
                   )}
                   {selectedEntry.lottery_id && (
                     <Button asChild size="sm" variant="outline" className="border-gold/30 hover:bg-gold/10 text-gold">
                       <Link href={`/mahbers/${id}/lottery`}>
-                        View Lottery Draw
+                        {t("viewLottery")}
                       </Link>
                     </Button>
                   )}
@@ -288,7 +290,7 @@ export default function WalletPage({
 
             <div className="flex justify-end pt-3">
               <Button variant="ghost" onClick={() => setSelectedEntry(null)}>
-                Close
+                {t("close")}
               </Button>
             </div>
           </div>

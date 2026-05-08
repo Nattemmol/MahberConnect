@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { PlusCircle, Users } from "lucide-react";
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MyMahbersPage() {
+  const t = useTranslations("MyMahbers");
   const { data: mahbers, isLoading } = useQuery({
     queryKey: ["mahbers"],
     queryFn: () => mahberService.getMahbers(),
@@ -26,13 +28,13 @@ export default function MyMahbersPage() {
   return (
     <div>
       <PageHeader
-        title="My Mahbers"
-        description="Communities you are a member of."
+        title={t('title')}
+        description={t('description')}
       >
         <Button asChild>
           <Link href="/mahbers/create" className="gap-2">
             <PlusCircle className="w-4 h-4" />
-            Create New
+            {t('createNew')}
           </Link>
         </Button>
       </PageHeader>
@@ -55,17 +57,17 @@ export default function MyMahbersPage() {
         <div className="text-center py-20 glass rounded-card">
           <Users className="w-12 h-12 text-text-muted mx-auto mb-4" />
           <h3 className="text-lg font-medium text-text-primary mb-2">
-            No Mahbers Yet
+            {t('noMahbersYet')}
           </h3>
           <p className="text-text-secondary mb-6">
-            You haven&apos;t joined any communities.
+            {t('noMahbersDesc')}
           </p>
           <div className="flex gap-4 justify-center">
             <Button asChild variant="outline">
-              <Link href="/mahbers/discover">Discover Mahbers</Link>
+              <Link href="/mahbers/discover">{t('discoverMahbers')}</Link>
             </Button>
             <Button asChild>
-              <Link href="/mahbers/create">Create One</Link>
+              <Link href="/mahbers/create">{t('createOne')}</Link>
             </Button>
           </div>
         </div>
@@ -90,7 +92,7 @@ export default function MyMahbersPage() {
                     {mahber.type}
                   </Badge>
                   <Badge variant={mahber.is_public ? "outline" : "secondary"}>
-                    {mahber.is_public ? "Public" : "Private"}
+                    {mahber.is_public ? t('public') : t('private')}
                   </Badge>
                 </div>
                 <CardTitle>{mahber.name}</CardTitle>
@@ -101,7 +103,7 @@ export default function MyMahbersPage() {
               </CardHeader>
               <CardFooter>
                 <Button asChild className="w-full" variant="secondary">
-                  <Link href={`/mahbers/${mahber.id}`}>View Dashboard</Link>
+                  <Link href={`/mahbers/${mahber.id}`}>{t('viewDashboard')}</Link>
                 </Button>
               </CardFooter>
             </Card>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,45 +12,46 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { PaymentFrequency } from "@/lib/types";
 
-const createMahberSchema = z
-  .object({
-    name: z
-      .string()
-      .min(3, "Name must be at least 3 characters")
-      .max(50, "Name is too long"),
-    type: z.enum(["MAHBER", "EQUB"]),
-    configuration: z.object({
-      contribution_amount: z
-        .number({ error: "Contribution amount is required" })
-        .min(1, "Contribution amount must be greater than 0"),
-      cycle: z.string().min(1, "Contribution cycle is required"),
-      payment_frequency: z.string().optional(),
-      payment_day: z.number().optional(),
-      join_fee_required: z.boolean(),
-      join_fee_amount: z.number().min(0),
-      penalty_rate: z.number().min(0),
-      penalty_mode: z.enum(["fixed", "percentage"]),
-      penalty_interval: z.string().min(1, "Penalty interval is required"),
-      max_fine_total: z.number().min(0),
-      operation_cost_rate: z.number().optional(),
-    }),
-    is_public: z.boolean(),
-    invitation_code: z.string().optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.type === "EQUB" && (value.configuration.operation_cost_rate ?? 0) <= 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["configuration", "operation_cost_rate"],
-        message: "Operation cost rate is required for Equb and must be greater than 0",
-      });
-    }
-  });
-
-type CreateMahberValues = z.infer<typeof createMahberSchema>;
+type CreateMahberValues = z.infer<ReturnType<typeof getCreateMahberSchema>>;
 
 export default function CreateMahberPage() {
+  const t = useTranslations("CreateMahber");
   const router = useRouter();
+
+  const getCreateMahberSchema = () => z
+    .object({
+      name: z
+        .string()
+        .min(3, t('nameTooShort'))
+        .max(50, t('nameTooLong')),
+      type: z.enum(["MAHBER", "EQUB"]),
+      configuration: z.object({
+        contribution_amount: z
+          .number({ error: t('contributionRequired') })
+          .min(1, t('contributionPositive')),
+        cycle: z.string().min(1, t('cycleRequired')),
+        payment_frequency: z.string().optional(),
+        payment_day: z.number().optional(),
+        join_fee_required: z.boolean(),
+        join_fee_amount: z.number().min(0),
+        penalty_rate: z.number().min(0),
+        penalty_mode: z.enum(["fixed", "percentage"]),
+        penalty_interval: z.string().min(1, "Penalty interval is required"),
+        max_fine_total: z.number().min(0),
+        operation_cost_rate: z.number().optional(),
+      }),
+      is_public: z.boolean(),
+      invitation_code: z.string().optional(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.type === "EQUB" && (value.configuration.operation_cost_rate ?? 0) <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["configuration", "operation_cost_rate"],
+          message: t('operationCostRequired'),
+        });
+      }
+    });
 
   const {
     register,
@@ -57,7 +59,7 @@ export default function CreateMahberPage() {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateMahberValues>({
-    resolver: zodResolver(createMahberSchema),
+    resolver: zodResolver(getCreateMahberSchema()),
     defaultValues: {
       type: "MAHBER",
       is_public: false,
@@ -93,20 +95,20 @@ export default function CreateMahberPage() {
         },
       };
       const newMahber = await mahberService.createMahber(payload);
-      toast.success("Mahber created successfully!");
+      toast.success(t('createdSuccess'));
       router.push(`/mahbers/${newMahber.id}`);
     } catch (err) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const error = err as any;
-      toast.error(error.response?.data?.message || "Failed to create Mahber");
+      toast.error(error.response?.data?.message || t('createFailed'));
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto">
       <PageHeader
-        title="Create Mahber"
-        description="Initialize a new community, equb, or iddir."
+        title={t('title')}
+        description={t('description')}
       />
 
       <Card>
@@ -114,11 +116,11 @@ export default function CreateMahberPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Community Name
+                {t('communityName')}
               </label>
               <input
                 type="text"
-                placeholder="e.g. Addis Tech Equb"
+                placeholder={t('communityNamePlaceholder')}
                 {...register("name")}
                 className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.name ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors`}
               />
@@ -131,14 +133,14 @@ export default function CreateMahberPage() {
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Organization Type
+                {t('orgType')}
               </label>
               <select
                 {...register("type")}
                 className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
               >
-                <option value="MAHBER">Mahber (General Community)</option>
-                <option value="EQUB">Equb (Rotating Savings)</option>
+                <option value="MAHBER">{t('mahberOption')}</option>
+                <option value="EQUB">{t('equbOption')}</option>
               </select>
               {errors.type && (
                 <p className="text-status-error text-xs mt-1">
@@ -150,13 +152,13 @@ export default function CreateMahberPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Contribution Amount
+                  {t('contributionAmount')}
                 </label>
                 <input
                   type="number"
                   min={1}
                   step={1}
-                  placeholder="e.g. 500"
+                  placeholder={t('contributionPlaceholder')}
                   {...register("configuration.contribution_amount", {
                     valueAsNumber: true,
                   })}
@@ -171,16 +173,16 @@ export default function CreateMahberPage() {
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Payment Frequency
+                  {t('paymentFrequency')}
                 </label>
                 <select
                   {...register("configuration.cycle")}
                   className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.configuration?.cycle ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none`}
                 >
-                  <option value="Daily">Daily</option>
-                  <option value="Weekly">Weekly</option>
-                  <option value="Monthly">Monthly</option>
-                  <option value="Quarterly">Quarterly</option>
+                  <option value="Daily">{t('daily')}</option>
+                  <option value="Weekly">{t('weekly')}</option>
+                  <option value="Monthly">{t('monthly')}</option>
+                  <option value="Quarterly">{t('quarterly')}</option>
                 </select>
                 {errors.configuration?.cycle && (
                   <p className="text-status-error text-xs mt-1">
@@ -194,19 +196,19 @@ export default function CreateMahberPage() {
               <div className="grid gap-4 sm:grid-cols-1">
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">
-                    Payment Day of Week
+                    {t('paymentDayOfWeek')}
                   </label>
                   <select
                     {...register("configuration.payment_day", { valueAsNumber: true })}
                     className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
                   >
-                    <option value={1}>Monday</option>
-                    <option value={2}>Tuesday</option>
-                    <option value={3}>Wednesday</option>
-                    <option value={4}>Thursday</option>
-                    <option value={5}>Friday</option>
-                    <option value={6}>Saturday</option>
-                    <option value={0}>Sunday</option>
+                    <option value={1}>{t('monday')}</option>
+                    <option value={2}>{t('tuesday')}</option>
+                    <option value={3}>{t('wednesday')}</option>
+                    <option value={4}>{t('thursday')}</option>
+                    <option value={5}>{t('friday')}</option>
+                    <option value={6}>{t('saturday')}</option>
+                    <option value={0}>{t('sunday')}</option>
                   </select>
                 </div>
               </div>
@@ -214,13 +216,13 @@ export default function CreateMahberPage() {
               <div className="grid gap-4 sm:grid-cols-1">
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">
-                    Payment Day of Month
+                    {t('paymentDayOfMonth')}
                   </label>
                   <input
                     type="number"
                     min={1}
                     max={31}
-                    placeholder="e.g. 5"
+                    placeholder={t('paymentDayPlaceholder')}
                     {...register("configuration.payment_day", { valueAsNumber: true })}
                     className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors"
                   />
@@ -232,10 +234,10 @@ export default function CreateMahberPage() {
               <div className="flex items-center justify-between p-4 border border-border-glass rounded-input bg-background-dark/30">
                 <div>
                   <p className="text-sm font-medium text-text-primary">
-                    Join Fee Required
+                    {t('joinFeeRequired')}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    Charge members before activation.
+                    {t('joinFeeDesc')}
                   </p>
                 </div>
                 <input
@@ -247,13 +249,13 @@ export default function CreateMahberPage() {
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Join Fee Amount
+                  {t('joinFeeAmount')}
                 </label>
                 <input
                   type="number"
                   min={0}
                   step={1}
-                  placeholder="e.g. 150"
+                  placeholder={t('joinFeePlaceholder')}
                   {...register("configuration.join_fee_amount", {
                     valueAsNumber: true,
                   })}
@@ -265,13 +267,13 @@ export default function CreateMahberPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Penalty Rate
+                  {t('penaltyRate')}
                 </label>
                 <input
                   type="number"
                   min={0}
                   step={1}
-                  placeholder="e.g. 50"
+                  placeholder={t('penaltyRatePlaceholder')}
                   {...register("configuration.penalty_rate", {
                     valueAsNumber: true,
                   })}
@@ -281,24 +283,24 @@ export default function CreateMahberPage() {
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Penalty Mode
+                  {t('penaltyMode')}
                 </label>
                 <select
                   {...register("configuration.penalty_mode")}
                   className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
                 >
-                  <option value="fixed">Fixed</option>
-                  <option value="percentage">Percentage</option>
+                  <option value="fixed">{t('fixed')}</option>
+                  <option value="percentage">{t('percentage')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Penalty Interval
+                  {t('penaltyInterval')}
                 </label>
                 <input
                   type="text"
-                  placeholder="30d"
+                  placeholder={t('penaltyIntervalPlaceholder')}
                   {...register("configuration.penalty_interval")}
                   className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors"
                 />
@@ -307,42 +309,41 @@ export default function CreateMahberPage() {
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Maximum Unpaid Fine Total
+                {t('maxFineTotal')}
               </label>
               <input
                 type="number"
                 min={0}
                 step={1}
-                placeholder="e.g. 1000"
+                placeholder={t('maxFineTotalPlaceholder')}
                 {...register("configuration.max_fine_total", {
                   valueAsNumber: true,
                 })}
                 className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors"
               />
               <p className="text-xs text-text-muted mt-1">
-                When unpaid fines exceed this amount, the member is
-                automatically banned.
+                {t('maxFineTotalDesc')}
               </p>
             </div>
 
             {selectedType === "EQUB" && (
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Operation Cost Rate (%)
+                  {t('operationCostRate')}
                 </label>
                 <input
                   type="number"
                   min={0.01}
                   max={100}
                   step={0.01}
-                  placeholder="e.g. 5"
+                  placeholder={t('operationCostRatePlaceholder')}
                   {...register("configuration.operation_cost_rate", {
                     valueAsNumber: true,
                   })}
                   className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.configuration?.operation_cost_rate ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors`}
                 />
                 <p className="text-xs text-text-muted mt-1">
-                  Percentage deducted from each lottery round pool for organizational costs.
+                  {t('operationCostRateDesc')}
                 </p>
                 {errors.configuration?.operation_cost_rate && (
                   <p className="text-status-error text-xs mt-1">
@@ -354,11 +355,11 @@ export default function CreateMahberPage() {
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Invitation Code (Optional)
+                {t('invitationCode')}
               </label>
               <input
                 type="text"
-                placeholder="e.g. INV-ABC123"
+                placeholder={t('invitationCodePlaceholder')}
                 {...register("invitation_code")}
                 className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.invitation_code ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors`}
               />
@@ -381,10 +382,10 @@ export default function CreateMahberPage() {
                   htmlFor="is_public"
                   className="text-sm font-medium text-text-primary cursor-pointer"
                 >
-                  Make Public
+                  {t('makePublic')}
                 </label>
                 <p className="text-xs text-text-secondary">
-                  If public, anyone can discover and request to join.
+                  {t('makePublicDesc')}
                 </p>
               </div>
             </div>
@@ -395,10 +396,10 @@ export default function CreateMahberPage() {
                 variant="ghost"
                 onClick={() => router.back()}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button type="submit" isLoading={isSubmitting}>
-                Create Community
+                {t('createCommunity')}
               </Button>
             </div>
           </form>

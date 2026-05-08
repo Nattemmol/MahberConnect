@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState } from "react";
 import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import { HandCoins, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,13 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
 import { PayoutCategory } from "@/lib/types";
 
-const payoutCategoryOptions: { value: PayoutCategory; label: string }[] = [
-  { value: "Iddir_Benefit", label: "Iddir Benefit — Bereavement support" },
-  { value: "Event_Reimbursement", label: "Event Reimbursement" },
-  { value: "Recurring", label: "Recurring Payout" },
-  { value: "General", label: "General Payout" },
-];
-
 export default function CreatePayoutPage({
   params,
 }: {
@@ -29,6 +23,8 @@ export default function CreatePayoutPage({
   const { id } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("CreatePayout");
+  const tPayouts = useTranslations("Payouts");
 
   const { data: membersResponse } = useQuery({
     queryKey: ["mahber-members", id],
@@ -37,11 +33,18 @@ export default function CreatePayoutPage({
 
   const members = membersResponse?.data ?? [];
 
+  const payoutCategoryOptions: { value: PayoutCategory; label: string }[] = [
+    { value: "Iddir_Benefit", label: t("catIddirBenefit") },
+    { value: "Event_Reimbursement", label: t("catEventReimbursement") },
+    { value: "Recurring", label: t("catRecurring") },
+    { value: "General", label: t("catGeneral") },
+  ];
+
   const payoutSchema = z.object({
-    member_id: z.string().min(1, "Select a recipient member"),
-    amount: z.number().positive("Amount must be positive"),
+    member_id: z.string().min(1, t("selectRecipient")),
+    amount: z.number().positive(t("amountPositive")),
     category: z.enum(["Iddir_Benefit", "Event_Reimbursement", "Recurring", "General"]),
-    reason: z.string().min(3, "Reason must be at least 3 characters"),
+    reason: z.string().min(3, t("reasonTooShort")),
   });
 
   type PayoutFormValues = z.infer<typeof payoutSchema>;
@@ -67,11 +70,11 @@ export default function CreatePayoutPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-payouts", id] });
       queryClient.invalidateQueries({ queryKey: ["mahber-payouts-summary", id] });
-      toast.success("Payout created successfully!");
+      toast.success(t("createdSuccess"));
       router.push(`/mahbers/${id}/payouts`);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || err.message || "Failed to create payout");
+      toast.error(err.response?.data?.message || err.message || t("creationFailed"));
     },
   });
 
@@ -88,9 +91,9 @@ export default function CreatePayoutPage({
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">New Payout</h1>
+          <h1 className="text-2xl font-bold text-text-primary">{t("title")}</h1>
           <p className="text-text-secondary text-sm mt-1">
-            Disburse funds to a member
+            {t("description")}
           </p>
         </div>
       </div>
@@ -99,23 +102,23 @@ export default function CreatePayoutPage({
         <CardHeader>
           <CardTitle className="text-sm font-medium text-text-primary flex items-center gap-2">
             <HandCoins className="w-4 h-4 text-gold" />
-            Payout Details
+            {t("payoutDetails")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                Recipient Member
+                {t("recipientMember")}
               </label>
               <select
                 {...register("member_id")}
                 className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors"
               >
-                <option value="">Select a member...</option>
+                <option value="">{t("selectMember")}</option>
                 {members.map((m: any) => (
                   <option key={m.member_id ?? m.id} value={m.member_id ?? m.id}>
-                    {m.user?.name ?? m.name ?? "Unknown"} ({m.user?.phone ?? m.phone ?? ""})
+                    {m.user?.name ?? m.name ?? tPayouts("unknownMember")} ({m.user?.phone ?? m.phone ?? ""})
                   </option>
                 ))}
               </select>
@@ -126,13 +129,13 @@ export default function CreatePayoutPage({
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                Amount (ETB)
+                {t("amount")}
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0.01"
-                placeholder="1500.00"
+                placeholder={t("amountPlaceholder")}
                 {...register("amount", { valueAsNumber: true })}
                 className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors"
               />
@@ -143,7 +146,7 @@ export default function CreatePayoutPage({
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                Category
+                {t("category")}
               </label>
               <select
                 {...register("category")}
@@ -162,11 +165,11 @@ export default function CreatePayoutPage({
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                Reason
+                {t("reason")}
               </label>
               <textarea
                 rows={3}
-                placeholder="Explain the purpose of this payout..."
+                placeholder={t("reasonPlaceholder")}
                 {...register("reason")}
                 className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors resize-none"
               />
@@ -178,7 +181,7 @@ export default function CreatePayoutPage({
             <div className="flex gap-3 pt-2">
               <Link href={`/mahbers/${id}/payouts`}>
                 <Button type="button" variant="outline">
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </Link>
               <Button
@@ -187,7 +190,7 @@ export default function CreatePayoutPage({
                 className="gap-2"
               >
                 <HandCoins className="w-4 h-4" />
-                Create Payout
+                {t("createPayout")}
               </Button>
             </div>
           </form>

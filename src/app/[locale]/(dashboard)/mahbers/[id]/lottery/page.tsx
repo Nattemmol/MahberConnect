@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Trophy, Dices, Calendar, Gift, Sparkles } from "lucide-react";
 import { financialService, mahberService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
@@ -19,6 +20,7 @@ export default function LotteryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("Lottery");
   const queryClient = useQueryClient();
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
@@ -46,11 +48,11 @@ export default function LotteryPage({
       });
       setIsDrawing(false);
       setDrawResult(data);
-      toast.success("Draw completed successfully!");
+      toast.success(t("drawCompleted"));
     },
     onError: (err: any) => {
       setIsDrawing(false);
-      toast.error(err.message || "Failed to execute draw");
+      toast.error(err.message || t("drawFailed"));
     },
   });
 
@@ -77,8 +79,8 @@ export default function LotteryPage({
   return (
     <div className="space-y-8 pb-20">
       <PageHeader
-        title="Equb Lottery Draw"
-        description="View the history of past winners and participate in the community draw."
+        title={t("title")}
+        description={t("description")}
       />
 
       {canDrawLottery && (
@@ -89,11 +91,10 @@ export default function LotteryPage({
           <CardContent className="p-8 md:p-12 relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="space-y-4 text-center md:text-left">
               <h2 className="text-3xl font-bold text-text-primary">
-                Next Cycle Draw
+                {t("nextCycleDraw")}
               </h2>
               <p className="text-text-secondary max-w-md">
-                Initiate the random selection algorithm to determine the winner of
-                the current Equb cycle. Only eligible members will be included.
+                {t("nextCycleDesc")}
               </p>
             </div>
 
@@ -106,12 +107,12 @@ export default function LotteryPage({
               {isDrawing ? (
                 <>
                   <Dices className="w-6 h-6 animate-spin" />
-                  Drawing...
+                  {t("drawing")}
                 </>
               ) : (
                 <>
                   <Trophy className="w-6 h-6" />
-                  Start Draw
+                  {t("startDraw")}
                 </>
               )}
             </Button>
@@ -123,10 +124,9 @@ export default function LotteryPage({
         <Card className="bg-surface-active/30 border-border-glass">
           <CardContent className="p-8 text-center space-y-2">
              <Trophy className="w-12 h-12 text-gold mx-auto mb-2 opacity-50" />
-             <h3 className="text-lg font-bold">Draw Participation</h3>
+             <h3 className="text-lg font-bold">{t("drawParticipation")}</h3>
              <p className="text-text-secondary max-w-md mx-auto">
-               The lottery draws are executed by group administrators. 
-               Once a draw is completed, you will see the winner in the history below.
+               {t("drawParticipationDesc")}
              </p>
           </CardContent>
         </Card>
@@ -135,7 +135,7 @@ export default function LotteryPage({
       <div className="space-y-4">
         <h3 className="text-xl font-bold flex items-center gap-2 text-text-primary">
           <Calendar className="w-5 h-5 text-gold" />
-          Draw History
+          {t("drawHistory")}
         </h3>
 
         {isLoading ? (
@@ -148,7 +148,7 @@ export default function LotteryPage({
           <div className="text-center py-12 glass rounded-card">
             <Gift className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
             <p className="text-text-secondary">
-              No lottery draws have been executed yet.
+              {t("noDraws")}
             </p>
           </div>
         ) : (
@@ -167,7 +167,7 @@ export default function LotteryPage({
 
                       <div className="flex-1 min-w-0">
                         <h4 className="text-lg sm:text-xl font-bold text-text-primary truncate">
-                          {draw.winner?.name || "Winner Drawn"}
+                          {draw.winner?.name || t("winnerDrawn")}
                         </h4>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-text-secondary">
                           <span className="flex items-center gap-1">
@@ -176,7 +176,7 @@ export default function LotteryPage({
                           </span>
                           {(draw.cycle_number || (draw as any).cycleNumber) && (
                              <span className="text-text-muted">
-                               Cycle {draw.cycle_number || (draw as any).cycleNumber}
+                               {t("cycle", { number: draw.cycle_number || (draw as any).cycleNumber })}
                              </span>
                           )}
                         </div>
@@ -184,7 +184,7 @@ export default function LotteryPage({
 
                       <div className="shrink-0 text-right">
                         <div className="text-sm text-text-secondary mb-1">
-                          Payout
+                          {t("payout")}
                         </div>
                         <div className="text-xl sm:text-2xl font-bold text-text-primary">
                           {(draw.payout_amount ?? (draw as any).payoutAmount ?? 0).toLocaleString()}{" "}
@@ -196,8 +196,8 @@ export default function LotteryPage({
                     </div>
                     
                     <div className="px-6 py-2 bg-surface-active/30 border-t border-border-glass/50 flex items-center justify-between text-[10px] text-text-muted uppercase tracking-widest">
-                       <span>Seed: {draw.random_seed.slice(0, 16)}...</span>
-                       <span>Eligible: {draw.eligible_members?.length || 0} Members</span>
+                       <span>{t("seed", { seed: draw.random_seed.slice(0, 16) + "..." })}</span>
+                       <span>{t("eligible", { count: draw.eligible_members?.length || 0 })}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -211,21 +211,21 @@ export default function LotteryPage({
       <Dialog
         isOpen={isDrawDialogOpen}
         onClose={() => setIsDrawDialogOpen(false)}
-        title="Execute Lottery Draw"
-        description="This will execute the draw using the Equb configuration saved at creation."
+        title={t("executeTitle")}
+        description={t("executeDesc")}
       >
         <div className="space-y-6 pt-4">
           <p className="text-sm text-text-secondary">
-            The draw will only run when all active members have paid this round&apos;s contribution. The winner will receive the payout automatically.
+            {t("executeWarning")}
           </p>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="ghost" onClick={() => setIsDrawDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsDrawDialogOpen(false)}>{t("cancel")}</Button>
             <Button 
               className="bg-gold hover:bg-gold-dark text-black font-bold"
               onClick={() => drawMutation.mutate()}
             >
-              Execute Draw
+              {t("executeDraw")}
             </Button>
           </div>
         </div>
@@ -235,8 +235,8 @@ export default function LotteryPage({
       <Dialog
         isOpen={!!drawResult}
         onClose={() => setDrawResult(null)}
-        title="🎉 Draw Completed!"
-        description="The lottery has been executed successfully."
+        title={`🎉 ${t("winnerDialogTitle")}`}
+        description={t("winnerDialogDesc")}
       >
         <div className="py-8 flex flex-col items-center text-center space-y-4">
           <div className="w-24 h-24 rounded-full bg-gold/20 flex items-center justify-center text-gold relative">
@@ -245,12 +245,12 @@ export default function LotteryPage({
           </div>
           <div>
             <h3 className="text-2xl font-bold text-text-primary">
-              {drawResult?.winner?.name || "Winner Selected"}
+              {drawResult?.winner?.name || t("winnerTitle")}
             </h3>
-            <p className="text-text-secondary">Has won the current cycle!</p>
+            <p className="text-text-secondary">{t("winnerDesc")}</p>
           </div>
           <div className="bg-surface-active/50 rounded-lg p-6 w-full border border-border-glass">
-            <p className="text-sm text-text-muted uppercase tracking-widest mb-1">Total Payout</p>
+            <p className="text-sm text-text-muted uppercase tracking-widest mb-1">{t("totalPayout")}</p>
             <p className="text-3xl font-bold text-gold">
               {(drawResult?.payout_amount ?? (drawResult as any)?.payoutAmount ?? 0).toLocaleString()} ETB
             </p>
@@ -259,7 +259,7 @@ export default function LotteryPage({
             className="w-full mt-4" 
             onClick={() => setDrawResult(null)}
           >
-            Wonderful!
+            {t("wonderful")}
           </Button>
         </div>
       </Dialog>

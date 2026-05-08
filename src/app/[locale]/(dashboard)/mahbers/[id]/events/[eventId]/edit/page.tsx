@@ -6,6 +6,7 @@ import { use } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, UserX } from "lucide-react";
@@ -19,23 +20,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { canManageEvents } from "@/lib/utils";
 
-const eventSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  event_type: z.enum([
-    "Meeting",
-    "Ceremony",
-    "Fundraiser",
-    "Social_Gathering",
-  ]),
-  start_time: z.string().min(1, "Start time is required"),
-  end_time: z.string().min(1, "End time is required"),
-  location: z.string().min(3, "Location must be at least 3 characters"),
-  is_mandatory: z.boolean().optional(),
-});
-
-type EventFormValues = z.infer<typeof eventSchema>;
-
 export default function EditEventPage({
   params,
 }: {
@@ -45,6 +29,24 @@ export default function EditEventPage({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const t = useTranslations("EventDetail");
+
+  const eventSchema = z.object({
+    title: z.string().min(3, "Title must be at least 3 characters"),
+    description: z.string().min(10, "Description must be at least 10 characters"),
+    event_type: z.enum([
+      "Meeting",
+      "Ceremony",
+      "Fundraiser",
+      "Social_Gathering",
+    ]),
+    start_time: z.string().min(1, "Start time is required"),
+    end_time: z.string().min(1, "End time is required"),
+    location: z.string().min(3, "Location must be at least 3 characters"),
+    is_mandatory: z.boolean().optional(),
+  });
+
+  type EventFormValues = z.infer<typeof eventSchema>;
 
   const { data: currentMember, isLoading: isMemberLoading } = useQuery({
     queryKey: ["mahber-member", id, user?.id],
@@ -126,12 +128,12 @@ export default function EditEventPage({
       queryClient.invalidateQueries({
         queryKey: ["mahber-event", id, eventId],
       });
-      toast.success("Event updated successfully!");
+      toast.success(t('eventUpdated'));
       router.push(`/mahbers/${id}/events/${eventId}`);
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to update event");
+      toast.error(message ?? t('updateFailed'));
     },
   });
 
@@ -140,12 +142,12 @@ export default function EditEventPage({
       eventService.assignEventHost(id, eventId, memberId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-event", id, eventId] });
-      toast.success("Host assigned successfully!");
+      toast.success(t('hostAssigned'));
       setSelectedHostId("");
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to assign host");
+      toast.error(message ?? t('assignHostFailed'));
     },
   });
 
@@ -153,11 +155,11 @@ export default function EditEventPage({
     mutationFn: () => eventService.removeEventHost(id, eventId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-event", id, eventId] });
-      toast.success("Host removed successfully!");
+      toast.success(t('hostRemoved'));
     },
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to remove host");
+      toast.error(message ?? t('removeHostFailed'));
     },
   });
 
@@ -167,7 +169,7 @@ export default function EditEventPage({
 
   useEffect(() => {
     if (!isMemberLoading && user && !canManageEventsValue) {
-      toast.error("You don't have permission to edit events");
+      toast.error(t('noPermissionEdit'));
       router.push(`/mahbers/${id}/events/${eventId}`);
     }
   }, [isMemberLoading, user, canManageEventsValue, router, id, eventId]);
@@ -184,13 +186,13 @@ export default function EditEventPage({
   if (!event) {
     return (
       <div className="text-center py-12">
-        <p className="text-text-secondary">Event not found.</p>
+        <p className="text-text-secondary">{t('eventNotFound')}</p>
         <Button
           variant="link"
           onClick={() => router.push(`/mahbers/${id}/events`)}
           className="mt-4"
         >
-          Back to Events
+          {t('backToEvents')}
         </Button>
       </div>
     );
@@ -200,14 +202,14 @@ export default function EditEventPage({
     return (
       <div className="text-center py-12">
         <p className="text-status-warning">
-          This event has been cancelled and cannot be edited.
+          {t('eventCancelledCannotEdit')}
         </p>
         <Button
           variant="link"
           onClick={() => router.push(`/mahbers/${id}/events/${eventId}`)}
           className="mt-4"
         >
-          Back to Event
+          {t('backToEvent')}
         </Button>
       </div>
     );

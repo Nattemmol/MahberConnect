@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState, useCallback } from "react";
 import {
@@ -27,6 +28,7 @@ export default function JoinRequestsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations("JoinRequests");
   const { id } = use(params);
   const queryClient = useQueryClient();
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -80,12 +82,12 @@ export default function JoinRequestsPage({
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["mahber-join-requests", id] });
       toast.success(
-        `Request ${variables.action === "approve" ? "approved" : "rejected"} successfully`,
+        variables.action === "approve" ? t('requestApproved') : t('requestRejected'),
       );
       setRejectId(null);
       setRejectionReason("");
     },
-    onError: () => toast.error("Failed to process request"),
+    onError: () => toast.error(t('processFailed')),
   });
 
   const batchMutation = useMutation({
@@ -98,12 +100,12 @@ export default function JoinRequestsPage({
       setBatchRejectionReason("");
 
       const parts: string[] = [];
-      if (result.approved > 0) parts.push(`${result.approved} approved`);
-      if (result.rejected > 0) parts.push(`${result.rejected} rejected`);
+      if (result.approved > 0) parts.push(`${result.approved} ${t('approved')}`);
+      if (result.rejected > 0) parts.push(`${result.rejected} ${t('rejected')}`);
       if (result.failed.length > 0)
-        parts.push(`${result.failed.length} failed`);
+        parts.push(`${result.failed.length} ${t('failed')}`);
 
-      toast.success(`Batch complete: ${parts.join(", ")}`);
+      toast.success(t('batchComplete', { summary: parts.join(", ") }));
       if (result.failed.length > 0) {
         result.failed.forEach((f) =>
           toast.error(`${f.requestId.slice(0, 8)}…: ${f.reason}`, {
@@ -112,7 +114,7 @@ export default function JoinRequestsPage({
         );
       }
     },
-    onError: () => toast.error("Failed to process batch"),
+    onError: () => toast.error(t('batchFailed')),
   });
 
   const handleBatchApprove = () => {
@@ -136,8 +138,8 @@ export default function JoinRequestsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Join Requests"
-        description="Review pending applications to join this community."
+        title={t('title')}
+        description={t('description')}
       />
 
       {isLoading ? (
@@ -147,7 +149,7 @@ export default function JoinRequestsPage({
         </div>
       ) : pendingRequests.length === 0 ? (
         <div className="text-center py-12 glass rounded-card">
-          <p className="text-text-secondary">No pending join requests.</p>
+          <p className="text-text-secondary">{t('noPendingRequests')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -157,7 +159,7 @@ export default function JoinRequestsPage({
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-text-primary">
-                    {selectedIds.size} selected
+                    {t('selectedCount', { count: selectedIds.size })}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button
@@ -167,14 +169,14 @@ export default function JoinRequestsPage({
                       isLoading={batchMutation.isPending}
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Reject Selected
+                      {t('rejectSelected')}
                     </Button>
                     <Button
                       onClick={handleBatchApprove}
                       isLoading={batchMutation.isPending}
                     >
                       <Check className="w-4 h-4 mr-2" />
-                      Approve Selected
+                      {t('approveSelected')}
                     </Button>
                   </div>
                 </div>
@@ -193,8 +195,8 @@ export default function JoinRequestsPage({
                       className="shrink-0 text-text-muted hover:text-text-primary transition-colors"
                       aria-label={
                         selectedIds.has(request.id)
-                          ? "Deselect"
-                          : "Select"
+                          ? t('deselect')
+                          : t('select')
                       }
                     >
                       {selectedIds.has(request.id) ? (
@@ -221,7 +223,7 @@ export default function JoinRequestsPage({
                             variant="outline"
                             className="ml-2 py-0 h-4 text-[10px]"
                           >
-                            Code: {request.invitation_code}
+                            {t('code', { code: request.invitation_code })}
                           </Badge>
                         )}
                       </div>
@@ -235,7 +237,7 @@ export default function JoinRequestsPage({
                       onClick={() => setRejectId(request.id)}
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Reject
+                      {t('reject')}
                     </Button>
                     <Button
                       onClick={() =>
@@ -250,7 +252,7 @@ export default function JoinRequestsPage({
                       }
                     >
                       <Check className="w-4 h-4 mr-2" />
-                      Approve
+                      {t('approve')}
                     </Button>
                   </div>
                 </div>
@@ -264,23 +266,23 @@ export default function JoinRequestsPage({
       <Dialog
         isOpen={!!rejectId}
         onClose={() => setRejectId(null)}
-        title="Reject Join Request"
-        description="Please provide a reason for rejecting this application."
+        title={t('rejectTitle')}
+        description={t('rejectDesc')}
       >
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">
-              Rejection Reason
+              {t('rejectionReason')}
             </label>
             <Input
-              placeholder="e.g., Application incomplete, Duplicate request..."
+              placeholder={t('rejectionPlaceholder')}
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setRejectId(null)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -295,7 +297,7 @@ export default function JoinRequestsPage({
               }
               isLoading={handleActionMutation.isPending}
             >
-              Confirm Rejection
+              {t('confirmRejection')}
             </Button>
           </div>
         </div>
@@ -305,16 +307,16 @@ export default function JoinRequestsPage({
       <Dialog
         isOpen={showBatchRejectDialog}
         onClose={() => setShowBatchRejectDialog(false)}
-        title="Reject Selected Requests"
-        description={`Reject ${selectedIds.size} selected join requests.`}
+        title={t('rejectSelectedTitle')}
+        description={t('rejectSelectedDesc', { count: selectedIds.size })}
       >
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">
-              Rejection Reason (optional)
+              {t('batchRejectionReason')}
             </label>
             <Input
-              placeholder="e.g., Incomplete profile information..."
+              placeholder={t('batchRejectionPlaceholder')}
               value={batchRejectionReason}
               onChange={(e) => setBatchRejectionReason(e.target.value)}
             />
@@ -324,14 +326,14 @@ export default function JoinRequestsPage({
               variant="ghost"
               onClick={() => setShowBatchRejectDialog(false)}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleBatchReject}
               isLoading={batchMutation.isPending}
             >
-              Reject {selectedIds.size} Requests
+              {t('rejectCountRequests', { count: selectedIds.size })}
             </Button>
           </div>
         </div>

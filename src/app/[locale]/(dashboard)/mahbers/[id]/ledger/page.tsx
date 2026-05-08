@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
+import { useTranslations } from "next-intl";
 import { financialService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -21,6 +22,7 @@ export default function LedgerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("Ledger");
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["mahber-ledger", id],
     queryFn: () => financialService.getMahberLedger(id),
@@ -29,8 +31,8 @@ export default function LedgerPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Ledger"
-        description="Comprehensive record of all Mahber transactions."
+        title={t("title")}
+        description={t("pageDesc")}
       />
 
       {isLoading ? (
@@ -41,17 +43,17 @@ export default function LedgerPage({
         </div>
       ) : transactions?.data?.length === 0 ? (
         <div className="text-center py-12 glass rounded-card">
-          <p className="text-text-secondary">No transactions recorded yet.</p>
+          <p className="text-text-secondary">{t("noTransactions")}</p>
         </div>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Amount (ETB)</TableHead>
-              <TableHead className="text-right">Balance After</TableHead>
+              <TableHead>{t("date")}</TableHead>
+              <TableHead>{t("description")}</TableHead>
+              <TableHead>{t("type")}</TableHead>
+              <TableHead className="text-right">{t("amount")}</TableHead>
+              <TableHead className="text-right">{t("balanceAfter")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

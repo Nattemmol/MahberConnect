@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import Link from "next/link";
@@ -23,6 +24,7 @@ export default function MahberOverviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations("MahberOverview");
   const { id } = use(params);
   const { user } = useAuthStore();
 
@@ -93,13 +95,13 @@ export default function MahberOverviewPage({
       if (result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
       } else {
-        toast.error("Unable to start checkout.");
+        toast.error(t('unableToCheckout'));
       }
     },
     onError: (err: any) => {
       toast.error(
         err.response?.data?.message ||
-          "Unable to process payment. Please try again.",
+          t('paymentFailed'),
       );
     },
   });
@@ -107,7 +109,7 @@ export default function MahberOverviewPage({
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Mahber" description="Loading mahber details..." />
+        <PageHeader title={t('title')} description={t('loadingDesc')} />
         <div className="grid gap-6 md:grid-cols-2">
           {[1, 2].map((index) => (
             <Card key={index}>
@@ -131,14 +133,13 @@ export default function MahberOverviewPage({
     return (
       <div className="text-center py-20 glass rounded-card">
         <h3 className="text-lg font-medium text-text-primary mb-2">
-          Mahber Not Found
+          {t('notFound')}
         </h3>
         <p className="text-text-secondary mb-6">
-          We couldn&apos;t load this mahber. It may have been removed or you
-          don&apos;t have access.
+          {t('notFoundDesc')}
         </p>
         <Button asChild>
-          <Link href="/mahbers">Back to Mahbers</Link>
+          <Link href="/mahbers">{t('backToMahbers')}</Link>
         </Button>
       </div>
     );
@@ -157,13 +158,13 @@ export default function MahberOverviewPage({
             <div>
               <p className="font-semibold text-text-primary">
                 {hasPendingPayment
-                  ? "Payment in progress"
-                  : "Outstanding payment due"}
+                  ? t('paymentInProgress')
+                  : t('outstandingDue')}
               </p>
               <p className="text-sm text-text-secondary">
                 {hasPendingPayment
-                  ? `You have a pending payment of ${outstanding?.pending_payment_amount ?? 0} ETB that was not completed. Click "Retry Payment" to start a new one.`
-                  : `You owe ${outstandingTotal.toLocaleString()} ETB. ${pendingFineCount > 0 ? `${pendingFineCount} pending fine(s) are included.` : ""}`}
+                  ? t('paymentInProgressDesc', { amount: outstanding?.pending_payment_amount ?? 0 })
+                  : t('outstandingDesc', { amount: outstandingTotal.toLocaleString(), fines: pendingFineCount > 0 ? t('pendingFineCount', { count: pendingFineCount }) : "" })}
               </p>
             </div>
           </div>
@@ -177,14 +178,14 @@ export default function MahberOverviewPage({
               {retryMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
-              Retry Payment
+              {t('retryPayment')}
             </Button>
           ) : (
             <Button
               asChild
               className="bg-gold hover:bg-gold/80 text-black flex-shrink-0 font-medium"
             >
-              <Link href={`/mahbers/${id}/payments/initiate`}>Pay Now</Link>
+              <Link href={`/mahbers/${id}/payments/initiate`}>{t('payNow')}</Link>
             </Button>
           )}
         </div>
@@ -195,11 +196,10 @@ export default function MahberOverviewPage({
           <Clock className="w-8 h-8 text-gold" />
           <div>
             <p className="font-semibold text-text-primary">
-              Join Request Pending
+              {t('joinRequestPending')}
             </p>
             <p className="text-xs text-text-secondary">
-              You have requested to join this community. Some features will be
-              available once your request is approved.
+              {t('joinRequestPendingDesc')}
             </p>
           </div>
         </div>
@@ -213,10 +213,10 @@ export default function MahberOverviewPage({
           {isMember && (
             <>
               <Button asChild variant="outline">
-                <Link href={`/mahbers/${id}/members`}>Members</Link>
+                <Link href={`/mahbers/${id}/members`}>{t('members')}</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href={`/mahbers/${id}/payments`}>Payments</Link>
+                <Link href={`/mahbers/${id}/payments`}>{t('payments')}</Link>
               </Button>
               {mahber.type === "EQUB" && (
                 <Button
@@ -226,7 +226,7 @@ export default function MahberOverviewPage({
                 >
                   <Link href={`/mahbers/${id}/lottery`}>
                     <Trophy className="w-4 h-4" />
-                    Lottery Draw
+                    {t('lotteryDraw')}
                   </Link>
                 </Button>
               )}
@@ -236,7 +236,7 @@ export default function MahberOverviewPage({
                   variant="default"
                   className="bg-gold hover:bg-gold-dark text-black"
                 >
-                  <Link href={`/mahbers/${id}/settings`}>Settings</Link>
+                  <Link href={`/mahbers/${id}/settings`}>{t('settings')}</Link>
                 </Button>
               )}
             </>
@@ -244,7 +244,7 @@ export default function MahberOverviewPage({
           {!isMember && (
             <Badge variant="warning" className="px-4 py-2">
               <Clock className="w-4 h-4 mr-2" />
-              Pending Approval
+              {t('pendingApproval')}
             </Badge>
           )}
         </div>
@@ -253,7 +253,7 @@ export default function MahberOverviewPage({
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Summary</CardTitle>
+            <CardTitle>{t('summary')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -274,21 +274,21 @@ export default function MahberOverviewPage({
             </div>
 
             <div>
-              <p className="text-sm text-text-secondary">Invitation Code</p>
+              <p className="text-sm text-text-secondary">{t('invitationCode')}</p>
               <p className="text-base text-text-primary">
                 {mahber.invitation_code || "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-text-secondary">Created</p>
+              <p className="text-sm text-text-secondary">{t('created')}</p>
               <p className="text-base text-text-primary">
                 {new Date(mahber.created_at).toLocaleDateString()}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-text-secondary">Last Updated</p>
+              <p className="text-sm text-text-secondary">{t('lastUpdated')}</p>
               <p className="text-base text-text-primary">
                 {new Date(mahber.updated_at).toLocaleDateString()}
               </p>
@@ -298,37 +298,37 @@ export default function MahberOverviewPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Configuration</CardTitle>
+            <CardTitle>{t('configuration')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm text-text-secondary">Contribution Amount</p>
+              <p className="text-sm text-text-secondary">{t('contributionAmount')}</p>
               <p className="text-base text-text-primary">
                 {contributionAmount ?? "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-text-secondary">Cycle</p>
+              <p className="text-sm text-text-secondary">{t('cycle')}</p>
               <p className="text-base text-text-primary">{displayCycle}</p>
             </div>
 
             <div>
-              <p className="text-sm text-text-secondary">Join Fee</p>
+              <p className="text-sm text-text-secondary">{t('joinFee')}</p>
               <p className="text-base text-text-primary">
                 {mahber.configuration?.join_fee_required
                   ? `${mahber.configuration?.join_fee_amount ?? 0} ETB`
-                  : "Not required"}
+                  : t('notRequired')}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-text-secondary">Payment Frequency</p>
+              <p className="text-sm text-text-secondary">{t('paymentFrequency')}</p>
               <p className="text-base text-text-primary">{paymentFrequency}</p>
             </div>
 
             <div>
-              <p className="text-sm text-text-secondary">Penalty Rules</p>
+              <p className="text-sm text-text-secondary">{t('penaltyRules')}</p>
               <p className="text-base text-text-primary">
                 {mahber.configuration?.penalty_rate ?? 0}{" "}
                 {mahber.configuration?.penalty_mode ?? "fixed"}
