@@ -20,5 +20,10 @@ export const authApi = {
   getProfile: async (): Promise<User> => {
     const response = await apiClient.get<User>('/auth/profile');
     return response.data;
+  },
+
+  updateProfile: async (data: { name?: string; email?: string | null; bio?: string | null }): Promise<User> => {
+    const response = await apiClient.put<User>('/auth/profile', data);
+    return response.data;
   }
 };
