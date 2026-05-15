@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,9 +11,12 @@ const config: Config = {
     extend: {
       colors: {
         background: {
-          DEFAULT: '#0A0F0A',
-          dark: '#142814',
-          warm: '#140A0A',
+          DEFAULT: 'rgb(var(--bg))',
+          subtle: 'rgb(var(--bg-subtle))',
+          surface: 'rgb(var(--bg-surface))',
+          // legacy
+          start: 'rgb(var(--background-start-rgb))',
+          end: 'rgb(var(--background-end-rgb))',
         },
         gold: {
           DEFAULT: '#EEBD2B',
@@ -23,18 +27,20 @@ const config: Config = {
           200: 'rgba(238, 189, 43, 0.2)',
         },
         surface: {
-          DEFAULT: 'rgba(255, 255, 255, 0.03)',
-          hover: 'rgba(255, 255, 255, 0.05)',
-          active: 'rgba(255, 255, 255, 0.08)',
+          DEFAULT: 'rgb(var(--bg-surface))',
+          hover: 'rgb(var(--bg-subtle))',
+          active: 'rgb(var(--bg-subtle))',
         },
         border: {
-          glass: 'rgba(255, 255, 255, 0.08)',
-          light: 'rgba(255, 255, 255, 0.12)',
+          DEFAULT: 'rgb(var(--border))',
+          glass: 'rgb(var(--border))',
+          light: 'rgb(var(--border))',
+          strong: 'rgb(var(--border-strong))',
         },
         text: {
-          primary: '#F8F8F8',
-          secondary: '#94A3B8',
-          muted: '#64748B',
+          primary: 'rgb(var(--text-primary))',
+          secondary: 'rgb(var(--text-secondary))',
+          muted: 'rgb(var(--text-muted))',
         },
         status: {
           success: '#22C55E',
@@ -44,8 +50,8 @@ const config: Config = {
         },
       },
       borderRadius: {
-        'card': '12px',
-        'input': '8px',
+        'card': '20px',
+        'input': '12px',
         'pill': '999px',
       },
       keyframes: {

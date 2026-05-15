@@ -1,0 +1,58 @@
+{
+  "Dashboard": {
+    "title": "ዳሽቦርድ",
+    "mahbers": "ማህበራት",
+    "search": "ፈልግ...",
+    "activeMahbers": "ንቁ ማህበራት",
+    "totalBalance": "ጠቅላላ ቀሪ ሂሳብ",
+    "pendingPayments": "ያልተከፈሉ ክፍያዎች",
+    "recentActivity": "የቅርብ ጊዜ እንቅስቃሴዎች",
+    "monthlyContribution": "ወርሃዊ መዋጮ",
+    "meetingAttendance": "የስብሰባ ተሳትፎ"
+  },
+  "Sidebar": {
+    "dashboard": "ዳሽቦርድ",
+    "myMahbers": "የእኔ ማህበራት",
+    "discover": "አዲስ ማህበራት",
+    "notifications": "ማሳወቂያዎች",
+    "profile": "ፕሮፋይል",
+    "settings": "ቅንብሮች",
+    "createMahber": "ማህበር ፍጠር",
+    "globalNav": "ዋና ዳሰሳ",
+    "mahberMenu": "የማህበር ሜኑ",
+    "backToDashboard": "ወደ ዳሽቦርድ ተመለስ",
+    "overview": "አጠቃላይ እይታ",
+    "members": "አባላት",
+    "events": "ክስተቶች",
+    "finances": "ፋይናንስ",
+    "chat": "ውይይት",
+    "auditTrail": "ኦዲት"
+  },
+  "HomePage": {
+    "title": "ማህበር ኮኔክት",
+    "description": "ለኢትዮጵያ ማህበረሰብ የፋይናንስ አስተዳደር ዘመናዊ መድረክ። ማህበርዎን፣ እቁብዎን እና እድልዎን በቀላሉ ያስተዳድሩ።",
+    "login": "ይግቡ",
+    "createAccount": "መለያ ይፍጠሩ"
+  },
+  "Auth": {
+    "loginTitle": "እንኳን ደህና መጡ",
+    "loginSubtitle": "ወደ መለያዎ ይግቡ",
+    "registerTitle": "መለያ ይፍጠሩ",
+    "registerSubtitle": "ዛሬ ማህበር ኮኔክትን ይቀላቀሉ",
+    "fullName": "ሙሉ ስም",
+    "phone": "የስልክ ቁጥር",
+    "email": "የኢሜል አድራሻ",
+    "password": "የይለፍ ቃል",
+    "confirmPassword": "የይለፍ ቃል ያረጋግጡ",
+    "forgotPassword": "የይለፍ ቃል ረስተዋል?",
+    "signIn": "ይግቡ",
+    "signUp": "ይመዝገቡ",
+    "noAccount": "መለያ የለዎትም?",
+    "hasAccount": "ቀድሞውኑ መለያ አለዎት?"
+  },
+  "Common": {
+    "loading": "በመጫን ላይ...",
+    "error": "ስህተት ተከስቷል",
+    "success": "ተሳክቷል"
+  }
+}

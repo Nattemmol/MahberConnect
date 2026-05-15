@@ -1,0 +1,58 @@
+{
+  "Dashboard": {
+    "title": "Dashboard",
+    "mahbers": "Mahbers",
+    "search": "Search...",
+    "activeMahbers": "Active Mahbers",
+    "totalBalance": "Total Balance",
+    "pendingPayments": "Pending Payments",
+    "recentActivity": "Recent Activity",
+    "monthlyContribution": "Monthly Contribution",
+    "meetingAttendance": "Meeting Attendance"
+  },
+  "Sidebar": {
+    "dashboard": "Dashboard",
+    "myMahbers": "My Mahbers",
+    "discover": "Discover",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings",
+    "createMahber": "Create Mahber",
+    "globalNav": "Global Navigation",
+    "mahberMenu": "Mahber Menu",
+    "backToDashboard": "Back to Dashboard",
+    "overview": "Overview",
+    "members": "Members",
+    "events": "Events",
+    "finances": "Finances",
+    "chat": "Chat",
+    "auditTrail": "Audit Trail"
+  },
+  "HomePage": {
+    "title": "MahberConnect",
+    "description": "The modern platform for Ethiopian community financial management. Manage your Mahber, Equub, and Iddir with ease.",
+    "login": "Login",
+    "createAccount": "Create Account"
+  },
+  "Auth": {
+    "loginTitle": "Welcome Back",
+    "loginSubtitle": "Sign in to your account",
+    "registerTitle": "Create Account",
+    "registerSubtitle": "Join MahberConnect today",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Action successful"
+  }
+}

@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/routing';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,6 +26,7 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  const t = useTranslations('Auth');
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
@@ -56,13 +57,13 @@ export default function RegisterPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-text-primary">Create Account</h2>
-        <p className="text-text-secondary mt-1">Join MahberConnect today</p>
+        <h2 className="text-2xl font-bold text-text-primary">{t('registerTitle')}</h2>
+        <p className="text-text-secondary mt-1">{t('registerSubtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">Full Name</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">{t('fullName')}</label>
           <input 
             type="text" 
             placeholder="Abebe Kebede" 
@@ -73,7 +74,7 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">Phone Number</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">{t('phone')}</label>
           <input 
             type="tel" 
             placeholder="+251 911 234 567" 
@@ -84,7 +85,7 @@ export default function RegisterPage() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">Password</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">{t('password')}</label>
           <input 
             type="password" 
             placeholder="••••••••" 
@@ -95,7 +96,7 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">Confirm Password</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">{t('confirmPassword')}</label>
           <input 
             type="password" 
             placeholder="••••••••" 
@@ -110,14 +111,14 @@ export default function RegisterPage() {
           isLoading={isSubmitting}
           className="w-full mt-4"
         >
-          Sign Up
+          {t('signUp')}
         </Button>
       </form>
 
       <div className="text-center text-sm text-text-secondary pt-4 border-t border-border-glass">
-        Already have an account?{' '}
+        {t('hasAccount')}{' '}
         <Link href="/login" className="text-gold hover:text-gold-light font-medium">
-          Sign in
+          {t('signIn')}
         </Link>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/routing';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,6 +21,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const t = useTranslations('Auth');
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
@@ -47,13 +48,13 @@ export default function LoginPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-text-primary">Welcome Back</h2>
-        <p className="text-text-secondary mt-1">Sign in to your account</p>
+        <h2 className="text-2xl font-bold text-text-primary">{t('loginTitle')}</h2>
+        <p className="text-text-secondary mt-1">{t('loginSubtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">Phone Number</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">{t('phone')}</label>
           <input 
             type="tel" 
             placeholder="+251 911 234 567" 
@@ -64,7 +65,7 @@ export default function LoginPage() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">Password</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">{t('password')}</label>
           <input 
             type="password" 
             placeholder="••••••••" 
@@ -75,8 +76,8 @@ export default function LoginPage() {
         </div>
 
         <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-sm text-gold hover:text-gold-light">
-            Forgot password?
+          <Link href="/forgot-password" title={t('forgotPassword')} className="text-sm text-gold hover:text-gold-light">
+            {t('forgotPassword')}
           </Link>
         </div>
 
@@ -85,14 +86,14 @@ export default function LoginPage() {
           isLoading={isSubmitting}
           className="w-full mt-2"
         >
-          Sign In
+          {t('signIn')}
         </Button>
       </form>
 
       <div className="text-center text-sm text-text-secondary pt-4 border-t border-border-glass">
-        Don&apos;t have an account?{' '}
+        {t('noAccount')}{' '}
         <Link href="/register" className="text-gold hover:text-gold-light font-medium">
-          Sign up
+          {t('signUp')}
         </Link>
       </div>
     </div>

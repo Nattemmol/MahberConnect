@@ -1,12 +1,21 @@
-import Link from 'next/link';
+'use client';
+
+import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
+import LocaleSwitcher from '@/components/layout/locale-switcher';
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations('HomePage');
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <LocaleSwitcher />
+      </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block text-3xl font-bold text-gold drop-shadow-md">
