@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { financialService } from '@/lib/api/service-factory';
-import { PageHeader } from '@/components/layout/page-header';
+import { useQuery } from "@tanstack/react-query";
+import { use } from "react";
+import { financialService } from "@/lib/api/service-factory";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -11,19 +12,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function LedgerPage({ params }: { params: { id: string } }) {
+export default function LedgerPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const { data: transactions, isLoading } = useQuery({
-    queryKey: ['mahber-ledger', params.id],
-    queryFn: () => financialService.getMahberLedger(params.id)
+    queryKey: ["mahber-ledger", id],
+    queryFn: () => financialService.getMahberLedger(id),
   });
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Ledger" 
+      <PageHeader
+        title="Ledger"
         description="Comprehensive record of all Mahber transactions."
       />
 
@@ -56,12 +62,17 @@ export default function LedgerPage({ params }: { params: { id: string } }) {
                 </TableCell>
                 <TableCell>{tx.description}</TableCell>
                 <TableCell>
-                  <Badge variant={tx.type === 'CREDIT' ? 'success' : 'destructive'}>
+                  <Badge
+                    variant={tx.type === "CREDIT" ? "success" : "destructive"}
+                  >
                     {tx.type}
                   </Badge>
                 </TableCell>
-                <TableCell className={`text-right font-bold ${tx.type === 'CREDIT' ? 'text-status-success' : 'text-status-error'}`}>
-                  {tx.type === 'CREDIT' ? '+' : '-'}{tx.amount.toLocaleString()}
+                <TableCell
+                  className={`text-right font-bold ${tx.type === "CREDIT" ? "text-status-success" : "text-status-error"}`}
+                >
+                  {tx.type === "CREDIT" ? "+" : "-"}
+                  {tx.amount.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right text-text-secondary">
                   {tx.balance_after.toLocaleString()}

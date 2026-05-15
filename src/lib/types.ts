@@ -8,17 +8,22 @@ export type User = {
   updated_at: string;
 };
 
-export type MahberType = 'MAHBER' | 'EQUB' | 'IDDIR';
-export type MemberRole = 'ADMIN' | 'MEMBER';
-export type JoinRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type MahberType = "MAHBER" | "EQUB" | "IDDIR";
+export type MemberRole = "ADMIN" | "MEMBER";
+export type JoinRequestStatus = "Pending" | "Approved" | "Rejected";
+
+export type MahberConfiguration = {
+  cycle: string;
+  contribution_amount: number;
+};
 
 export type Mahber = {
   id: string;
   name: string;
   type: MahberType;
-  configuration: Record<string, unknown>;
+  configuration: MahberConfiguration;
   is_public: boolean;
-  invitation_code?: string;
+  invitation_code: string | null;
   created_at: string;
   updated_at: string;
   _count?: {
@@ -40,11 +45,12 @@ export type CreateMahberDto = {
   name: string;
   type: MahberType;
   is_public: boolean;
-  configuration?: Record<string, unknown>;
+  configuration: MahberConfiguration;
+  invitation_code?: string | null;
 };
 
-export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
-export type PaymentType = 'CONTRIBUTION' | 'FINE' | 'PENALTY';
+export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED";
+export type PaymentType = "CONTRIBUTION" | "FINE" | "PENALTY";
 
 export type Payment = {
   id: string;
@@ -63,7 +69,7 @@ export type Transaction = {
   id: string;
   mahber_id: string;
   payment_id?: string;
-  type: 'CREDIT' | 'DEBIT';
+  type: "CREDIT" | "DEBIT";
   amount: number;
   balance_after: number;
   description: string;
@@ -80,23 +86,28 @@ export type InitiatePaymentDto = {
 
 // ── RBAC ──────────────────────────────────────────────────────────────────────
 export type Permission =
-  | 'manage_members'
-  | 'manage_finances'
-  | 'create_events'
-  | 'send_announcements'
-  | 'view_reports'
-  | 'manage_roles';
+  | "manage_members"
+  | "manage_finances"
+  | "create_events"
+  | "send_announcements"
+  | "view_reports"
+  | "manage_roles";
 
-export type RoleName = 'Admin' | 'Treasurer' | 'Secretary' | 'Member' | 'custom';
+export type RoleName =
+  | "Admin"
+  | "Treasurer"
+  | "Secretary"
+  | "Member"
+  | "custom";
 
 export type MembershipStatus =
-  | 'Pending'
-  | 'Approved'
-  | 'Payment_Required'
-  | 'Active'
-  | 'Suspended'
-  | 'Rejected'
-  | 'Invalidated';
+  | "Pending"
+  | "Approved"
+  | "Payment_Required"
+  | "Active"
+  | "Suspended"
+  | "Rejected"
+  | "Invalidated";
 
 export type MemberDetail = {
   id: string;
@@ -121,8 +132,9 @@ export type JoinRequest = {
   mahber_id: string;
   user_id: string;
   status: JoinRequestStatus;
-  invitation_code?: string;
+  invitation_code?: string | null;
   rejection_reason?: string;
+  approval_date?: string | null;
   created_at: string;
   updated_at: string;
   user?: User;
@@ -134,7 +146,7 @@ export type UpdateRoleDto = {
 };
 
 export type JoinRequestActionDto = {
-  action: 'approve' | 'reject';
+  action: "approve" | "reject";
   rejection_reason?: string;
 };
 
@@ -150,7 +162,11 @@ export type PaginatedResponse<T> = {
 };
 
 // ── Events & Attendance ───────────────────────────────────────────────────────
-export type EventType = 'Meeting' | 'Ceremony' | 'Fundraiser' | 'Social_Gathering';
+export type EventType =
+  | "Meeting"
+  | "Ceremony"
+  | "Fundraiser"
+  | "Social_Gathering";
 
 export type Event = {
   id: string;
@@ -213,7 +229,7 @@ export type ChatMessage = {
   sender?: User;
 };
 
-export type AnnouncementPriority = 'Normal' | 'Important' | 'Urgent';
+export type AnnouncementPriority = "Normal" | "Important" | "Urgent";
 
 export type AnnouncementRead = {
   id: string;
@@ -237,7 +253,7 @@ export type Announcement = {
   creator?: User;
 };
 
-export type PollType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
+export type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE";
 
 export type PollOption = {
   id: string;
@@ -284,7 +300,7 @@ export type CreatePollDto = {
 };
 
 // ── Fines & Lottery ──────────────────────────────────────────────────────────
-export type FineStatus = 'pending' | 'paid' | 'waived';
+export type FineStatus = "pending" | "paid" | "waived";
 
 export type Fine = {
   id: string;

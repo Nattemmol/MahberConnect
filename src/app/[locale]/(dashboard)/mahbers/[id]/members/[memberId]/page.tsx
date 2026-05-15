@@ -1,42 +1,59 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, Calendar, Shield, AlertCircle } from 'lucide-react';
-import { memberService } from '@/lib/api/service-factory';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
-import toast from 'react-hot-toast';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { use } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  User as UserIcon,
+  Wallet,
+  Calendar,
+  Shield,
+  AlertCircle,
+} from "lucide-react";
+import { memberService } from "@/lib/api/service-factory";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import toast from "react-hot-toast";
 
-export default function MemberDetailPage({ params }: { params: { id: string, memberId: string } }) {
+export default function MemberDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string; memberId: string }>;
+}) {
+  const { id, memberId } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const { data: member, isLoading } = useQuery({
-    queryKey: ['mahber-member', params.id, params.memberId],
-    queryFn: () => memberService.getMemberById(params.id, params.memberId)
+    queryKey: ["mahber-member", id, memberId],
+    queryFn: () => memberService.getMemberById(id, memberId),
   });
 
   const suspendMutation = useMutation({
-    mutationFn: () => memberService.suspendMember(params.id, params.memberId),
+    mutationFn: () => memberService.suspendMember(id, memberId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mahber-member', params.id, params.memberId] });
-      toast.success('Member suspended successfully');
+      queryClient.invalidateQueries({
+        queryKey: ["mahber-member", id, memberId],
+      });
+      toast.success("Member suspended successfully");
     },
-    onError: () => toast.error('Failed to suspend member')
+    onError: () => toast.error("Failed to suspend member"),
   });
 
   const reinstateMutation = useMutation({
-    mutationFn: () => memberService.reinstateMember(params.id, params.memberId),
+    mutationFn: () => memberService.reinstateMember(id, memberId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mahber-member', params.id, params.memberId] });
-      toast.success('Member reinstated successfully');
+      queryClient.invalidateQueries({
+        queryKey: ["mahber-member", id, memberId],
+      });
+      toast.success("Member reinstated successfully");
     },
-    onError: () => toast.error('Failed to reinstate member')
+    onError: () => toast.error("Failed to reinstate member"),
   });
 
   if (isLoading) {
@@ -61,17 +78,23 @@ export default function MemberDetailPage({ params }: { params: { id: string, mem
         Back to Members
       </Button>
 
-      <PageHeader 
-        title={member.user?.name || 'Member Detail'} 
-        description={member.user?.phone || ''}
+      <PageHeader
+        title={member.user?.name || "Member Detail"}
+        description={member.user?.phone || ""}
       >
         <div className="flex gap-2">
-          {member.status === 'Active' ? (
-            <Button variant="destructive" onClick={() => suspendMutation.mutate()}>
+          {member.status === "Active" ? (
+            <Button
+              variant="destructive"
+              onClick={() => suspendMutation.mutate()}
+            >
               Suspend Member
             </Button>
           ) : (
-            <Button variant="default" onClick={() => reinstateMutation.mutate()}>
+            <Button
+              variant="default"
+              onClick={() => reinstateMutation.mutate()}
+            >
               Reinstate Member
             </Button>
           )}
@@ -85,13 +108,20 @@ export default function MemberDetailPage({ params }: { params: { id: string, mem
               <UserIcon className="w-12 h-12" />
             </Avatar>
             <h3 className="text-xl font-bold">{member.user?.name}</h3>
-            <p className="text-text-secondary text-sm mb-4">{member.user?.phone}</p>
+            <p className="text-text-secondary text-sm mb-4">
+              {member.user?.phone}
+            </p>
             <div className="flex gap-2">
               <Badge variant="outline">{member.role_name || member.role}</Badge>
-              <Badge variant={
-                member.status === 'Active' ? 'success' : 
-                member.status === 'Suspended' ? 'destructive' : 'warning'
-              }>
+              <Badge
+                variant={
+                  member.status === "Active"
+                    ? "success"
+                    : member.status === "Suspended"
+                      ? "destructive"
+                      : "warning"
+                }
+              >
                 {member.status}
               </Badge>
             </div>
@@ -102,39 +132,53 @@ export default function MemberDetailPage({ params }: { params: { id: string, mem
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-text-secondary">Balance</CardTitle>
+                <CardTitle className="text-sm font-medium text-text-secondary">
+                  Balance
+                </CardTitle>
                 <Wallet className="h-4 w-4 text-gold" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{parseFloat(member.balance).toLocaleString()} ETB</div>
+                <div className="text-2xl font-bold">
+                  {parseFloat(member.balance).toLocaleString()} ETB
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-text-secondary">Join Date</CardTitle>
+                <CardTitle className="text-sm font-medium text-text-secondary">
+                  Join Date
+                </CardTitle>
                 <Calendar className="h-4 w-4 text-text-secondary" />
               </CardHeader>
               <CardContent>
-                <div className="text-lg font-medium">{new Date(member.created_at).toLocaleDateString()}</div>
+                <div className="text-lg font-medium">
+                  {new Date(member.created_at).toLocaleDateString()}
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-text-secondary">Equb Status</CardTitle>
+                <CardTitle className="text-sm font-medium text-text-secondary">
+                  Equb Status
+                </CardTitle>
                 <Shield className="h-4 w-4 text-text-secondary" />
               </CardHeader>
               <CardContent>
-                <Badge variant={member.has_won_current_cycle ? 'success' : 'outline'}>
-                  {member.has_won_current_cycle ? 'Already Won' : 'Eligible'}
+                <Badge
+                  variant={member.has_won_current_cycle ? "success" : "outline"}
+                >
+                  {member.has_won_current_cycle ? "Already Won" : "Eligible"}
                 </Badge>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-text-secondary">Last Action</CardTitle>
+                <CardTitle className="text-sm font-medium text-text-secondary">
+                  Last Action
+                </CardTitle>
                 <AlertCircle className="h-4 w-4 text-text-secondary" />
               </CardHeader>
               <CardContent>

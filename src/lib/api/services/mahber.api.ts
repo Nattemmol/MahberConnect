@@ -1,19 +1,19 @@
-import { apiClient } from '../client';
-import { Mahber, Membership, CreateMahberDto } from '@/lib/types';
+import { apiClient } from "../client";
+import { Mahber, CreateMahberDto, JoinRequest } from "@/lib/types";
 
 export const mahberApi = {
-  getMyMahbers: async (): Promise<Membership[]> => {
-    const response = await apiClient.get<Membership[]>('/mahbers/my-mahbers');
+  getMahbers: async (): Promise<Mahber[]> => {
+    const response = await apiClient.get<Mahber[]>("/mahbers");
     return response.data;
   },
-  
+
   getPublicMahbers: async (): Promise<Mahber[]> => {
-    const response = await apiClient.get<Mahber[]>('/mahbers/public');
+    const response = await apiClient.get<Mahber[]>("/mahbers/public");
     return response.data;
   },
 
   createMahber: async (data: CreateMahberDto): Promise<Mahber> => {
-    const response = await apiClient.post<Mahber>('/mahbers', data);
+    const response = await apiClient.post<Mahber>("/mahbers", data);
     return response.data;
   },
 
@@ -22,8 +22,14 @@ export const mahberApi = {
     return response.data;
   },
 
-  joinMahber: async (id: string): Promise<{ message: string }> => {
-    const response = await apiClient.post<{ message: string }>(`/mahbers/${id}/join`);
+  joinMahber: async (
+    id: string,
+    data?: { invitation_code?: string },
+  ): Promise<JoinRequest> => {
+    const response = await apiClient.post<JoinRequest>(
+      `/mahbers/${id}/join-requests`,
+      data ?? {},
+    );
     return response.data;
-  }
+  },
 };
