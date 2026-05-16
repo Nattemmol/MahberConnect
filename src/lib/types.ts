@@ -167,10 +167,11 @@ export type PaginatedResponse<T> = {
 
 // ── Events & Attendance ───────────────────────────────────────────────────────
 export type EventType =
-  | "Meeting"
-  | "Ceremony"
-  | "Fundraiser"
-  | "Social_Gathering";
+  | "REGULAR_MEETING"
+  | "SPECIAL_MEETING"
+  | "WORK_DAY"
+  | "SOCIAL"
+  | "OTHER";
 
 export type Event = {
   id: string;
