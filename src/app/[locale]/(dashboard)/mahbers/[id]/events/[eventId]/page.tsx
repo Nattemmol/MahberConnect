@@ -11,9 +11,18 @@ import {
   CheckCircle,
   AlertCircle,
   Users,
+  Pencil,
+  XCircle,
+  History,
+  ScanLine,
+  List,
+  Zap,
+  QrCode,
 } from "lucide-react";
+import { QRScanner } from "@/components/ui/qr-scanner";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import Link from "next/link";
-import { eventService } from "@/lib/api/service-factory";
+import { eventService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +42,20 @@ export default function EventDetailPage({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [showQR, setShowQR] = useState(false);
+  const [showUserQR, setShowUserQR] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showProcessDialog, setShowProcessDialog] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const { user } = useAuthStore();
+
+  const { data: currentMember } = useQuery({
+    queryKey: ["mahber-member", id, user?.id],
+    queryFn: () => memberService.getMemberById(id, user?.id || ""),
+    enabled: !!user?.id,
+  });
+  const canManageEvents =
+    currentMember?.permissions?.includes("create_events") ||
+    currentMember?.role === "ADMIN";
 
   const { data: event, isLoading: isEventLoading } = useQuery({
     queryKey: ["mahber-event", id, eventId],
@@ -42,20 +65,68 @@ export default function EventDetailPage({
   const { data: qrCode, isLoading: isQRLoading } = useQuery({
     queryKey: ["event-qr", id, eventId],
     queryFn: () => eventService.getQRCode(id, eventId),
-    enabled: showQR,
+    enabled: showQR && canManageEvents,
   });
 
-  // Since we don't have a direct "get event attendance" endpoint in the spec,
-  // we will mock the count. In a real app, you'd fetch the attendance list.
+  const { data: userQRCode, isLoading: isUserQRLoading } = useQuery({
+    queryKey: ["user-event-qr", id, eventId, user?.id],
+    queryFn: () => eventService.getUserQRCode(id, eventId),
+    enabled: showUserQR && !!user?.id && !canManageEvents,
+  });
+
+  const { data: attendanceResponse, isError: isAttendanceError } = useQuery({
+    queryKey: ["event-attendance", id, eventId],
+    queryFn: () => eventService.getAttendance(id, eventId),
+  });
+
+  const totalAttendees = attendanceResponse?.data?.length || 0;
+
+  const getErrorMessage = (error: unknown) => {
+    if (!error || typeof error !== "object") return undefined;
+    if ("response" in error) {
+      return (error as { response?: { data?: { message?: string } } }).response
+        ?.data?.message;
+    }
+    return undefined;
+  };
 
   const checkInMutation = useMutation({
-    mutationFn: () =>
-      eventService.checkIn(id, eventId, "simulated-qr-token-123"),
+    mutationFn: (token: string) => eventService.checkIn(id, eventId, token),
     onSuccess: () => {
       toast.success("Successfully checked in!");
-      // Invalidate queries if we were fetching attendance list
+      setShowScanner(false);
     },
-    onError: () => toast.error("Failed to check in. Please try again."),
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to check in. Please try again.");
+      setShowScanner(false);
+    },
+  });
+
+  const handleQRScanned = (token: string) => {
+    checkInMutation.mutate(token);
+  };
+
+  const cancelMutation = useMutation({
+    mutationFn: () => eventService.cancelEvent(id, eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mahber-events", id] });
+      queryClient.invalidateQueries({
+        queryKey: ["mahber-event", id, eventId],
+      });
+      toast.success("Event cancelled successfully");
+      setShowCancelDialog(false);
+    },
+    onError: () => toast.error("Failed to cancel event"),
+  });
+
+  const processAttendanceMutation = useMutation({
+    mutationFn: () => eventService.processAttendance(id, eventId),
+    onSuccess: (data) => {
+      toast.success(data.message || "Attendance processing started");
+      setShowProcessDialog(false);
+    },
+    onError: () => toast.error("Failed to process attendance"),
   });
 
   if (isEventLoading) {
@@ -80,18 +151,60 @@ export default function EventDetailPage({
       </Button>
 
       <PageHeader title={event.title} description={event.description}>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" asChild className="gap-2">
+            <Link href={`/mahbers/${id}/events/${eventId}/attendance`}>
+              <List className="w-4 h-4" />
+              Attendance
+            </Link>
+          </Button>
           <Button variant="outline" asChild className="gap-2">
             <Link href={`/mahbers/${id}/events/${eventId}/photos`}>
               <Camera className="w-4 h-4" />
               Photo Gallery
             </Link>
           </Button>
-          {!isPastEvent && !event.is_cancelled && (
-            <Button onClick={() => setShowQR(true)} className="gap-2">
-              Generate QR
+          {canManageEvents && !event.is_cancelled && (
+            <>
+              <Button variant="outline" asChild className="gap-2">
+                <Link href={`/mahbers/${id}/events/${eventId}/edit`}>
+                  <Pencil className="w-4 h-4" />
+                  Edit
+                </Link>
+              </Button>
+              {!isPastEvent && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelDialog(true)}
+                  className="gap-2 text-status-warning border-status-warning/30 hover:bg-status-warning/10"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Cancel Event
+                </Button>
+              )}
+            </>
+          )}
+          {/* Admin: Event QR Code */}
+          {canManageEvents && !isPastEvent && !event.is_cancelled && (
+            <Button onClick={() => setShowQR(true)} className="gap-2 bg-gold hover:bg-gold/90">
+              <QrCode className="w-4 h-4" />
+              Event QR Code
             </Button>
           )}
+          {/* Admin: Process Attendance */}
+          {canManageEvents &&
+            isPastEvent &&
+            event.is_mandatory &&
+            !event.is_cancelled && (
+              <Button
+                variant="outline"
+                onClick={() => setShowProcessDialog(true)}
+                className="gap-2"
+              >
+                <History className="w-4 h-4" />
+                Process Attendance
+              </Button>
+            )}
         </div>
       </PageHeader>
 
@@ -106,7 +219,7 @@ export default function EventDetailPage({
                 variant="outline"
                 className="text-gold border-gold/30 bg-gold/5"
               >
-                {event.event_type.replace("_", " ")}
+                {event.event_type.replace(/_/g, " ")}
               </Badge>
               {event.is_mandatory && (
                 <Badge variant="destructive">Mandatory</Badge>
@@ -181,17 +294,46 @@ export default function EventDetailPage({
             <CardContent>
               {!isPastEvent && !event.is_cancelled ? (
                 <div className="space-y-4">
-                  <p className="text-sm text-text-muted">
-                    Scan the event QR code to check in, or use the manual
-                    check-in below if you are at the venue.
-                  </p>
-                  <Button
-                    className="w-full"
-                    onClick={() => checkInMutation.mutate()}
-                    isLoading={checkInMutation.isPending}
-                  >
-                    Check In Now
-                  </Button>
+                  {/* User Check-in: Generate Personal QR */}
+                  {!canManageEvents ? (
+                    <>
+                      <p className="text-sm text-text-muted">
+                        Generate your personal QR code to check in at the event.
+                      </p>
+                      <Button
+                        className="w-full gap-2 bg-gold hover:bg-gold/90"
+                        onClick={() => setShowUserQR(true)}
+                      >
+                        <Zap className="w-4 h-4" />
+                        My Check-in QR
+                      </Button>
+                    </>
+                  ) : (
+                    /* Admin Check-in: Scanner & Manual */
+                    <>
+                      <p className="text-sm text-text-muted">
+                        Scan member QR codes or use manual check-in below.
+                      </p>
+                      <div className="flex gap-2 flex-col">
+                        <Button
+                          className="gap-2"
+                          onClick={() => setShowScanner(true)}
+                        >
+                          <Camera className="w-4 h-4" />
+                          Scan Member QR
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => checkInMutation.mutate("manual-check-in")}
+                          disabled={checkInMutation.isPending}
+                          className="gap-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Manual Check-in
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-status-warning text-sm">
@@ -205,21 +347,105 @@ export default function EventDetailPage({
           <Card className="bg-gradient-to-br from-gold/10 to-background-dark">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-text-secondary">
-                Expected Attendance
+                Checked In
               </CardTitle>
               <Users className="h-4 w-4 text-gold" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-text-primary">--</div>
-              <p className="text-xs text-text-muted mt-1">
-                Pending admin confirmation
-              </p>
+              <div className="text-3xl font-bold text-text-primary">
+                {isEventLoading || isAttendanceError ? "--" : totalAttendees}
+              </div>
+              {isAttendanceError && (
+                <p className="text-xs text-status-warning mt-1">
+                  Attendance list unavailable
+                </p>
+              )}
+              {isPastEvent && !isAttendanceError && (
+                <Button
+                  variant="link"
+                  asChild
+                  className="mt-2 p-0 h-auto text-gold text-xs"
+                >
+                  <Link href={`/mahbers/${id}/events/${eventId}/attendance`}>
+                    <List className="w-3 h-3 mr-1" />
+                    View List
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* QR Code Modal for Admins */}
+      {/* Cancel Event Confirmation Dialog */}
+      <Dialog
+        isOpen={showCancelDialog}
+        onClose={() => setShowCancelDialog(false)}
+        title="Cancel Event"
+        description="Are you sure you want to cancel this event? This action cannot be undone."
+      >
+        <div className="flex flex-col gap-4 py-4">
+          <p className="text-sm text-text-secondary">
+            Cancelling this event will notify all members. This action cannot be
+            reversed.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setShowCancelDialog(false)}>
+              Keep Event
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => cancelMutation.mutate()}
+              isLoading={cancelMutation.isPending}
+            >
+              Cancel Event
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Process Attendance Confirmation Dialog */}
+      <Dialog
+        isOpen={showProcessDialog}
+        onClose={() => setShowProcessDialog(false)}
+        title="Process Attendance"
+        description="This will calculate absence fines for members who did not attend this mandatory event."
+      >
+        <div className="flex flex-col gap-4 py-4">
+          <p className="text-sm text-text-secondary">
+            Members who did not check in will be automatically fined according
+            to the mahber's fine policy. This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setShowProcessDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => processAttendanceMutation.mutate()}
+              isLoading={processAttendanceMutation.isPending}
+            >
+              Process Fines
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* QR Scanner Modal for Admins */}
+      <Dialog
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        title="Scan Member QR Code"
+        description="Point your camera at the member's QR code to record their check-in."
+      >
+        <div className="py-4">
+          <QRScanner
+            onScan={handleQRScanned}
+            onClose={() => setShowScanner(false)}
+          />
+        </div>
+      </Dialog>
+
+      {/* Event QR Code Modal for Admins */}
       <Dialog
         isOpen={showQR}
         onClose={() => setShowQR(false)}
@@ -235,7 +461,28 @@ export default function EventDetailPage({
             <div className="text-status-error">Failed to load QR Code</div>
           )}
           <p className="text-sm text-center text-text-secondary max-w-[250px]">
-            Members can scan this using the MahberConnect app scanner.
+            Display this QR code for members to scan and check in upon arrival at the event.
+          </p>
+        </div>
+      </Dialog>
+
+      {/* User Check-in QR Code Modal */}
+      <Dialog
+        isOpen={showUserQR}
+        onClose={() => setShowUserQR(false)}
+        title="My Check-in QR Code"
+        description="Show this QR code to an admin to check in at the event."
+      >
+        <div className="flex flex-col items-center justify-center py-6 space-y-6">
+          {isUserQRLoading ? (
+            <Skeleton className="w-[232px] h-[232px] rounded-xl" />
+          ) : userQRCode?.qr_code ? (
+            <QRCode dataUrl={userQRCode.qr_code} size={200} />
+          ) : (
+            <div className="text-status-error">Failed to generate QR Code</div>
+          )}
+          <p className="text-sm text-center text-text-secondary max-w-[250px]">
+            Present this QR code to an admin at the venue for check-in. You can screenshot it for offline use.
           </p>
         </div>
       </Dialog>

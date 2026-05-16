@@ -8,12 +8,17 @@ let members = [...mockMemberDetails];
 let joinRequests = [...mockJoinRequests];
 
 export const memberMock = {
-  getMembers: async (mahberId: string) => {
+  getMembers: async (mahberId: string, page = 1, limit = 20) => {
     await delay(600);
-    const data = members.filter((m) => m.mahber_id === mahberId);
+    const filtered = members.filter((m) => m.mahber_id === mahberId);
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const data = filtered.slice(startIndex, endIndex);
     return {
       data,
-      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 },
+      meta: { total, page, limit, totalPages },
     };
   },
 
