@@ -49,8 +49,8 @@ export type CreateMahberDto = {
   invitation_code?: string | null;
 };
 
-export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED";
-export type PaymentType = "CONTRIBUTION" | "FINE" | "PENALTY";
+export type PaymentStatus = "Pending" | "Completed" | "Failed";
+export type PaymentType = "Contribution" | "JoinFee" | "Fine";
 
 export type Payment = {
   id: string;
@@ -78,10 +78,12 @@ export type Transaction = {
 };
 
 export type InitiatePaymentDto = {
-  mahber_id: string;
+  mahber_id: string; // Used for URL, will be removed from body
   amount: number;
   payment_type: PaymentType;
   email?: string;
+  first_name?: string;
+  last_name?: string;
 };
 
 // ── RBAC ──────────────────────────────────────────────────────────────────────
@@ -328,9 +330,13 @@ export type LotteryDraw = {
 export type AuditTrailEntry = {
   id: string;
   mahber_id: string;
-  actor_id: string;
-  action_type: string;
-  details: any;
+  actor_id: string | null;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  old_value?: any;
+  new_value?: any;
+  metadata?: any;
   created_at: string;
-  actor?: User; // Joined for display
+  actor?: { id: string; name: string };
 };

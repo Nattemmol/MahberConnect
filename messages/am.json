@@ -85,7 +85,19 @@
     "passwordChanged": "የይለፍ ቃል በተሳካ ሁኔታ ተቀይሯል!",
     "passwordChangeFailed": "የይለፍ ቃል መቀየር አልተቻለም።",
     "signOut": "ውጣ",
-    "signOutDesc": "ከዚህ መሣሪያ ላይ ከመለያዎ ይውጡ።"
+    "signOutDesc": "ከዚህ መሣሪያ ላይ ከመለያዎ ይውጡ።",
+    "pushNotifications": "የፑሽ ማሳወቂያዎች",
+    "pushNotificationsDesc": "በመሣሪያዎ ላይ የእውነተኛ ጊዜ ማንቂያዎችን ያግኙ።"
+  },
+  "Notifications": {
+    "title": "ማሳወቂያዎች",
+    "unreadCount": "{count} ያልተነበቡ ማሳወቂያዎች",
+    "allCaughtUp": "ሁሉንም አይተዋል!",
+    "markAsRead": "እንደተነበበ ምልክት አድርግ",
+    "markAllAsRead": "ሁሉንም እንደተነበበ ምልክት አድርግ",
+    "viewDetails": "ዝርዝሮችን ይመልከቱ",
+    "noNotifications": "እስካሁን ምንም ማሳወቂያ የለም",
+    "noNotificationsDesc": "ማሳወቂያዎች ሲደርሱዎት እዚህ ይታያሉ።"
   },
   "Common": {
     "loading": "በመጫን ላይ...",

@@ -26,7 +26,7 @@ export const financialMock = {
       mahber_id: data.mahber_id,
       amount: data.amount,
       payment_type: data.payment_type,
-      status: 'PENDING',
+      status: 'Pending',
       tx_ref: tx_ref,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -41,24 +41,36 @@ export const financialMock = {
     if (!payment) throw new Error('Payment not found');
     
     // Simulate successful verification
-    payment.status = 'COMPLETED';
+    payment.status = 'Completed';
     return payment;
   },
   
   getMahberPayments: async (mahberId: string) => {
     await delay(600);
-    return mockPayments.filter(p => p.mahber_id === mahberId);
+    const data = mockPayments.filter(p => p.mahber_id === mahberId);
+    return {
+      data,
+      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 }
+    };
   },
 
   getMahberLedger: async (mahberId: string) => {
     await delay(600);
-    return mockTransactions.filter(t => t.mahber_id === mahberId);
+    const data = mockTransactions.filter(t => t.mahber_id === mahberId);
+    return {
+      data,
+      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 }
+    };
   },
 
   // Fines
   getFines: async (mahberId: string) => {
     await delay(500);
-    return fines.filter(f => f.mahber_id === mahberId);
+    const data = fines.filter(f => f.mahber_id === mahberId);
+    return {
+      data,
+      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 }
+    };
   },
   
   waiveFine: async (mahberId: string, fineId: string) => {

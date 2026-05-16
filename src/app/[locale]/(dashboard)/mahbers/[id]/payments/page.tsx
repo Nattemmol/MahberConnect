@@ -21,21 +21,17 @@ export default function PaymentsDashboard({
     queryFn: () => financialService.getMahberPayments(id),
   });
 
-  const paymentsList = Array.isArray(payments)
-    ? payments
-    : Array.isArray((payments as { data?: unknown })?.data)
-      ? ((payments as { data: typeof payments }).data as typeof payments)
-      : [];
+  const paymentsList = payments?.data || [];
 
   const totalContributions =
     paymentsList
       .filter(
-        (p) => p.status === "COMPLETED" && p.payment_type === "CONTRIBUTION",
+        (p) => p.status === "Completed" && p.payment_type === "Contribution",
       )
       .reduce((acc, p) => acc + p.amount, 0) || 0;
   const pendingAmount =
     paymentsList
-      .filter((p) => p.status === "PENDING")
+      .filter((p) => p.status === "Pending")
       .reduce((acc, p) => acc + p.amount, 0) || 0;
 
   return (
@@ -126,9 +122,9 @@ export default function PaymentsDashboard({
                   </span>
                   <Badge
                     variant={
-                      payment.status === "COMPLETED"
+                      payment.status === "Completed"
                         ? "success"
-                        : payment.status === "PENDING"
+                        : payment.status === "Pending"
                           ? "warning"
                           : "destructive"
                     }

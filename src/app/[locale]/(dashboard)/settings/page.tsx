@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { authApi } from '@/lib/api/services/auth.api';
+import { notificationService } from '@/lib/api/service-factory';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,7 @@ export default function SettingsPage() {
   const pathname = usePathname();
   const params = useParams();
   const { resolvedTheme, setTheme } = useTheme();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
 
   const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState({
@@ -56,6 +57,10 @@ export default function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+
+  // Notification state
+  const [generalNotifications, setGeneralNotifications] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -92,6 +97,36 @@ export default function SettingsPage() {
       toast.error(error.response?.data?.message || t('passwordChangeFailed'));
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleToggleGeneral = async () => {
+    if (!user) {
+      toast.error("Please log in to manage notifications");
+      return;
+    }
+    
+    const nextState = !generalNotifications;
+    setIsRegistering(true);
+    try {
+      if (nextState) {
+        await notificationService.registerDevice({
+          token: "fcm-token-abc123",
+          platform: "web",
+          userId: user.id
+        });
+      } else {
+        await notificationService.unregisterDevice({
+          token: "fcm-token-abc123",
+          userId: user.id
+        });
+      }
+      setGeneralNotifications(nextState);
+      toast.success(nextState ? "Push notifications enabled" : "Push notifications disabled");
+    } catch (error) {
+      toast.error("Failed to update notification settings");
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -260,6 +295,38 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-2 pb-2">
+            {/* General Push Notifications Toggle */}
+            <div className="flex items-center justify-between py-5 px-2 mb-2 border-b border-border-glass bg-gold/5 rounded-xl mx-2 mt-2">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-gold/10 rounded-xl border border-gold/20">
+                  <Bell className="w-5 h-5 text-gold" />
+                </div>
+                <div>
+                  <p className="font-semibold text-text-primary text-sm">{t('pushNotifications')}</p>
+                  <p className="text-xs text-text-secondary/80 mt-0.5">{t('pushNotificationsDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleGeneral}
+                disabled={isRegistering}
+                className={`relative w-12 h-6.5 rounded-full transition-all duration-300 shrink-0 ${
+                  generalNotifications
+                    ? 'bg-gold shadow-md shadow-gold/30'
+                    : 'bg-background-subtle border border-border-glass'
+                } ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div
+                  className={`absolute top-0.5 w-5.5 h-5.5 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center ${
+                    generalNotifications
+                      ? 'left-[24px] bg-black'
+                      : 'left-0.5 bg-text-muted'
+                  }`}
+                >
+                  {isRegistering && <Loader2 className={`w-3 h-3 animate-spin ${generalNotifications ? 'text-gold' : 'text-white'}`} />}
+                </div>
+              </button>
+            </div>
+
             {[
               {
                 key: 'payments' as const,

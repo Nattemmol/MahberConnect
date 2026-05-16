@@ -19,9 +19,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function DiscoverMahbersPage() {
+  const router = useRouter();
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
   const [joinTarget, setJoinTarget] = useState<{
     id: string;
     name: string;
@@ -47,8 +50,13 @@ export default function DiscoverMahbersPage() {
         joinTarget.id,
         code ? { invitation_code: code } : undefined,
       );
+      
+      setRequestedIds(prev => new Set(prev).add(joinTarget.id));
       toast.success("Join request sent successfully!");
-      refetch(); // Refresh list to remove the joined one
+      
+      // Redirect to the mahber overview page
+      router.push(`/mahbers/${joinTarget.id}`);
+      
       setJoinTarget(null);
       setInvitationCode("");
     } catch (err) {
@@ -131,8 +139,10 @@ export default function DiscoverMahbersPage() {
                     setInvitationCode("");
                   }}
                   isLoading={joiningId === mahber.id}
+                  disabled={requestedIds.has(mahber.id)}
+                  variant={requestedIds.has(mahber.id) ? "outline" : "default"}
                 >
-                  Request to Join
+                  {requestedIds.has(mahber.id) ? "Requested" : "Request to Join"}
                 </Button>
               </CardFooter>
             </Card>

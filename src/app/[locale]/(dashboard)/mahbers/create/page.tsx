@@ -23,13 +23,7 @@ const createMahberSchema = z.object({
     cycle: z.string().min(1, "Contribution cycle is required"),
   }),
   is_public: z.boolean(),
-  invitation_code: z.preprocess((value) => {
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      return trimmed.length === 0 ? undefined : trimmed;
-    }
-    return value;
-  }, z.string().optional()),
+  invitation_code: z.string().optional(),
 });
 
 type CreateMahberValues = z.infer<typeof createMahberSchema>;

@@ -85,7 +85,19 @@
     "passwordChanged": "Password changed successfully!",
     "passwordChangeFailed": "Failed to change password.",
     "signOut": "Sign Out",
-    "signOutDesc": "Sign out from your account on this device."
+    "signOutDesc": "Sign out from your account on this device.",
+    "pushNotifications": "Push Notifications",
+    "pushNotificationsDesc": "Receive real-time alerts on your device."
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "unreadCount": "{count} unread notifications",
+    "allCaughtUp": "You're all caught up!",
+    "markAsRead": "Mark as read",
+    "markAllAsRead": "Mark all as read",
+    "viewDetails": "View details",
+    "noNotifications": "No notifications yet",
+    "noNotificationsDesc": "When you receive notifications, they will appear here."
   },
   "Common": {
     "loading": "Loading...",

@@ -37,7 +37,7 @@ export default function FinesPage({
   });
 
   const filteredFines =
-    fines?.filter((f) => filter === "all" || f.status === filter) || [];
+    fines?.data?.filter((f) => filter === "all" || f.status === filter) || [];
 
   const getStatusConfig = (status: string) => {
     switch (status) {
