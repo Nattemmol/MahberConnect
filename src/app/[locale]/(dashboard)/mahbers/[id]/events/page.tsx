@@ -1,10 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
-import { Calendar, MapPin, Clock, Plus } from "lucide-react";
-import { eventService } from "@/lib/api/service-factory";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { eventService, memberService } from "@/lib/api/service-factory";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { Event as MahberEvent } from "@/lib/types";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,18 +26,33 @@ export default function EventsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const { user } = useAuthStore();
+
   const { data: eventsResponse, isLoading } = useQuery({
-    queryKey: ["mahber-events", id],
-    queryFn: () => eventService.getEvents(id),
+    queryKey: ["mahber-events", id, currentPage, pageSize],
+    queryFn: () => eventService.getEvents(id, currentPage, pageSize),
   });
+
+  const { data: currentMember } = useQuery({
+    queryKey: ["mahber-member", id, user?.id],
+    queryFn: () => memberService.getMemberById(id, user?.id || ""),
+    enabled: !!user?.id,
+  });
+  const canManageEvents =
+    currentMember?.permissions?.includes("create_events") ||
+    currentMember?.role === "ADMIN";
 
   const events = eventsResponse?.data || [];
   const upcomingEvents = events.filter(
     (e) => new Date(e.start_time) > new Date(),
   );
   const pastEvents = events.filter((e) => new Date(e.start_time) <= new Date());
+  const totalPages = eventsResponse?.meta?.totalPages || 1;
+  const totalEvents = eventsResponse?.meta?.total || events.length;
 
-  const EventCard = ({ event }: { event: any }) => (
+  const EventCard = ({ event }: { event: MahberEvent }) => (
     <Card
       className={`hover:bg-surface-hover/50 transition-colors ${event.is_cancelled ? "opacity-50" : ""}`}
     >
@@ -42,7 +66,7 @@ export default function EventsPage({
                     variant="outline"
                     className="text-gold border-gold/30 bg-gold/5"
                   >
-                    {event.event_type.replace("_", " ")}
+                    {event.event_type.replace(/_/g, " ")}
                   </Badge>
                   {event.is_mandatory && (
                     <Badge variant="destructive">Mandatory</Badge>
@@ -96,12 +120,14 @@ export default function EventsPage({
         title="Events"
         description="Manage and track attendance for meetings, ceremonies, and gatherings."
       >
-        <Button asChild className="gap-2">
-          <Link href={`/mahbers/${id}/events/create`}>
-            <Plus className="w-4 h-4" />
-            Create Event
-          </Link>
-        </Button>
+        {canManageEvents && (
+          <Button asChild className="gap-2">
+            <Link href={`/mahbers/${id}/events/create`}>
+              <Plus className="w-4 h-4" />
+              Create Event
+            </Link>
+          </Button>
+        )}
       </PageHeader>
 
       {isLoading ? (
@@ -141,6 +167,53 @@ export default function EventsPage({
                 ))}
               </div>
             </section>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between py-4 border-t border-border-glass">
+              <div className="text-sm text-text-muted">
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, totalEvents)} of {totalEvents}{" "}
+                events
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Prev
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    ),
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       )}

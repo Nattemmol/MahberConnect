@@ -1,18 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { use, useEffect } from "react";
+import { use } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import toast from "react-hot-toast";
+import { ArrowLeft } from "lucide-react";
 import { eventService, memberService } from "@/lib/api/service-factory";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const eventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -32,13 +35,14 @@ const eventSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
-export default function CreateEventPage({
+export default function EditEventPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; eventId: string }>;
 }) {
-  const { id } = use(params);
+  const { id, eventId } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
   const { data: currentMember, isLoading: isMemberLoading } = useQuery({
@@ -50,17 +54,16 @@ export default function CreateEventPage({
     currentMember?.permissions?.includes("create_events") ||
     currentMember?.role === "ADMIN";
 
-  useEffect(() => {
-    if (!isMemberLoading && user && !canManageEvents) {
-      toast.error("You don't have permission to create events");
-      router.push(`/mahbers/${id}/events`);
-    }
-  }, [isMemberLoading, user, canManageEvents, router, id]);
+  const { data: event, isLoading: isEventLoading } = useQuery({
+    queryKey: ["mahber-event", id, eventId],
+    queryFn: () => eventService.getEventById(id, eventId),
+  });
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
+    reset,
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
@@ -68,6 +71,31 @@ export default function CreateEventPage({
       is_mandatory: false,
     },
   });
+
+  // Reset form when event data loads
+  useEffect(() => {
+    if (event) {
+      reset({
+        title: event.title,
+        description: event.description,
+        event_type: event.event_type,
+        start_time: formatDateTimeLocal(new Date(event.start_time)),
+        end_time: formatDateTimeLocal(new Date(event.end_time)),
+        location: event.location,
+        is_mandatory: event.is_mandatory,
+      });
+    }
+  }, [event, reset]);
+
+  // Helper to format Date to datetime-local input format
+  const formatDateTimeLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   const getErrorMessage = (error: unknown) => {
     if (!error || typeof error !== "object") return undefined;
@@ -78,22 +106,85 @@ export default function CreateEventPage({
     return undefined;
   };
 
-  const onSubmit = async (data: EventFormValues) => {
-    try {
-      await eventService.createEvent(id, data);
-      toast.success("Event created successfully!");
-      router.push(`/mahbers/${id}/events`);
-    } catch (error: unknown) {
+  const updateMutation = useMutation({
+    mutationFn: (data: EventFormValues) =>
+      eventService.updateEvent(id, eventId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mahber-events", id] });
+      queryClient.invalidateQueries({
+        queryKey: ["mahber-event", id, eventId],
+      });
+      toast.success("Event updated successfully!");
+      router.push(`/mahbers/${id}/events/${eventId}`);
+    },
+    onError: (error: unknown) => {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to create event");
-    }
+      toast.error(message ?? "Failed to update event");
+    },
+  });
+
+  const onSubmit = (data: EventFormValues) => {
+    updateMutation.mutate(data);
   };
+
+  useEffect(() => {
+    if (!isMemberLoading && user && !canManageEvents) {
+      toast.error("You don't have permission to edit events");
+      router.push(`/mahbers/${id}/events/${eventId}`);
+    }
+  }, [isMemberLoading, user, canManageEvents, router, id, eventId]);
+
+  if (isEventLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-32" />
+        <Card className="h-96" />
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-text-secondary">Event not found.</p>
+        <Button
+          variant="link"
+          onClick={() => router.push(`/mahbers/${id}/events`)}
+          className="mt-4"
+        >
+          Back to Events
+        </Button>
+      </div>
+    );
+  }
+
+  if (event.is_cancelled) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-status-warning">
+          This event has been cancelled and cannot be edited.
+        </p>
+        <Button
+          variant="link"
+          onClick={() => router.push(`/mahbers/${id}/events/${eventId}`)}
+          className="mt-4"
+        >
+          Back to Event
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <Button variant="ghost" onClick={() => router.back()} className="gap-2">
+        <ArrowLeft className="w-4 h-4" />
+        Back to Event
+      </Button>
+
       <PageHeader
-        title="Create Event"
-        description="Schedule a new gathering for your community."
+        title="Edit Event"
+        description="Update event details for your community."
       />
 
       <Card>
@@ -227,8 +318,11 @@ export default function CreateEventPage({
               >
                 Cancel
               </Button>
-              <Button type="submit" isLoading={isSubmitting}>
-                Create Event
+              <Button
+                type="submit"
+                isLoading={isSubmitting || updateMutation.isPending}
+              >
+                Save Changes
               </Button>
             </div>
           </form>

@@ -62,7 +62,7 @@ export default function MembersPage({
     onError: () => toast.error("Failed to reinstate member"),
   });
 
-  const filteredMembers = membersResponse?.data.filter(
+  const filteredMembers = (membersResponse?.data || []).filter(
     (m) =>
       m.user?.name.toLowerCase().includes(search.toLowerCase()) ||
       m.user?.phone.includes(search),
