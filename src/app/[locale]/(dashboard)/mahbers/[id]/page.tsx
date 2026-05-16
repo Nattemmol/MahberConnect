@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, Clock, Trophy } from "lucide-react";
+
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 export default function MahberOverviewPage({
   params,
@@ -17,6 +19,7 @@ export default function MahberOverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { user } = useAuthStore();
   
   const { data: mahber, isLoading: isMahberLoading } = useQuery({
     queryKey: ["mahber", id],
@@ -29,6 +32,20 @@ export default function MahberOverviewPage({
   });
 
   const isMember = myMahbers?.some(m => m.id === id);
+  const { data: membersResponse } = useQuery({
+    queryKey: ["mahber-members-check", id],
+    queryFn: () => memberService.getMembers(id, 1, 100),
+    enabled: isMember,
+  });
+
+  const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
+  const isAdmin = myMembership?.role === "ADMIN" || 
+                 myMembership?.role === "Admin" ||
+                 (myMembership?.role as any)?.name === "Admin" ||
+                 (myMembership?.role as any)?.name === "ADMIN" ||
+                 (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+                 (myMembership?.role as any)?.permissions?.includes("manage_finances");
+
   const isLoading = isMahberLoading || isMyMahbersLoading;
 
   const contributionAmount =
@@ -113,6 +130,19 @@ export default function MahberOverviewPage({
               <Button asChild variant="outline">
                 <Link href={`/mahbers/${id}/payments`}>Payments</Link>
               </Button>
+              {mahber.type === "EQUB" && (
+                <Button asChild variant="outline" className="border-gold/50 text-gold hover:bg-gold/10 gap-2">
+                  <Link href={`/mahbers/${id}/lottery`}>
+                    <Trophy className="w-4 h-4" />
+                    Lottery Draw
+                  </Link>
+                </Button>
+              )}
+              {isAdmin && (
+                <Button asChild variant="default" className="bg-gold hover:bg-gold-dark text-black">
+                  <Link href={`/mahbers/${id}/settings`}>Settings</Link>
+                </Button>
+              )}
             </>
           )}
           {!isMember && (

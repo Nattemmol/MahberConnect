@@ -48,16 +48,15 @@ export const financialApi = {
   },
 
   // ── Lottery ─────────────────────────────────────────────────────────────────
-  // NOTE: The backend has lottery.service.ts but NO lottery controller yet.
-  // These endpoints will fail until a LotteryController is created on the backend.
-  // The integration tester must create this controller or adjust routes.
   getLotteryHistory: async (mahberId: string): Promise<LotteryDraw[]> => {
+    // Backend route: GET /mahbers/:id/lottery/history
     const response = await apiClient.get<LotteryDraw[]>(`/mahbers/${mahberId}/lottery/history`);
     return response.data;
   },
 
-  drawLottery: async (mahberId: string): Promise<LotteryDraw> => {
-    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/draw`);
+  executeLottery: async (mahberId: string, data?: { operationalCostRate?: number; fineThreshold?: number }): Promise<LotteryDraw> => {
+    // Backend route: POST /mahbers/:id/lottery/execute
+    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, data || {});
     return response.data;
   }
 };

@@ -20,7 +20,7 @@ export const memberMock = {
   getMemberById: async (mahberId: string, memberId: string) => {
     await delay(400);
     const member = members.find(
-      (m) => m.mahber_id === mahberId && m.member_id === memberId,
+      (m) => m.mahber_id === mahberId && m.id === memberId,
     );
     if (!member) throw new Error("Member not found");
     return member;
@@ -30,7 +30,7 @@ export const memberMock = {
     await delay(800);
     randomError(0.05);
     const member = members.find(
-      (m) => m.mahber_id === mahberId && m.member_id === memberId,
+      (m) => m.mahber_id === mahberId && m.id === memberId,
     );
     if (!member) throw new Error("Member not found");
     member.status = "Suspended";
@@ -42,7 +42,7 @@ export const memberMock = {
     await delay(800);
     randomError(0.05);
     const member = members.find(
-      (m) => m.mahber_id === mahberId && m.member_id === memberId,
+      (m) => m.mahber_id === mahberId && m.id === memberId,
     );
     if (!member) throw new Error("Member not found");
     member.status = "Active";
@@ -58,7 +58,7 @@ export const memberMock = {
     await delay(700);
     randomError(0.05);
     const member = members.find(
-      (m) => m.mahber_id === mahberId && m.member_id === memberId,
+      (m) => m.mahber_id === mahberId && m.id === memberId,
     );
     if (!member) throw new Error("Member not found");
     member.role_name = data.role_name;
@@ -71,7 +71,7 @@ export const memberMock = {
     await delay(800);
     randomError(0.05);
     members = members.filter(
-      (m) => !(m.mahber_id === mahberId && m.member_id === memberId),
+      (m) => !(m.mahber_id === mahberId && m.id === memberId),
     );
     return { message: "Member removed successfully" };
   },

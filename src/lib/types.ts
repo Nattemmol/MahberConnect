@@ -49,6 +49,8 @@ export type CreateMahberDto = {
   invitation_code?: string | null;
 };
 
+export type UpdateMahberDto = Partial<CreateMahberDto>;
+
 export type PaymentStatus = "Pending" | "Completed" | "Failed";
 export type PaymentType = "Contribution" | "JoinFee" | "Fine";
 
@@ -319,10 +321,12 @@ export type Fine = {
 export type LotteryDraw = {
   id: string;
   mahber_id: string;
-  cycle_number: number;
+  cycle_number?: number;
   winner_id: string;
+  eligible_members: string[];
+  random_seed: string;
   payout_amount: number;
-  draw_date: string;
+  created_at: string;
   winner?: User; // Joined for display
 };
 

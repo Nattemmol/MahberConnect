@@ -92,10 +92,10 @@ export const financialMock = {
     await delay(700);
     return lotteryDraws
       .filter(l => l.mahber_id === mahberId)
-      .sort((a, b) => new Date(b.draw_date).getTime() - new Date(a.draw_date).getTime());
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
 
-  drawLottery: async (mahberId: string) => {
+  executeLottery: async (mahberId: string, data?: { operationalCostRate?: number; fineThreshold?: number }) => {
     await delay(2000); // Simulate suspense of draw
     randomError(0.05);
 
@@ -111,13 +111,15 @@ export const financialMock = {
     const winner = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
     const cycle_number = lotteryDraws.filter(l => l.mahber_id === mahberId).length + 1;
 
-    const newDraw = {
+    const newDraw: any = {
       id: `draw_${Date.now()}`,
       mahber_id: mahberId,
       cycle_number,
       winner_id: winner.id,
+      eligible_members: eligibleMembers.map(u => u.id),
+      random_seed: Math.random().toString(36).substring(7),
       payout_amount: 50000, // Mock fixed payout
-      draw_date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       winner
     };
 

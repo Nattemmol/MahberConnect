@@ -32,4 +32,13 @@ export const mahberApi = {
     );
     return response.data;
   },
+
+  updateMahber: async (id: string, data: UpdateMahberDto): Promise<Mahber> => {
+    const response = await apiClient.put<Mahber>(`/mahbers/${id}`, data);
+    return response.data;
+  },
+
+  deleteMahber: async (id: string): Promise<void> => {
+    await apiClient.delete(`/mahbers/${id}`);
+  },
 };
