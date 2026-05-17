@@ -1,7 +1,8 @@
-import { useTranslations } from "next-intl";
+﻿import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { PublicHeader } from "@/components/layout/public-header";
 import { HeroCta } from "@/components/landing/hero-cta";
+import { CtaButtons } from "@/components/landing/cta-buttons";
 import {
   Users,
   QrCode,
@@ -100,14 +101,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-16 text-center space-y-5">
           <h2 className="text-2xl md:text-3xl font-bold text-black">{t('ctaTitle')}</h2>
           <p className="text-black/70 max-w-xl mx-auto text-sm leading-relaxed">{t('ctaDesc')}</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/register" className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-black/80 transition-colors text-sm">
-              {t('registerMahber')} <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 border border-black/10 text-black font-semibold rounded-lg transition-colors text-sm">
-              {t('login')}
-            </Link>
-          </div>
+                  <CtaButtons />
         </div>
       </section>
 
