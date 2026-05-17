@@ -13,22 +13,22 @@ import { Button } from '@/components/ui/button';
 const phoneRegex = /^(?:\+251|0)[79]\d{8}$/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-const registerSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  phone: z.string().regex(phoneRegex, { message: "Must be a valid Ethiopian phone number (e.g. +251911234567)" }),
-  password: z.string().regex(passwordRegex, { message: "Password must have at least 8 chars, 1 uppercase, 1 lowercase, 1 number" }),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
-
-type RegisterFormValues = z.infer<typeof registerSchema>;
-
 export default function RegisterPage() {
   const t = useTranslations('Auth');
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  const registerSchema = z.object({
+    name: z.string().min(2, { message: t('validation.nameMin') }),
+    phone: z.string().regex(phoneRegex, { message: t('validation.phoneInvalid') }),
+    password: z.string().regex(passwordRegex, { message: t('validation.passwordComplex') }),
+    confirmPassword: z.string()
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('validation.passwordsMatch'),
+    path: ["confirmPassword"],
+  });
+
+  type RegisterFormValues = z.infer<typeof registerSchema>;
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -46,11 +46,11 @@ export default function RegisterPage() {
       const loginResponse = await authService.login(formattedPhone, data.password);
       setAuth(loginResponse.access_token, loginResponse.user);
       
-      toast.success('Account created successfully!');
+      toast.success(t('messages.registerSuccess'));
       router.push('/dashboard');
     } catch (err) {
       const error = err as any;
-      toast.error(error.response?.data?.message || error.message || 'Registration failed.');
+      toast.error(error.response?.data?.message || error.message || t('messages.registerError'));
     }
   };
 

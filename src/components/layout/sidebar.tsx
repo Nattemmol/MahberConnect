@@ -1,6 +1,5 @@
 'use client';
 
-import { ReactNode } from 'react';
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
@@ -58,13 +57,9 @@ export function Sidebar() {
 
   const links = isGlobalRoute ? globalLinks : mahberLinks;
 
-  const closeMobileMenu = () => {
-    setSidebarOpen(false);
-  };
+  const closeMobileMenu = () => setSidebarOpen(false);
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
   return (
     <>
@@ -75,20 +70,17 @@ export function Sidebar() {
           onClick={closeMobileMenu}
         />
       )}
-      
+
       {/* Sidebar */}
       <aside className={cn(
         "w-60 bg-background-surface border-r border-border shrink-0",
-        // Mobile: fixed positioning, shows/hides based on sidebarOpen
         "fixed md:static top-16 bottom-0 left-0 md:inset-auto z-40 md:z-0",
-        // Mobile: hidden by default, visible when sidebarOpen is true
-        // Desktop: always flex (md:flex overrides the mobile behavior)
         sidebarOpen && "flex flex-col",
         !sidebarOpen && "hidden md:flex md:flex-col"
       )}>
-        {/* Logo */}
+        {/* Logo — links back to landing page */}
         <div className="h-16 flex items-center px-5 border-b border-border">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gold/15 flex items-center justify-center">
               <span className="text-gold font-bold text-sm">M</span>
             </div>

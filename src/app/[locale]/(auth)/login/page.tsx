@@ -13,17 +13,17 @@ import { Button } from '@/components/ui/button';
 // Ethiopian phone regex: allows +251, 09, or 07 prefixes
 const phoneRegex = /^(?:\+251|0)[79]\d{8}$/;
 
-const loginSchema = z.object({
-  phone: z.string().regex(phoneRegex, { message: "Must be a valid Ethiopian phone number (e.g. +251911234567)" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
-
 export default function LoginPage() {
   const t = useTranslations('Auth');
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  const loginSchema = z.object({
+    phone: z.string().regex(phoneRegex, { message: t('validation.phoneInvalid') }),
+    password: z.string().min(8, { message: t('validation.passwordMin') }),
+  });
+
+  type LoginFormValues = z.infer<typeof loginSchema>;
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,11 +37,11 @@ export default function LoginPage() {
       
       const response = await authService.login(formattedPhone, data.password);
       setAuth(response.access_token, response.user);
-      toast.success('Welcome back!');
+      toast.success(t('messages.loginSuccess'));
       router.push('/dashboard');
     } catch (err) {
       const error = err as any;
-      toast.error(error.response?.data?.message || error.message || 'Failed to login. Please check your credentials.');
+      toast.error(error.response?.data?.message || error.message || t('messages.loginError'));
     }
   };
 

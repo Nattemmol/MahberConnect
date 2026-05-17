@@ -1,33 +1,25 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
-import LocaleSwitcher from '@/components/layout/locale-switcher';
+import { PublicHeader } from '@/components/layout/public-header';
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const t = useTranslations('HomePage');
-
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className="absolute top-4 right-4">
-        <LocaleSwitcher />
-      </div>
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block text-3xl font-bold text-gold drop-shadow-md">
-            MahberConnect
-          </Link>
-          <p className="text-text-secondary mt-2">Community Financial Management</p>
-        </div>
-        
-        <div className="glass rounded-card p-6 md:p-8 relative overflow-hidden">
-          {/* Decorative glow behind the card content */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gold/50 blur-xl"></div>
-          {children}
+    <div className="min-h-screen flex flex-col bg-background-subtle">
+      <PublicHeader />
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-block text-2xl font-bold text-gold">
+              MahberConnect
+            </Link>
+            <p className="text-text-secondary mt-1 text-sm">Community Association Management</p>
+          </div>
+
+          <div className="bg-background-surface border border-border rounded-2xl p-6 md:p-8 shadow-sm">
+            {children}
+          </div>
         </div>
       </div>
     </div>
