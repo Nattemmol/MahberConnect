@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -13,12 +13,14 @@ import {
 } from "lucide-react";
 import { eventService, memberService } from "@/lib/api/service-factory";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import toast from "react-hot-toast";
 import { Event as MahberEvent } from "@/lib/types";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { canManageEvents } from "@/lib/utils";
 
 export default function EventsPage({
   params,
@@ -35,14 +37,23 @@ export default function EventsPage({
     queryFn: () => eventService.getEvents(id, currentPage, pageSize),
   });
 
-  const { data: currentMember } = useQuery({
+  const { data: currentMember, error: memberError } = useQuery({
     queryKey: ["mahber-member", id, user?.id],
     queryFn: () => memberService.getMemberById(id, user?.id || ""),
     enabled: !!user?.id,
   });
-  const canManageEvents =
-    currentMember?.permissions?.includes("create_events") ||
-    currentMember?.role === "ADMIN";
+
+  useEffect(() => {
+    if (memberError) {
+      console.debug("mahber-member error:", memberError);
+      toast.error("Failed to load membership info. Check console for details.");
+    }
+  }, [memberError]);
+
+  const canManageEventsValue = canManageEvents(currentMember);
+
+  console.log("mahber-member backend response:", currentMember);
+  console.log("mahber-member create_events permission:", canManageEventsValue);
 
   const events = eventsResponse?.data || [];
   const upcomingEvents = events.filter(
@@ -120,7 +131,7 @@ export default function EventsPage({
         title="Events"
         description="Manage and track attendance for meetings, ceremonies, and gatherings."
       >
-        {canManageEvents && (
+        {canManageEventsValue && (
           <Button asChild className="gap-2">
             <Link href={`/mahbers/${id}/events/create`}>
               <Plus className="w-4 h-4" />

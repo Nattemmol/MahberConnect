@@ -32,6 +32,7 @@ import { QRCode } from "@/components/ui/qrcode";
 import { Dialog } from "@/components/ui/dialog";
 import { use, useState } from "react";
 import toast from "react-hot-toast";
+import { canManageEvents } from "@/lib/utils";
 
 export default function EventDetailPage({
   params,
@@ -53,9 +54,7 @@ export default function EventDetailPage({
     queryFn: () => memberService.getMemberById(id, user?.id || ""),
     enabled: !!user?.id,
   });
-  const canManageEvents =
-    currentMember?.permissions?.includes("create_events") ||
-    currentMember?.role === "ADMIN";
+  const canManageEventsValue = canManageEvents(currentMember);
 
   const { data: event, isLoading: isEventLoading } = useQuery({
     queryKey: ["mahber-event", id, eventId],
@@ -65,13 +64,13 @@ export default function EventDetailPage({
   const { data: qrCode, isLoading: isQRLoading } = useQuery({
     queryKey: ["event-qr", id, eventId],
     queryFn: () => eventService.getQRCode(id, eventId),
-    enabled: showQR && canManageEvents,
+    enabled: showQR && canManageEventsValue,
   });
 
   const { data: userQRCode, isLoading: isUserQRLoading } = useQuery({
     queryKey: ["user-event-qr", id, eventId, user?.id],
     queryFn: () => eventService.getUserQRCode(id, eventId),
-    enabled: showUserQR && !!user?.id && !canManageEvents,
+    enabled: showUserQR && !!user?.id && !canManageEventsValue,
   });
 
   const { data: attendanceResponse, isError: isAttendanceError } = useQuery({
@@ -164,7 +163,7 @@ export default function EventDetailPage({
               Photo Gallery
             </Link>
           </Button>
-          {canManageEvents && !event.is_cancelled && (
+          {canManageEventsValue && !event.is_cancelled && (
             <>
               <Button variant="outline" asChild className="gap-2">
                 <Link href={`/mahbers/${id}/events/${eventId}/edit`}>
@@ -185,14 +184,14 @@ export default function EventDetailPage({
             </>
           )}
           {/* Admin: Event QR Code */}
-          {canManageEvents && !isPastEvent && !event.is_cancelled && (
+          {canManageEventsValue && !isPastEvent && !event.is_cancelled && (
             <Button onClick={() => setShowQR(true)} className="gap-2 bg-gold hover:bg-gold/90">
               <QrCode className="w-4 h-4" />
               Event QR Code
             </Button>
           )}
           {/* Admin: Process Attendance */}
-          {canManageEvents &&
+          {canManageEventsValue &&
             isPastEvent &&
             event.is_mandatory &&
             !event.is_cancelled && (
@@ -295,7 +294,7 @@ export default function EventDetailPage({
               {!isPastEvent && !event.is_cancelled ? (
                 <div className="space-y-4">
                   {/* User Check-in: Generate Personal QR */}
-                  {!canManageEvents ? (
+                  {!canManageEventsValue ? (
                     <>
                       <p className="text-sm text-text-muted">
                         Generate your personal QR code to check in at the event.
