@@ -16,16 +16,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { canManageEvents } from "@/lib/utils";
 
 const eventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   event_type: z.enum([
-    "REGULAR_MEETING",
-    "SPECIAL_MEETING",
-    "WORK_DAY",
-    "SOCIAL",
-    "OTHER",
+    "Meeting",
+    "Ceremony",
+    "Fundraiser",
+    "Social_Gathering",
   ]),
   start_time: z.string().min(1, "Start time is required"),
   end_time: z.string().min(1, "End time is required"),
@@ -50,9 +50,7 @@ export default function EditEventPage({
     queryFn: () => memberService.getMemberById(id, user?.id || ""),
     enabled: !!user?.id,
   });
-  const canManageEvents =
-    currentMember?.permissions?.includes("create_events") ||
-    currentMember?.role === "ADMIN";
+  const canManageEventsValue = canManageEvents(currentMember);
 
   const { data: event, isLoading: isEventLoading } = useQuery({
     queryKey: ["mahber-event", id, eventId],
@@ -67,7 +65,7 @@ export default function EditEventPage({
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
-      event_type: "REGULAR_MEETING",
+      event_type: "Meeting",
       is_mandatory: false,
     },
   });
@@ -128,11 +126,11 @@ export default function EditEventPage({
   };
 
   useEffect(() => {
-    if (!isMemberLoading && user && !canManageEvents) {
+    if (!isMemberLoading && user && !canManageEventsValue) {
       toast.error("You don't have permission to edit events");
       router.push(`/mahbers/${id}/events/${eventId}`);
     }
-  }, [isMemberLoading, user, canManageEvents, router, id, eventId]);
+  }, [isMemberLoading, user, canManageEventsValue, router, id, eventId]);
 
   if (isEventLoading) {
     return (
@@ -231,11 +229,10 @@ export default function EditEventPage({
                   {...register("event_type")}
                   className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
                 >
-                  <option value="REGULAR_MEETING">Regular Meeting</option>
-                  <option value="SPECIAL_MEETING">Special Meeting</option>
-                  <option value="WORK_DAY">Work Day</option>
-                  <option value="SOCIAL">Social</option>
-                  <option value="OTHER">Other</option>
+                  <option value="Meeting">Meeting</option>
+                  <option value="Ceremony">Ceremony</option>
+                  <option value="Fundraiser">Fundraiser</option>
+                  <option value="Social_Gathering">Social Gathering</option>
                 </select>
               </div>
 

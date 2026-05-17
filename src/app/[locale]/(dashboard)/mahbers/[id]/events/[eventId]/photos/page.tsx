@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
+import { canManageEvents } from "@/lib/utils";
 
 export default function EventPhotosPage({
   params,
@@ -56,9 +57,7 @@ export default function EventPhotosPage({
     queryFn: () => memberService.getMemberById(id, user?.id || ""),
     enabled: !!user?.id,
   });
-  const canManageEvents =
-    currentMember?.permissions?.includes("create_events") ||
-    currentMember?.role === "ADMIN";
+  const canManageEventsValue = canManageEvents(currentMember);
 
   const uploadMutation = useMutation<EventPhoto, Error, void>({
     mutationFn: async () => {
@@ -94,7 +93,7 @@ export default function EventPhotosPage({
   });
 
   const canDeletePhoto = (photo: EventPhoto) => {
-    return canManageEvents || photo.uploader_id === user?.id;
+    return canManageEventsValue || photo.uploader_id === user?.id;
   };
 
   const handleDeleteClick = (photo: EventPhoto) => {

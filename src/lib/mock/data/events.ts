@@ -7,7 +7,7 @@ export const mockEvents: Event[] = [
     title: "Monthly General Meeting",
     description:
       "Our regular monthly gathering to discuss financials and upcoming initiatives.",
-    event_type: "REGULAR_MEETING",
+    event_type: "Meeting",
     start_time: new Date(Date.now() + 86400000 * 5).toISOString(), // 5 days from now
     end_time: new Date(Date.now() + 86400000 * 5 + 7200000).toISOString(), // + 2 hours
     location: "Jupiter International Hotel, Cazanchis",
@@ -20,7 +20,7 @@ export const mockEvents: Event[] = [
     mahber_id: "mah_1",
     title: "Annual Fundraiser Dinner",
     description: "Gala dinner to raise funds for the local school project.",
-    event_type: "SPECIAL_MEETING",
+    event_type: "Fundraiser",
     start_time: new Date(Date.now() + 86400000 * 20).toISOString(), // 20 days from now
     end_time: new Date(Date.now() + 86400000 * 20 + 14400000).toISOString(), // + 4 hours
     location: "Skylight Hotel",
@@ -33,7 +33,7 @@ export const mockEvents: Event[] = [
     mahber_id: "mah_1",
     title: "New Year Celebration",
     description: "Enkutatash celebration with traditional food and music.",
-    event_type: "WORK_DAY",
+    event_type: "Ceremony",
     start_time: new Date(Date.now() - 86400000 * 45).toISOString(), // 45 days ago
     end_time: new Date(Date.now() - 86400000 * 45 + 21600000).toISOString(), // + 6 hours
     location: "Bole Fana Park",
