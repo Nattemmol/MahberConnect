@@ -3,12 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import Link from "next/link";
-import { mahberService } from "@/lib/api/service-factory";
+import { mahberService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle, Clock, Trophy } from "lucide-react";
+
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 export default function MahberOverviewPage({
   params,
@@ -16,10 +19,34 @@ export default function MahberOverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: mahber, isLoading } = useQuery({
+  const { user } = useAuthStore();
+  
+  const { data: mahber, isLoading: isMahberLoading } = useQuery({
     queryKey: ["mahber", id],
     queryFn: () => mahberService.getMahberById(id),
   });
+
+  const { data: myMahbers, isLoading: isMyMahbersLoading } = useQuery({
+    queryKey: ["my-mahbers"],
+    queryFn: () => mahberService.getMahbers(),
+  });
+
+  const isMember = myMahbers?.some(m => m.id === id);
+  const { data: membersResponse } = useQuery({
+    queryKey: ["mahber-members-check", id],
+    queryFn: () => memberService.getMembers(id, 1, 100),
+    enabled: isMember,
+  });
+
+  const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
+  const isAdmin = myMembership?.role === "ADMIN" || 
+                 myMembership?.role === "Admin" ||
+                 (myMembership?.role as any)?.name === "Admin" ||
+                 (myMembership?.role as any)?.name === "ADMIN" ||
+                 (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+                 (myMembership?.role as any)?.permissions?.includes("manage_finances");
+
+  const isLoading = isMahberLoading || isMyMahbersLoading;
 
   const contributionAmount =
     typeof mahber?.configuration?.contribution_amount === "number"
@@ -65,7 +92,7 @@ export default function MahberOverviewPage({
           Mahber Not Found
         </h3>
         <p className="text-text-secondary mb-6">
-          We couldn&apos;t load this mahber. It may have been removed.
+          We couldn&apos;t load this mahber. It may have been removed or you don&apos;t have access.
         </p>
         <Button asChild>
           <Link href="/mahbers">Back to Mahbers</Link>
@@ -76,17 +103,54 @@ export default function MahberOverviewPage({
 
   return (
     <div className="space-y-6">
+      {!isMember && (
+        <div className="flex items-center gap-4 p-4 border border-gold/30 bg-gold/5 rounded-input mb-6">
+          <Clock className="w-8 h-8 text-gold" />
+          <div>
+            <p className="font-semibold text-text-primary">
+              Join Request Pending
+            </p>
+            <p className="text-xs text-text-secondary">
+              You have requested to join this community. Some features will be available once your request is approved.
+            </p>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         title={mahber.name}
         description="Mahber overview and configuration."
       >
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href={`/mahbers/${id}/members`}>Members</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/mahbers/${id}/payments`}>Payments</Link>
-          </Button>
+          {isMember && (
+            <>
+              <Button asChild variant="outline">
+                <Link href={`/mahbers/${id}/members`}>Members</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/mahbers/${id}/payments`}>Payments</Link>
+              </Button>
+              {mahber.type === "EQUB" && (
+                <Button asChild variant="outline" className="border-gold/50 text-gold hover:bg-gold/10 gap-2">
+                  <Link href={`/mahbers/${id}/lottery`}>
+                    <Trophy className="w-4 h-4" />
+                    Lottery Draw
+                  </Link>
+                </Button>
+              )}
+              {isAdmin && (
+                <Button asChild variant="default" className="bg-gold hover:bg-gold-dark text-black">
+                  <Link href={`/mahbers/${id}/settings`}>Settings</Link>
+                </Button>
+              )}
+            </>
+          )}
+          {!isMember && (
+            <Badge variant="warning" className="px-4 py-2">
+              <Clock className="w-4 h-4 mr-2" />
+              Pending Approval
+            </Badge>
+          )}
         </div>
       </PageHeader>
 

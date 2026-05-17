@@ -3,12 +3,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import Link from "next/link";
-import { CreditCard, Wallet, ArrowUpRight } from "lucide-react";
-import { financialService } from "@/lib/api/service-factory";
+import { CreditCard, Wallet, ArrowUpRight, Trophy } from "lucide-react";
+import { financialService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 export default function PaymentsDashboard({
   params,
@@ -16,27 +17,45 @@ export default function PaymentsDashboard({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { user } = useAuthStore();
   const { data: payments, isLoading } = useQuery({
     queryKey: ["mahber-payments", id],
     queryFn: () => financialService.getMahberPayments(id),
   });
 
-  const paymentsList = Array.isArray(payments)
-    ? payments
-    : Array.isArray((payments as { data?: unknown })?.data)
-      ? ((payments as { data: typeof payments }).data as typeof payments)
-      : [];
+  const paymentsList = payments?.data || [];
 
   const totalContributions =
     paymentsList
       .filter(
-        (p) => p.status === "COMPLETED" && p.payment_type === "CONTRIBUTION",
+        (p) => p.status === "Completed" && p.payment_type === "Contribution",
       )
       .reduce((acc, p) => acc + p.amount, 0) || 0;
   const pendingAmount =
     paymentsList
-      .filter((p) => p.status === "PENDING")
+      .filter((p) => p.status === "Pending")
       .reduce((acc, p) => acc + p.amount, 0) || 0;
+
+  const { data: mahber } = useQuery({
+    queryKey: ["mahber", id],
+    queryFn: () => mahberService.getMahberById(id),
+  });
+
+  const { data: membersResponse } = useQuery({
+    queryKey: ["mahber-members-check", id],
+    queryFn: () => memberService.getMembers(id, 1, 100),
+  });
+
+  const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
+  const isAdmin = !membersResponse ||
+    myMembership?.role === "ADMIN" ||
+    myMembership?.role === "Admin" ||
+    (myMembership?.role as any)?.name === "Admin" ||
+    (myMembership?.role as any)?.name === "ADMIN" ||
+    (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+    (myMembership?.role as any)?.permissions?.includes("manage_finances");
+
+  const isEqub = !mahber || mahber?.type === "EQUB" || (mahber?.type as string)?.toUpperCase() === "EQUB";
 
   return (
     <div className="space-y-6">
@@ -44,12 +63,22 @@ export default function PaymentsDashboard({
         title="Finances"
         description="Manage your payments, contributions, and fines."
       >
-        <Button asChild className="gap-2">
-          <Link href={`/mahbers/${id}/payments/initiate`}>
-            <CreditCard className="w-4 h-4" />
-            Make a Payment
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          {isEqub && (
+            <Button asChild variant="outline" className="gap-2 border-gold/50 text-gold hover:bg-gold/10">
+              <Link href={`/mahbers/${id}/lottery`}>
+                <Trophy className="w-4 h-4" />
+                Lottery Draw
+              </Link>
+            </Button>
+          )}
+          <Button asChild className="gap-2">
+            <Link href={`/mahbers/${id}/payments/initiate`}>
+              <CreditCard className="w-4 h-4" />
+              Make a Payment
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -126,9 +155,9 @@ export default function PaymentsDashboard({
                   </span>
                   <Badge
                     variant={
-                      payment.status === "COMPLETED"
+                      payment.status === "Completed"
                         ? "success"
-                        : payment.status === "PENDING"
+                        : payment.status === "Pending"
                           ? "warning"
                           : "destructive"
                     }

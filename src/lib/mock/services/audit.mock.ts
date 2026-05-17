@@ -4,7 +4,7 @@ import { mockAuditTrail } from '../data/audit-trail';
 let auditTrail = [...mockAuditTrail];
 
 export const auditMock = {
-  getAuditTrail: async (mahberId: string) => {
+  getAuditTrail: async (mahberId: string, params: any = {}) => {
     await delay(600);
     const data = auditTrail
       .filter(a => a.mahber_id === mahberId)
@@ -12,19 +12,21 @@ export const auditMock = {
       
     return {
       data,
-      meta: { total: data.length, page: 1, limit: 50, totalPages: 1 },
+      meta: { total: data.length, page: params.page || 1, limit: params.limit || 50, totalPages: 1 },
     };
   },
   
   // Internal mock helper to allow other mock services to log actions
-  _logAction: (mahberId: string, actorId: string, actionType: string, details: any, actor: any) => {
+  _logAction: (mahberId: string, actorId: string, action: string, details: any, actor: any) => {
     auditTrail = [
       {
         id: `aud_${Date.now()}`,
         mahber_id: mahberId,
         actor_id: actorId,
-        action_type: actionType,
-        details,
+        entity_type: 'other',
+        entity_id: 'none',
+        action,
+        new_value: details,
         created_at: new Date().toISOString(),
         actor
       },

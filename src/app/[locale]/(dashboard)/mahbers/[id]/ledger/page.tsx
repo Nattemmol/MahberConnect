@@ -39,7 +39,7 @@ export default function LedgerPage({
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
         </div>
-      ) : transactions?.length === 0 ? (
+      ) : transactions?.data?.length === 0 ? (
         <div className="text-center py-12 glass rounded-card">
           <p className="text-text-secondary">No transactions recorded yet.</p>
         </div>
@@ -55,7 +55,7 @@ export default function LedgerPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions?.map((tx) => (
+            {transactions?.data?.map((tx) => (
               <TableRow key={tx.id}>
                 <TableCell className="font-medium">
                   {new Date(tx.created_at).toLocaleDateString()}

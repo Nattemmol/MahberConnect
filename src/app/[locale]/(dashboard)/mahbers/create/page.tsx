@@ -18,18 +18,12 @@ const createMahberSchema = z.object({
   type: z.enum(["MAHBER", "EQUB", "IDDIR"]),
   configuration: z.object({
     contribution_amount: z
-      .number({ invalid_type_error: "Contribution amount is required" })
+      .number({ error: "Contribution amount is required" })
       .min(1, "Contribution amount must be greater than 0"),
     cycle: z.string().min(1, "Contribution cycle is required"),
   }),
   is_public: z.boolean(),
-  invitation_code: z.preprocess((value) => {
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      return trimmed.length === 0 ? undefined : trimmed;
-    }
-    return value;
-  }, z.string().optional()),
+  invitation_code: z.string().optional(),
 });
 
 type CreateMahberValues = z.infer<typeof createMahberSchema>;

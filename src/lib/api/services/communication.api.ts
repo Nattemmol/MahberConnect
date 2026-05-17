@@ -59,4 +59,9 @@ export const communicationApi = {
     const response = await apiClient.post<Vote>(`/mahbers/${mahberId}/polls/${pollId}/vote`, { choices });
     return response.data;
   },
+
+  getPollResults: async (mahberId: string, pollId: string): Promise<any> => {
+    const response = await apiClient.get<any>(`/mahbers/${mahberId}/polls/${pollId}/results`);
+    return response.data;
+  },
 };

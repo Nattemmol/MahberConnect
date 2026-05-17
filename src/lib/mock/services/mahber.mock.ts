@@ -58,4 +58,29 @@ export const mahberMock = {
     };
     return joinRequest;
   },
+
+  updateMahber: async (id: string, data: any) => {
+    await delay(1000);
+    const index = mockMahbers.findIndex((m) => m.id === id);
+    if (index === -1) throw new Error("Mahber not found");
+    
+    mockMahbers[index] = {
+      ...mockMahbers[index],
+      ...data,
+      configuration: {
+        ...mockMahbers[index].configuration,
+        ...data.configuration,
+      },
+      updated_at: new Date().toISOString(),
+    };
+    
+    return mockMahbers[index];
+  },
+
+  deleteMahber: async (id: string) => {
+    await delay(1000);
+    const index = mockMahbers.findIndex((m) => m.id === id);
+    if (index === -1) throw new Error("Mahber not found");
+    mockMahbers.splice(index, 1);
+  },
 };

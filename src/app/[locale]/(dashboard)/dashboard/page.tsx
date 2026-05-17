@@ -43,8 +43,8 @@ export default function DashboardPage() {
               <p className="text-sm text-text-secondary">Tech Equb</p>
             </div>
             <div className="text-right">
-              <span className="text-text-secondary font-medium uppercase text-xs tracking-wider">Present</span>
-              <p className="text-[10px] text-text-muted mt-0.5">Yesterday</p>
+              <span className="text-text-secondary font-medium uppercase text-xs tracking-wider">{t('present')}</span>
+              <p className="text-[10px] text-text-muted mt-0.5">{t('yesterday')}</p>
             </div>
           </div>
         </div>

@@ -14,6 +14,7 @@ import { auditService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 export default function AuditTrailPage({
   params,
@@ -28,49 +29,54 @@ export default function AuditTrailPage({
 
   const logs = auditResponse?.data || [];
 
-  const getActionConfig = (actionType: string) => {
-    switch (actionType) {
-      case "MEMBER_ADDED":
-      case "MEMBER_REMOVED":
-        return {
-          icon: UserPlus,
-          color: "text-gold bg-gold/10",
-          border: "border-gold/20",
-        };
-      case "LOTTERY_DRAWN":
-        return {
-          icon: Dices,
-          color: "text-status-success bg-status-success/10",
-          border: "border-status-success/20",
-        };
-      case "FINE_WAIVED":
-        return {
-          icon: ShieldBan,
-          color: "text-status-error bg-status-error/10",
-          border: "border-status-error/20",
-        };
-      case "MAHBER_CREATED":
-      case "ROLE_UPDATED":
-      case "SETTINGS_CHANGED":
-        return {
-          icon: Settings,
-          color: "text-text-primary bg-surface-active",
-          border: "border-border-glass",
-        };
-      default:
-        return {
-          icon: Activity,
-          color: "text-text-secondary bg-surface-active",
-          border: "border-border-glass",
-        };
+  const getActionConfig = (action: string) => {
+    const act = action.toUpperCase();
+    if (act.includes("MEMBER") || act.includes("JOIN_REQUEST")) {
+      return {
+        icon: UserPlus,
+        color: "text-gold bg-gold/10",
+        border: "border-gold/20",
+      };
     }
+    if (act.includes("LOTTERY")) {
+      return {
+        icon: Dices,
+        color: "text-status-success bg-status-success/10",
+        border: "border-status-success/20",
+      };
+    }
+    if (act.includes("FINE") || act.includes("WAIVE")) {
+      return {
+        icon: ShieldBan,
+        color: "text-status-error bg-status-error/10",
+        border: "border-status-error/20",
+      };
+    }
+    if (act.includes("SETTING") || act.includes("MAHBER") || act.includes("ROLE")) {
+      return {
+        icon: Settings,
+        color: "text-text-primary bg-surface-active",
+        border: "border-border-glass",
+      };
+    }
+    return {
+      icon: Activity,
+      color: "text-text-secondary bg-surface-active",
+      border: "border-border-glass",
+    };
   };
 
-  const formatDetails = (details: any) => {
-    if (!details) return "";
+  const formatDetails = (log: any) => {
+    const details = log.new_value || log.metadata || {};
+    if (Object.keys(details).length === 0) return `Performed ${log.action.replace(/_/g, " ")}`;
+    
     try {
       return Object.entries(details)
-        .map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`)
+        .filter(([key]) => !key.includes("id") && !key.includes("_at"))
+        .map(([key, value]) => {
+          const displayValue = typeof value === "object" ? JSON.stringify(value) : String(value);
+          return `${key.replace(/_/g, " ")}: ${displayValue}`;
+        })
         .join(" • ");
     } catch {
       return JSON.stringify(details);
@@ -100,7 +106,7 @@ export default function AuditTrailPage({
       ) : (
         <div className="relative border-l border-border-glass ml-6 md:ml-8 space-y-8 py-4">
           {logs.map((log) => {
-            const config = getActionConfig(log.action_type);
+            const config = getActionConfig(log.action);
             const Icon = config.icon;
 
             return (
@@ -115,16 +121,21 @@ export default function AuditTrailPage({
                   <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h4 className="font-bold text-text-primary">
-                          {log.action_type.replace(/_/g, " ")}
-                        </h4>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wider opacity-70">
+                            {log.entity_type}
+                          </Badge>
+                          <h4 className="font-bold text-text-primary capitalize">
+                            {log.action.replace(/_/g, " ")}
+                          </h4>
+                        </div>
                         <span className="text-xs text-text-muted">
                           {new Date(log.created_at).toLocaleString()}
                         </span>
                       </div>
 
-                      <div className="text-sm text-text-secondary capitalize">
-                        {formatDetails(log.details)}
+                      <div className="text-sm text-text-secondary">
+                        {formatDetails(log)}
                       </div>
 
                       <div className="pt-2 text-xs text-text-muted flex items-center gap-1">

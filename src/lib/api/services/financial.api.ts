@@ -1,12 +1,13 @@
 import { apiClient } from '../client';
-import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw } from '@/lib/types';
+import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse } from '@/lib/types';
 
 export const financialApi = {
   // ── Payments ────────────────────────────────────────────────────────────────
   initiatePayment: async (data: InitiatePaymentDto): Promise<{ checkoutUrl: string; tx_ref: string }> => {
     // Backend route: POST /mahbers/:id/payments/initiate
+    const { mahber_id, ...payload } = data;
     const response = await apiClient.post<{ checkoutUrl: string; tx_ref: string }>(
-      `/mahbers/${data.mahber_id}/payments/initiate`, data
+      `/mahbers/${mahber_id}/payments/initiate`, payload
     );
     return response.data;
   },
@@ -20,23 +21,23 @@ export const financialApi = {
     return response.data;
   },
   
-  getMahberPayments: async (mahberId: string): Promise<Payment[]> => {
+  getMahberPayments: async (mahberId: string): Promise<PaginatedResponse<Payment>> => {
     // Backend route: GET /mahbers/:id/payments
-    const response = await apiClient.get<Payment[]>(`/mahbers/${mahberId}/payments`);
+    const response = await apiClient.get<PaginatedResponse<Payment>>(`/mahbers/${mahberId}/payments`);
     return response.data;
   },
 
   // ── Ledger ──────────────────────────────────────────────────────────────────
-  getMahberLedger: async (mahberId: string): Promise<Transaction[]> => {
+  getMahberLedger: async (mahberId: string): Promise<PaginatedResponse<Transaction>> => {
     // Backend route: GET /mahbers/:id/ledger
-    const response = await apiClient.get<Transaction[]>(`/mahbers/${mahberId}/ledger`);
+    const response = await apiClient.get<PaginatedResponse<Transaction>>(`/mahbers/${mahberId}/ledger`);
     return response.data;
   },
 
   // ── Fines ───────────────────────────────────────────────────────────────────
-  getFines: async (mahberId: string): Promise<Fine[]> => {
+  getFines: async (mahberId: string): Promise<PaginatedResponse<Fine>> => {
     // Backend route: GET /mahbers/:id/fines
-    const response = await apiClient.get<Fine[]>(`/mahbers/${mahberId}/fines`);
+    const response = await apiClient.get<PaginatedResponse<Fine>>(`/mahbers/${mahberId}/fines`);
     return response.data;
   },
   
@@ -47,16 +48,15 @@ export const financialApi = {
   },
 
   // ── Lottery ─────────────────────────────────────────────────────────────────
-  // NOTE: The backend has lottery.service.ts but NO lottery controller yet.
-  // These endpoints will fail until a LotteryController is created on the backend.
-  // The integration tester must create this controller or adjust routes.
   getLotteryHistory: async (mahberId: string): Promise<LotteryDraw[]> => {
+    // Backend route: GET /mahbers/:id/lottery/history
     const response = await apiClient.get<LotteryDraw[]>(`/mahbers/${mahberId}/lottery/history`);
     return response.data;
   },
 
-  drawLottery: async (mahberId: string): Promise<LotteryDraw> => {
-    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/draw`);
+  executeLottery: async (mahberId: string, data?: { operationalCostRate?: number; fineThreshold?: number }): Promise<LotteryDraw> => {
+    // Backend route: POST /mahbers/:id/lottery/execute
+    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, data || {});
     return response.data;
   }
 };

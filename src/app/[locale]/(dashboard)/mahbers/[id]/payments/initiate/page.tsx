@@ -16,7 +16,7 @@ const paymentSchema = z.object({
   amount: z
     .number({ error: "Valid amount is required" })
     .min(10, "Amount must be at least 10 ETB"),
-  payment_type: z.enum(["CONTRIBUTION", "FINE", "PENALTY"]),
+  payment_type: z.enum(["Contribution", "JoinFee", "Fine"]),
 });
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
@@ -35,7 +35,7 @@ export default function InitiatePaymentPage({
     formState: { errors, isSubmitting },
   } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { payment_type: "CONTRIBUTION", amount: 500 },
+    defaultValues: { payment_type: "Contribution", amount: 500 },
   });
 
   const onSubmit = async (data: PaymentFormValues) => {
@@ -106,9 +106,9 @@ export default function InitiatePaymentPage({
                 {...register("payment_type")}
                 className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
               >
-                <option value="CONTRIBUTION">Regular Contribution</option>
-                <option value="FINE">Late Fine</option>
-                <option value="PENALTY">Absence Penalty</option>
+                <option value="Contribution">Regular Contribution</option>
+                <option value="JoinFee">Join Fee</option>
+                <option value="Fine">Late Fine / Penalty</option>
               </select>
               {errors.payment_type && (
                 <p className="text-status-error text-xs mt-1">
