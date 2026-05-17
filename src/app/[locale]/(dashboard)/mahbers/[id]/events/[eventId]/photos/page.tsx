@@ -96,6 +96,22 @@ export default function EventPhotosPage({
     return canManageEventsValue || photo.uploader_id === user?.id;
   };
 
+  const getPhotoUrl = (filePath: string) => {
+    if (!filePath) return "/placeholder-image.jpg";
+    if (filePath.startsWith("http") || filePath.startsWith("data:")) return filePath;
+    
+    // Handle Windows paths from backend
+    const normalizedPath = filePath.replace(/\\/g, "/");
+    
+    // Get the base API URL (e.g., http://localhost:8080)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+    const baseUrl = apiUrl.replace(/\/api$/, "");
+    
+    // Ensure it starts with / if it's a relative path
+    const finalPath = normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`;
+    return `${baseUrl}${finalPath}`;
+  };
+
   const handleDeleteClick = (photo: EventPhoto) => {
     setPhotoToDelete(photo);
     setShowDeleteDialog(true);
@@ -161,7 +177,7 @@ export default function EventPhotosPage({
               <Card key={photo.id} className="overflow-hidden group">
                 <div className="aspect-square relative overflow-hidden bg-surface-active">
                   <Image
-                    src={photo.file_path}
+                    src={getPhotoUrl(photo.file_path)}
                     alt={photo.caption || "Event photo"}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -320,7 +336,7 @@ export default function EventPhotosPage({
           {photoToDelete && (
             <div className="relative w-full h-32 rounded-lg overflow-hidden">
               <Image
-                src={photoToDelete.file_path}
+                src={getPhotoUrl(photoToDelete.file_path)}
                 alt={photoToDelete.caption || "Photo to delete"}
                 fill
                 className="object-cover"

@@ -4,6 +4,7 @@ export type User = {
   name: string;
   email?: string;
   bio?: string;
+  notification_prefs?: Record<string, boolean>;
   created_at: string;
   updated_at: string;
 };

@@ -41,7 +41,7 @@ export default function SettingsPage() {
   const pathname = usePathname();
   const params = useParams();
   const { resolvedTheme, setTheme } = useTheme();
-  const { logout, user } = useAuthStore();
+  const { logout, user, updateUser } = useAuthStore();
 
   const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState({
@@ -58,11 +58,20 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
 
-  // Notification state
   const [generalNotifications, setGeneralNotifications] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    if (user?.notification_prefs) {
+      setNotifications({
+        payments: user.notification_prefs.payments !== false,
+        events: user.notification_prefs.events !== false,
+        announcements: user.notification_prefs.announcements !== false,
+        chat: user.notification_prefs.chat !== false,
+      });
+    }
+  }, [user]);
 
   const handleLocaleChange = (nextLocale: string) => {
     router.replace(
@@ -371,9 +380,18 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() =>
-                      setNotifications((prev) => ({ ...prev, [item.key]: !prev[item.key] }))
-                    }
+                    onClick={async () => {
+                      const newPrefs = { ...notifications, [item.key]: !notifications[item.key] };
+                      setNotifications(newPrefs);
+                      try {
+                        const updatedUser = await authApi.updateProfile({ notification_prefs: newPrefs });
+                        updateUser({ notification_prefs: updatedUser.notification_prefs });
+                        toast.success(t('preferencesUpdated') || 'Preferences updated');
+                      } catch (error) {
+                        setNotifications(notifications); // revert
+                        toast.error(t('updateFailed') || 'Failed to update preferences');
+                      }
+                    }}
                     className={`relative w-11 h-6 rounded-full transition-all duration-300 shrink-0 ${
                       notifications[item.key]
                         ? 'bg-gold shadow-sm shadow-gold/30'

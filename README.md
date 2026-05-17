@@ -44,6 +44,7 @@ Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 ## latest changes
+git status
 git add .
 git commit -m "feat: update prisma schema relations and poll service logic"
 git pull origin main

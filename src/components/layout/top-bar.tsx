@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/lib/stores/ui-store';
 import LocaleSwitcher from '@/components/layout/locale-switcher';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { useState, useEffect } from 'react';
+import { notificationService } from '@/lib/api/service-factory';
 
 export function TopBar() {
   const pathname = usePathname();
@@ -22,6 +24,22 @@ export function TopBar() {
           .toUpperCase() +
         segments[segments.length - 1].slice(1).replace(/-/g, ' ')
       : 'Dashboard';
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const checkNotifications = async () => {
+      try {
+        const notifications = await notificationService.getNotifications();
+        setUnreadCount(notifications.filter(n => !n.is_read).length);
+      } catch (error) {
+        // Suppress console error to avoid spamming logs if unauthenticated
+      }
+    };
+    checkNotifications();
+    const interval = setInterval(checkNotifications, 15000); // Check every 15s
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header className="h-16 shrink-0 flex items-center justify-between px-4 md:px-6 border-b border-border bg-background-surface/80 backdrop-blur-md sticky top-0 z-40">
@@ -52,14 +70,20 @@ export function TopBar() {
         <ThemeToggle />
         <LocaleSwitcher />
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-text-secondary hover:text-text-primary hover:bg-background-subtle"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-status-error rounded-full" />
-        </Button>
+        <Link href="/notifications">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative text-text-secondary hover:text-text-primary hover:bg-background-subtle"
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-status-error text-[10px] font-bold text-white shadow-sm ring-2 ring-background-surface">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Button>
+        </Link>
 
         <Link href="/profile" className="ml-1">
           <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-gold/50 transition-all">
