@@ -202,6 +202,18 @@ export type JoinRequestActionDto = {
   rejection_reason?: string;
 };
 
+export type BatchProcessItem = {
+  requestId: string;
+  action: "approve" | "reject";
+  rejection_reason?: string;
+};
+
+export type BatchProcessResult = {
+  approved: number;
+  rejected: number;
+  failed: Array<{ requestId: string; reason: string }>;
+};
+
 // ── Generic Wrappers ──────────────────────────────────────────────────────────
 export type PaginatedResponse<T> = {
   data: T[];

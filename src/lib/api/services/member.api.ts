@@ -1,5 +1,5 @@
 import { apiClient } from '../client';
-import { MemberDetail, PaginatedResponse, UpdateRoleDto, JoinRequest, JoinRequestActionDto } from '@/lib/types';
+import { MemberDetail, PaginatedResponse, UpdateRoleDto, JoinRequest, JoinRequestActionDto, BatchProcessItem, BatchProcessResult } from '@/lib/types';
 
 export const memberApi = {
   getMembers: async (mahberId: string, page = 1, limit = 20): Promise<PaginatedResponse<MemberDetail>> => {
@@ -46,6 +46,14 @@ export const memberApi = {
 
   handleJoinRequest: async (mahberId: string, requestId: string, data: JoinRequestActionDto): Promise<JoinRequest> => {
     const response = await apiClient.put<JoinRequest>(`/mahbers/${mahberId}/join-requests/${requestId}`, data);
+    return response.data;
+  },
+
+  batchHandleJoinRequests: async (mahberId: string, items: BatchProcessItem[]): Promise<BatchProcessResult> => {
+    const response = await apiClient.post<BatchProcessResult>(
+      `/mahbers/${mahberId}/join-requests/batch`,
+      { requests: items },
+    );
     return response.data;
   },
 };

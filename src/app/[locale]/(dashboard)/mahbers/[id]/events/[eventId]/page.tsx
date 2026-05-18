@@ -54,9 +54,9 @@ export default function EventDetailPage({
   const [showProcessDialog, setShowProcessDialog] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showManualDialog, setShowManualDialog] = useState(false);
-  const [manualToken, setManualToken] = useState("");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuthStore();
 
   const { data: currentMember } = useQuery({
@@ -121,6 +121,16 @@ export default function EventDetailPage({
     );
   }, [members]);
 
+  const filteredActiveMembers = useMemo(() => {
+    if (!searchQuery) return activeMembers;
+    const q = searchQuery.toLowerCase();
+    return activeMembers.filter(
+      (m: any) =>
+        m.user?.name?.toLowerCase().includes(q) ||
+        m.user?.phone?.includes(q),
+    );
+  }, [activeMembers, searchQuery]);
+
   const { data: qrCode, isLoading: isQRLoading } = useQuery({
     queryKey: ["event-qr", id, eventId],
     queryFn: () => eventService.getQRCode(id, eventId),
@@ -168,6 +178,22 @@ export default function EventDetailPage({
       const message = getErrorMessage(error);
       toast.error(message ?? "Failed to check in. Please try again.");
       setShowScanner(false);
+    },
+  });
+
+  const manualCheckInMutation = useMutation({
+    mutationFn: (memberId: string) =>
+      eventService.manualCheckIn(id, eventId, memberId),
+    onSuccess: () => {
+      toast.success("Successfully checked in!");
+      queryClient.invalidateQueries({
+        queryKey: ["event-attendance", id, eventId],
+      });
+      setShowManualDialog(false);
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to check in member");
     },
   });
 
@@ -788,52 +814,53 @@ export default function EventDetailPage({
         </div>
       </Dialog>
 
-      {/* Manual Check-in Modal for Admins */}
+      {/* Manual Check-in Modal for Admins / Hosts */}
       <Dialog
         isOpen={showManualDialog}
-        onClose={() => {
-          setShowManualDialog(false);
-          setManualToken("");
-        }}
+        onClose={() => setShowManualDialog(false)}
         title="Manual Check-in"
-        description="Enter the member's check-in token to record attendance."
+        description="Select a member to mark as attended."
       >
-        <div className="flex flex-col gap-4 py-2">
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
-              Check-in Token
-            </label>
-            <Input
-              placeholder="Enter token"
-              value={manualToken}
-              onChange={(e) => setManualToken(e.target.value)}
-            />
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setShowManualDialog(false);
-                setManualToken("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (!manualToken) {
-                  toast.error("Please enter a token");
-                  return;
-                }
-                checkInMutation.mutate(manualToken);
-                setManualToken("");
-                setShowManualDialog(false);
-              }}
-              isLoading={checkInMutation.isPending}
-            >
-              Submit
-            </Button>
-          </div>
+        <div className="flex flex-col gap-3 py-2 max-h-80 overflow-y-auto">
+          <Input
+            placeholder="Search members..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="mb-2"
+          />
+          {activeMembers.length === 0 ? (
+            <p className="text-sm text-text-secondary text-center py-8">
+              No active members available.
+            </p>
+          ) : (
+            filteredActiveMembers.map((member: any) => (
+              <button
+                key={member.member_id}
+                type="button"
+                onClick={() => {
+                  if (manualCheckInMutation.isPending) return;
+                  manualCheckInMutation.mutate(member.member_id);
+                }}
+                disabled={manualCheckInMutation.isPending}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-active transition-colors text-left w-full"
+              >
+                <div className="w-9 h-9 rounded-full bg-gold/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-gold">
+                    {member.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">
+                    {member.user?.name ?? "Unknown Member"}
+                  </p>
+                  <p className="text-xs text-text-muted truncate">
+                    {member.user?.phone ?? ""}
+                  </p>
+                </div>
+                <CheckCircle className="w-5 h-5 text-status-success shrink-0" />
+              </button>
+            ))
+          )}
         </div>
       </Dialog>
 

@@ -143,10 +143,34 @@ export const eventMock = {
     const newAttendance = {
       id: `att_${Date.now()}`,
       event_id: eventId,
-      member_id: mockUsers[2].id, // Simulating a check-in from a specific user
+      member_id: mockUsers[2].id,
       mahber_id: mahberId,
       checked_in_at: new Date().toISOString(),
       user: mockUsers[2],
+    };
+    attendance = [newAttendance, ...attendance];
+    return newAttendance;
+  },
+
+  manualCheckIn: async (mahberId: string, eventId: string, memberId: string) => {
+    await delay(600);
+    randomError(0.05);
+
+    const existing = attendance.find(
+      (a) => a.event_id === eventId && a.member_id === memberId,
+    );
+    if (existing) {
+      throw new Error("Attendance already recorded for this member");
+    }
+
+    const member = mockUsers.find((u: User) => u.id === memberId);
+    const newAttendance = {
+      id: `att_${Date.now()}`,
+      event_id: eventId,
+      member_id: memberId,
+      mahber_id: mahberId,
+      checked_in_at: new Date().toISOString(),
+      user: member || undefined,
     };
     attendance = [newAttendance, ...attendance];
     return newAttendance;

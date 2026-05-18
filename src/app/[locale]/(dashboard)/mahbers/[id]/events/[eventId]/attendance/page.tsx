@@ -64,20 +64,21 @@ export default function EventAttendancePage({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery<
-    PaginatedResponse<MemberDetail>,
-    Error,
-    InfiniteData<PaginatedResponse<MemberDetail>, number>,
-    string[],
-    number
-  >({
+  } = useInfiniteQuery({
     queryKey: ["mahber-members", id],
     queryFn: ({ pageParam = 1 }) =>
       memberService.getMembers(id, pageParam, 100),
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      const { page, totalPages } = lastPage.meta;
-      return page < totalPages ? page + 1 : undefined;
+    getNextPageParam: (lastPage: any) => {
+      try {
+        const meta = lastPage?.meta;
+        if (!meta || typeof meta.page !== 'number' || typeof meta.totalPages !== 'number') {
+          return undefined;
+        }
+        return meta.page < meta.totalPages ? meta.page + 1 : undefined;
+      } catch {
+        return undefined;
+      }
     },
     enabled: showAbsentees,
   });
@@ -88,9 +89,14 @@ export default function EventAttendancePage({
     }
   }, [showAbsentees, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const attendance = attendanceResponse?.data || [];
+  const attendance = Array.isArray(attendanceResponse?.data) ? attendanceResponse.data : [];
   const totalAttendees = attendance.length;
-  const members = membersPages?.pages.flatMap((page) => page.data) || [];
+  const members = Array.isArray(membersPages?.pages)
+    ? membersPages.pages.flatMap((page) => {
+        const data = (page as any)?.data;
+        return Array.isArray(data) ? data : [];
+      })
+    : [];
 
   const activeMembers = members.filter((m) => m.status === "Active");
   const attendanceMemberIds = new Set(attendance.map((a) => a.member_id));
@@ -99,7 +105,7 @@ export default function EventAttendancePage({
   );
   const filteredAbsentees = absentMembers.filter(
     (member) =>
-      member.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.user?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
       member.user?.phone?.includes(searchQuery),
   );
 
@@ -115,6 +121,8 @@ export default function EventAttendancePage({
     queryKey: ["event-attendance-trends", id],
     queryFn: () => eventService.getAttendanceTrends(id, eventId, 6),
   });
+
+  const hasTrends = Boolean(trends?.trends && trends.trends.length > 0);
 
   const handleExportReport = async () => {
     try {
@@ -135,7 +143,7 @@ export default function EventAttendancePage({
   // Filter attendance based on search query
   const filteredAttendance = attendance.filter(
     (record) =>
-      record.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      record.user?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
       record.user?.phone?.includes(searchQuery),
   );
 
@@ -203,7 +211,7 @@ export default function EventAttendancePage({
       )}
 
       {/* Trends Section */}
-      {trends && trends.trends.length > 0 && (
+      {hasTrends && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-text-primary flex items-center gap-2">
@@ -213,8 +221,8 @@ export default function EventAttendancePage({
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-2 h-32">
-              {trends.trends.map((t) => {
-                const maxRate = Math.max(...trends.trends.map((x) => x.average_attendance_rate), 1);
+              {trends!.trends.map((t) => {
+                const maxRate = Math.max(...trends!.trends.map((x) => x.average_attendance_rate), 1);
                 const height = (t.average_attendance_rate / maxRate) * 100;
                 return (
                   <div key={t.month} className="flex-1 flex flex-col items-center gap-1">

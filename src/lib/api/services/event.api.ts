@@ -95,6 +95,18 @@ export const eventApi = {
     return response.data;
   },
 
+  manualCheckIn: async (
+    mahberId: string,
+    eventId: string,
+    memberId: string,
+  ): Promise<Attendance> => {
+    const response = await apiClient.post<Attendance>(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/manual`,
+      { member_id: memberId },
+    );
+    return response.data;
+  },
+
   processAttendance: async (
     mahberId: string,
     eventId: string,
