@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { use, useState, useRef } from "react";
+import { use, useState, useRef, useEffect } from "react";
 import {
   ArrowLeft,
   Image as ImageIcon,
@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { eventService, memberService } from "@/lib/api/service-factory";
-import { EventPhoto } from "@/lib/types";
+import { EventPhoto, UploadResponse } from "@/lib/types";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,8 @@ export default function EventPhotosPage({
   const queryClient = useQueryClient();
   const [showUpload, setShowUpload] = useState(false);
   const [caption, setCaption] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [photoToDelete, setPhotoToDelete] = useState<EventPhoto | null>(null);
@@ -59,21 +60,50 @@ export default function EventPhotosPage({
   });
   const canManageEventsValue = canManageEvents(currentMember);
 
-  const uploadMutation = useMutation<EventPhoto, Error, void>({
+  const uploadMutation = useMutation<
+    UploadResponse<EventPhoto> | EventPhoto[],
+    Error,
+    void
+  >({
     mutationFn: async () => {
       const formData = new FormData();
-      if (selectedFile) formData.append("file", selectedFile);
+      // Append multiple files using the 'files' key
+      if (selectedFiles && selectedFiles.length > 0) {
+        if (selectedFiles.length === 1) {
+          // Append both 'file' and 'files' for maximum compatibility with backends
+          formData.append("file", selectedFiles[0]);
+          formData.append("files", selectedFiles[0]);
+        } else {
+          selectedFiles.forEach((f) => formData.append("files", f));
+        }
+      }
+      // If no files selected, let backend/mock handle placeholder behavior
       if (caption) formData.append("caption", caption);
       return eventService.uploadPhoto(id, eventId, formData);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({
         queryKey: ["event-photos", id, eventId],
       });
-      toast.success("Photo uploaded successfully!");
+
+      // Support both new upload response shape and older array/single-photo shapes
+      let uploadedCount = 0;
+      if (!res) uploadedCount = 0;
+      else if (Array.isArray(res)) uploadedCount = res.length;
+      else if ((res as UploadResponse<EventPhoto>).data)
+        uploadedCount =
+          (res as UploadResponse<EventPhoto>).meta?.uploaded ||
+          (res as UploadResponse<EventPhoto>).data.length;
+      else uploadedCount = 1;
+
+      toast.success(
+        `${uploadedCount} photo${uploadedCount !== 1 ? "s" : ""} uploaded successfully!`,
+      );
       setShowUpload(false);
       setCaption("");
-      setSelectedFile(null);
+      setSelectedFiles([]);
+      setPreviewUrls([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     },
     onError: () => toast.error("Failed to upload photo"),
   });
@@ -96,20 +126,50 @@ export default function EventPhotosPage({
     return canManageEventsValue || photo.uploader_id === user?.id;
   };
 
-  const getPhotoUrl = (filePath: string) => {
-    if (!filePath) return "/placeholder-image.jpg";
-    if (filePath.startsWith("http") || filePath.startsWith("data:")) return filePath;
-    
-    // Handle Windows paths from backend
-    const normalizedPath = filePath.replace(/\\/g, "/");
-    
-    // Get the base API URL (e.g., http://localhost:8080)
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
-    const baseUrl = apiUrl.replace(/\/api$/, "");
-    
-    // Ensure it starts with / if it's a relative path
-    const finalPath = normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`;
-    return `${baseUrl}${finalPath}`;
+  const getCloudinarySrc = (photo: EventPhoto) => {
+    // Prefer Cloudinary URLs (thumbnail or file_path). If none available,
+    // try to construct a Cloudinary URL from cloudinary_public_id using
+    // NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME or by detecting the cloud name from
+    // any existing Cloudinary URL in the current response.
+
+    if (!photo) return "/placeholder-image.jpg";
+
+    const cloudinaryRegex = /^https?:\/\/res\.cloudinary\.com\/([^\/]+)\//i;
+
+    if (photo.thumbnail_path && cloudinaryRegex.test(photo.thumbnail_path))
+      return photo.thumbnail_path;
+
+    if (photo.file_path && cloudinaryRegex.test(photo.file_path))
+      return photo.file_path;
+
+    // Determine cloud name: first from env, otherwise try to detect from
+    // any cloudinary url present in the current photos response.
+    let cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    if (!cloudName) {
+      const example = photosResponse?.data?.find((p) =>
+        p.file_path ? cloudinaryRegex.test(p.file_path) : false,
+      )?.file_path;
+      if (example) {
+        const match = example.match(cloudinaryRegex);
+        if (match) cloudName = match[1];
+      }
+    }
+
+    if (photo.cloudinary_public_id && cloudName) {
+      const publicId = photo.cloudinary_public_id.replace(/^\/+/, "");
+      // Use .png suffix as a safe default; Cloudinary will serve the correct format
+      return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}.png`;
+    }
+
+    // As a last resort, if file_path is already an absolute URL, return it.
+    if (
+      photo.file_path &&
+      (photo.file_path.startsWith("http") ||
+        photo.file_path.startsWith("data:"))
+    )
+      return photo.file_path;
+
+    return "/placeholder-image.jpg";
   };
 
   const handleDeleteClick = (photo: EventPhoto) => {
@@ -118,19 +178,64 @@ export default function EventPhotosPage({
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+    const MAX_FILES = 10;
+    const ALLOWED_TYPES = ["image/jpeg", "image/png"];
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      const accepted: File[] = [];
+      const rejected: { name: string; reason: string }[] = [];
+
+      for (const f of files) {
+        if (!ALLOWED_TYPES.includes(f.type)) {
+          rejected.push({ name: f.name, reason: "Invalid file type" });
+          continue;
+        }
+        if (f.size > MAX_SIZE) {
+          rejected.push({ name: f.name, reason: "File too large (>10MB)" });
+          continue;
+        }
+        accepted.push(f);
+      }
+
+      if (accepted.length > MAX_FILES) {
+        accepted.splice(MAX_FILES);
+        toast.error(
+          `Only the first ${MAX_FILES} files will be uploaded (max ${MAX_FILES}).`,
+        );
+      }
+
+      if (rejected.length > 0) {
+        const msg = rejected
+          .slice(0, 5)
+          .map((r) => `${r.name} (${r.reason})`)
+          .join(", ");
+        toast.error(
+          `Some files were rejected: ${msg}${rejected.length > 5 ? ` (+${rejected.length - 5} more)` : ""}`,
+        );
+      }
+
+      setSelectedFiles(accepted);
+      // Reset input value to allow reselecting the same files
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const handleUploadClick = () => {
-    if (selectedFile) {
-      uploadMutation.mutate();
-    } else {
-      // For mock purposes, if no file is selected but they click upload, we still trigger it
-      // to test the flow with a placeholder image from the mock service
-      uploadMutation.mutate();
+  // Create preview URLs for selected files and revoke when changed
+  useEffect(() => {
+    if (!selectedFiles || selectedFiles.length === 0) {
+      setPreviewUrls([]);
+      return;
     }
+    const urls = selectedFiles.map((f) => URL.createObjectURL(f));
+    setPreviewUrls(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [selectedFiles]);
+
+  const handleUploadClick = () => {
+    // Always trigger; backend/mock will decide what to do when files are empty
+    uploadMutation.mutate();
   };
 
   return (
@@ -173,37 +278,43 @@ export default function EventPhotosPage({
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {photosResponse.data.map((photo) => (
-              <Card key={photo.id} className="overflow-hidden group">
-                <div className="aspect-square relative overflow-hidden bg-surface-active">
-                  <Image
-                    src={getPhotoUrl(photo.file_path)}
-                    alt={photo.caption || "Event photo"}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                    {canDeletePhoto(photo) && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleDeleteClick(photo)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <p className="text-white text-sm font-medium line-clamp-2">
-                      {photo.caption}
-                    </p>
-                    <p className="text-white/70 text-xs mt-1">
-                      By {photo.user?.name || "Unknown"}
-                    </p>
+            {photosResponse.data.map((photo) => {
+              const src = getCloudinarySrc(photo);
+              const isRemote =
+                typeof src === "string" && /^https?:\/\//i.test(src);
+              return (
+                <Card key={photo.id} className="overflow-hidden group">
+                  <div className="aspect-square relative overflow-hidden bg-surface-active">
+                    <Image
+                      src={src}
+                      alt={photo.caption || "Event photo"}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      unoptimized={isRemote}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                      {canDeletePhoto(photo) && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDeleteClick(photo)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <p className="text-white text-sm font-medium line-clamp-2">
+                        {photo.caption}
+                      </p>
+                      <p className="text-white/70 text-xs mt-1">
+                        By {photo.user?.name || "Unknown"}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
 
           {/* Pagination Controls */}
@@ -273,25 +384,50 @@ export default function EventPhotosPage({
               type="file"
               ref={fileInputRef}
               onChange={handleFileSelect}
-              accept="image/*"
+              accept="image/jpeg,image/png"
               className="hidden"
+              multiple
             />
-            {selectedFile ? (
-              <div className="flex flex-col items-center">
-                <ImageIcon className="w-8 h-8 text-gold mb-2" />
-                <p className="text-sm font-medium text-text-primary">
-                  {selectedFile.name}
-                </p>
-                <p className="text-xs text-text-muted mt-1">Click to change</p>
+            {selectedFiles && selectedFiles.length > 0 ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  {previewUrls.map((url, i) => (
+                    <div
+                      key={i}
+                      className="relative w-full aspect-square rounded overflow-hidden"
+                    >
+                      <img
+                        src={url}
+                        alt={selectedFiles[i]?.name || `preview-${i}`}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-text-primary">
+                    {selectedFiles.length} photo(s) selected
+                  </p>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setSelectedFiles([]);
+                      setPreviewUrls([]);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center">
                 <Upload className="w-8 h-8 text-text-muted mb-2" />
                 <p className="text-sm font-medium text-text-primary">
-                  Click to select a photo
+                  Click to select photos
                 </p>
                 <p className="text-xs text-text-muted mt-1">
-                  JPG, PNG, up to 5MB
+                  JPG, PNG, up to 10MB each
                 </p>
               </div>
             )}
@@ -315,6 +451,7 @@ export default function EventPhotosPage({
             <Button
               onClick={handleUploadClick}
               isLoading={uploadMutation.isPending}
+              disabled={uploadMutation.isPending || selectedFiles.length === 0}
             >
               Upload
             </Button>
@@ -336,11 +473,14 @@ export default function EventPhotosPage({
           {photoToDelete && (
             <div className="relative w-full h-32 rounded-lg overflow-hidden">
               <Image
-                src={getPhotoUrl(photoToDelete.file_path)}
+                src={getCloudinarySrc(photoToDelete)}
                 alt={photoToDelete.caption || "Photo to delete"}
                 fill
                 className="object-cover"
                 sizes="100vw"
+                unoptimized={/^https?:\/\//i.test(
+                  getCloudinarySrc(photoToDelete),
+                )}
               />
             </div>
           )}

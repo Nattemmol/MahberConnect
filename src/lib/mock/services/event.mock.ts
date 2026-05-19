@@ -3,7 +3,7 @@ import { mockEvents } from "../data/events";
 import { mockAttendance } from "../data/attendance";
 import { mockPhotos } from "../data/photos";
 import { mockUsers } from "../data/users";
-import { CreateEventDto } from "@/lib/types";
+import { CreateEventDto, EventPhoto, UploadResponse } from "@/lib/types";
 
 let events = [...mockEvents];
 let attendance = [...mockAttendance];
@@ -141,20 +141,50 @@ export const eventMock = {
     formData: FormData,
   ) => {
     await delay(1200);
-    // Simulate successful photo upload
-    const newPhoto = {
+    // Handle multiple file uploads if provided under 'files' or 'file'
+    const files =
+      (formData.getAll("files") as File[]) ||
+      (formData.getAll("file") as File[]) ||
+      [];
+
+    const caption = (formData.get("caption") as string) || undefined;
+
+    // If multiple files provided, create a photo record for each
+    if (files && files.length > 0) {
+      const newPhotos = files.map((f, i) => {
+        const p: EventPhoto = {
+          id: `pht_${Date.now()}_${i}`,
+          event_id: eventId,
+          mahber_id: mahberId,
+          uploader_id: mockUsers[2].id,
+          // Use a unique Unsplash image URL as a mock for each file
+          file_path: `https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?q=80&w=80${Math.floor(
+            Math.random() * 900,
+          )}&auto=format&fit=crop`,
+          caption: caption || f.name || "New photo upload",
+          created_at: new Date().toISOString(),
+          user: mockUsers[2],
+        };
+        return p;
+      });
+      photos = [...newPhotos, ...photos];
+      return { data: newPhotos, meta: { uploaded: newPhotos.length } };
+    }
+
+    // No files provided - fall back to generating a single mock photo
+    const newPhoto: EventPhoto = {
       id: `pht_${Date.now()}`,
       event_id: eventId,
       mahber_id: mahberId,
       uploader_id: mockUsers[2].id,
       file_path:
         "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?q=80&w=800&auto=format&fit=crop",
-      caption: (formData.get("caption") as string) || "New photo upload",
+      caption: caption || "New photo upload",
       created_at: new Date().toISOString(),
       user: mockUsers[2],
     };
     photos = [newPhoto, ...photos];
-    return newPhoto;
+    return { data: [newPhoto], meta: { uploaded: 1 } };
   },
 
   deletePhoto: async (mahberId: string, eventId: string, photoId: string) => {

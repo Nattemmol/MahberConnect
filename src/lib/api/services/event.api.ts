@@ -6,6 +6,7 @@ import {
   QRCodeResponse,
   Attendance,
   EventPhoto,
+  UploadResponse,
 } from "@/lib/types";
 
 export const eventApi = {
@@ -115,8 +116,8 @@ export const eventApi = {
     mahberId: string,
     eventId: string,
     formData: FormData,
-  ): Promise<EventPhoto> => {
-    const response = await apiClient.post<EventPhoto>(
+  ): Promise<UploadResponse<EventPhoto>> => {
+    const response = await apiClient.post<UploadResponse<EventPhoto>>(
       `/mahbers/${mahberId}/events/${eventId}/photos`,
       formData,
       {
