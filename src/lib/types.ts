@@ -166,6 +166,13 @@ export type PaginatedResponse<T> = {
   };
 };
 
+export type UploadResponse<T> = {
+  data: T[];
+  meta: {
+    uploaded: number;
+  };
+};
+
 // ── Events & Attendance ───────────────────────────────────────────────────────
 export type EventType =
   | "Meeting"
@@ -203,6 +210,7 @@ export type EventPhoto = {
   uploader_id: string;
   file_path: string;
   thumbnail_path?: string;
+  cloudinary_public_id?: string;
   caption?: string;
   created_at: string;
   user?: User;

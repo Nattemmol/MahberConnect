@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCode } from "@/components/ui/qrcode";
 import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { use, useState } from "react";
 import toast from "react-hot-toast";
 import { canManageEvents } from "@/lib/utils";
@@ -47,6 +48,8 @@ export default function EventDetailPage({
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showManualDialog, setShowManualDialog] = useState(false);
+  const [manualToken, setManualToken] = useState("");
   const { user } = useAuthStore();
 
   const { data: currentMember } = useQuery({
@@ -185,7 +188,10 @@ export default function EventDetailPage({
           )}
           {/* Admin: Event QR Code */}
           {canManageEventsValue && !isPastEvent && !event.is_cancelled && (
-            <Button onClick={() => setShowQR(true)} className="gap-2 bg-gold hover:bg-gold/90">
+            <Button
+              onClick={() => setShowQR(true)}
+              className="gap-2 bg-gold hover:bg-gold/90"
+            >
               <QrCode className="w-4 h-4" />
               Event QR Code
             </Button>
@@ -323,7 +329,7 @@ export default function EventDetailPage({
                         </Button>
                         <Button
                           variant="outline"
-                          onClick={() => checkInMutation.mutate("manual-check-in")}
+                          onClick={() => setShowManualDialog(true)}
                           disabled={checkInMutation.isPending}
                           className="gap-2"
                         >
@@ -444,6 +450,55 @@ export default function EventDetailPage({
         </div>
       </Dialog>
 
+      {/* Manual Check-in Modal for Admins */}
+      <Dialog
+        isOpen={showManualDialog}
+        onClose={() => {
+          setShowManualDialog(false);
+          setManualToken("");
+        }}
+        title="Manual Check-in"
+        description="Enter the member's check-in token to record attendance."
+      >
+        <div className="flex flex-col gap-4 py-2">
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">
+              Check-in Token
+            </label>
+            <Input
+              placeholder="Enter token"
+              value={manualToken}
+              onChange={(e) => setManualToken(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowManualDialog(false);
+                setManualToken("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!manualToken) {
+                  toast.error("Please enter a token");
+                  return;
+                }
+                checkInMutation.mutate(manualToken);
+                setManualToken("");
+                setShowManualDialog(false);
+              }}
+              isLoading={checkInMutation.isPending}
+            >
+              Submit
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
       {/* Event QR Code Modal for Admins */}
       <Dialog
         isOpen={showQR}
@@ -460,7 +515,8 @@ export default function EventDetailPage({
             <div className="text-status-error">Failed to load QR Code</div>
           )}
           <p className="text-sm text-center text-text-secondary max-w-[250px]">
-            Display this QR code for members to scan and check in upon arrival at the event.
+            Display this QR code for members to scan and check in upon arrival
+            at the event.
           </p>
         </div>
       </Dialog>
@@ -481,7 +537,8 @@ export default function EventDetailPage({
             <div className="text-status-error">Failed to generate QR Code</div>
           )}
           <p className="text-sm text-center text-text-secondary max-w-[250px]">
-            Present this QR code to an admin at the venue for check-in. You can screenshot it for offline use.
+            Present this QR code to an admin at the venue for check-in. You can
+            screenshot it for offline use.
           </p>
         </div>
       </Dialog>
