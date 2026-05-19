@@ -4,7 +4,7 @@ import { mockAttendance } from "../data/attendance";
 import { mockPhotos } from "../data/photos";
 import { mockUsers } from "../data/users";
 import { mockMemberDetails } from "../data/memberships";
-import { CreateEventDto, EventPhoto, UploadResponse, SendInvitationsResponse, EventInvitation, EventInvitationStatus, AttendanceAnalytics, AttendanceTrends } from "@/lib/types";
+import { CreateEventDto, EventPhoto, UploadResponse, SendInvitationsResponse, EventInvitation, EventInvitationStatus, AttendanceAnalytics, AttendanceTrends, Event, User } from "@/lib/types";
 
 let events = [...mockEvents];
 let attendance = [...mockAttendance];
@@ -41,6 +41,9 @@ export const eventMock = {
   createEvent: async (mahberId: string, data: CreateEventDto) => {
     await delay(800);
     randomError(0.05);
+    const hostUser = data.host_id
+      ? mockUsers.find((u: User) => u.id === data.host_id)
+      : undefined;
     const newEvent = {
       id: `evt_${Date.now()}`,
       mahber_id: mahberId,
@@ -52,6 +55,9 @@ export const eventMock = {
       location: data.location,
       is_mandatory: data.is_mandatory || false,
       is_cancelled: false,
+      created_by: mockUsers[2].id,
+      host_id: data.host_id || null,
+      host_user: hostUser || null,
       created_at: new Date().toISOString(),
     };
     events = [newEvent, ...events];
@@ -79,6 +85,35 @@ export const eventMock = {
     );
     if (index === -1) throw new Error("Event not found");
     events[index].is_cancelled = true;
+    return events[index];
+  },
+
+  assignEventHost: async (mahberId: string, eventId: string, memberId: string) => {
+    await delay(500);
+    const index = events.findIndex(
+      (e) => e.mahber_id === mahberId && e.id === eventId,
+    );
+    if (index === -1) throw new Error("Event not found");
+    const hostUser = mockUsers.find((u: User) => u.id === memberId);
+    events[index] = {
+      ...events[index],
+      host_id: memberId,
+      host_user: hostUser || null,
+    };
+    return events[index];
+  },
+
+  removeEventHost: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    const index = events.findIndex(
+      (e) => e.mahber_id === mahberId && e.id === eventId,
+    );
+    if (index === -1) throw new Error("Event not found");
+    events[index] = {
+      ...events[index],
+      host_id: null,
+      host_user: null,
+    };
     return events[index];
   },
 

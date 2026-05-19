@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import toast from "react-hot-toast";
-import { ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, UserX } from "lucide-react";
 import { eventService, memberService } from "@/lib/api/service-factory";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { PageHeader } from "@/components/layout/page-header";
@@ -51,6 +52,19 @@ export default function EditEventPage({
     enabled: !!user?.id,
   });
   const canManageEventsValue = canManageEvents(currentMember);
+
+  const [selectedHostId, setSelectedHostId] = useState<string>("");
+
+  const { data: members } = useQuery({
+    queryKey: ["mahber-members", id],
+    queryFn: () => memberService.getMembers(id),
+    enabled: canManageEventsValue,
+  });
+
+  const activeMembers = useMemo(() => {
+    if (!members?.data) return [];
+    return members.data.filter((m: any) => m.status === "Active");
+  }, [members]);
 
   const { data: event, isLoading: isEventLoading } = useQuery({
     queryKey: ["mahber-event", id, eventId],
@@ -118,6 +132,32 @@ export default function EditEventPage({
     onError: (error: unknown) => {
       const message = getErrorMessage(error);
       toast.error(message ?? "Failed to update event");
+    },
+  });
+
+  const assignHostMutation = useMutation({
+    mutationFn: (memberId: string) =>
+      eventService.assignEventHost(id, eventId, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mahber-event", id, eventId] });
+      toast.success("Host assigned successfully!");
+      setSelectedHostId("");
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to assign host");
+    },
+  });
+
+  const removeHostMutation = useMutation({
+    mutationFn: () => eventService.removeEventHost(id, eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mahber-event", id, eventId] });
+      toast.success("Host removed successfully!");
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to remove host");
     },
   });
 
@@ -304,6 +344,65 @@ export default function EditEventPage({
                 <p className="text-xs text-text-muted">
                   Members may be fined for missing this event.
                 </p>
+              </div>
+            </div>
+
+            {/* Host Management */}
+            <div className="p-4 bg-background-dark/30 rounded-input border border-border-glass space-y-3">
+              <h4 className="text-sm font-semibold text-text-primary">Event Host</h4>
+              {event.host_user ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5">
+                      Host: {event.host_user.name}
+                    </Badge>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeHostMutation.mutate()}
+                    isLoading={removeHostMutation.isPending}
+                    className="text-status-error gap-1"
+                  >
+                    <UserX className="w-3 h-3" />
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">No host assigned.</p>
+              )}
+              <div className="flex gap-2">
+                <select
+                  value={selectedHostId}
+                  onChange={(e) => setSelectedHostId(e.target.value)}
+                  className="flex-1 px-4 py-2 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none text-sm"
+                >
+                  <option value="">Select a member...</option>
+                  {activeMembers
+                    .filter((m: any) => m.member_id !== event.host_id)
+                    .map((member: any) => (
+                      <option key={member.member_id} value={member.member_id}>
+                        {member.user?.name ?? "Unknown"}
+                      </option>
+                    ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!selectedHostId) {
+                      toast.error("Please select a member");
+                      return;
+                    }
+                    assignHostMutation.mutate(selectedHostId);
+                  }}
+                  isLoading={assignHostMutation.isPending}
+                  disabled={!selectedHostId}
+                >
+                  Assign Host
+                </Button>
               </div>
             </div>
 

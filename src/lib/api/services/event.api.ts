@@ -201,6 +201,29 @@ export const eventApi = {
     return response.data;
   },
 
+  // Host management
+  assignEventHost: async (
+    mahberId: string,
+    eventId: string,
+    memberId: string,
+  ): Promise<Event> => {
+    const response = await apiClient.put<Event>(
+      `/mahbers/${mahberId}/events/${eventId}/host`,
+      { member_id: memberId },
+    );
+    return response.data;
+  },
+
+  removeEventHost: async (
+    mahberId: string,
+    eventId: string,
+  ): Promise<Event> => {
+    const response = await apiClient.delete<Event>(
+      `/mahbers/${mahberId}/events/${eventId}/host`,
+    );
+    return response.data;
+  },
+
   deletePhoto: async (
     mahberId: string,
     eventId: string,

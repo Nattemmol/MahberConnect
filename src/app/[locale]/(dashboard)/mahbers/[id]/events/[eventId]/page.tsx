@@ -71,16 +71,18 @@ export default function EventDetailPage({
     queryFn: () => eventService.getEventById(id, eventId),
   });
 
+  const isEventHost = user?.id ? user.id === event?.host_id : false;
+
   const { data: members } = useQuery({
     queryKey: ["mahber-members", id],
     queryFn: () => memberService.getMembers(id),
-    enabled: canManageEventsValue,
+    enabled: canManageEventsValue || isEventHost,
   });
 
   const { data: invitations, refetch: refetchInvitations } = useQuery({
     queryKey: ["event-invitations", id, eventId],
     queryFn: () => eventService.getInvitations(id, eventId),
-    enabled: canManageEventsValue && !!event,
+    enabled: (canManageEventsValue || isEventHost) && !!event,
   });
 
   const { data: myInvitations, refetch: refetchMyInvitations } = useQuery({
@@ -328,8 +330,8 @@ export default function EventDetailPage({
               )}
             </>
           )}
-          {/* Admin: Send Invitations */}
-          {canManageEventsValue && !event.is_cancelled && !isPastEvent && (
+          {/* Host / Admin: Send Invitations */}
+          {(canManageEventsValue || isEventHost) && !event.is_cancelled && !isPastEvent && (
             <Button
               variant="outline"
               onClick={() => setShowInviteDialog(true)}
@@ -339,8 +341,8 @@ export default function EventDetailPage({
               Send Invitations
             </Button>
           )}
-          {/* Admin: Event QR Code */}
-          {canManageEventsValue && !isPastEvent && !event.is_cancelled && (
+          {/* Host / Admin: Event QR Code */}
+          {(canManageEventsValue || isEventHost) && !isPastEvent && !event.is_cancelled && (
             <Button
               onClick={() => setShowQR(true)}
               className="gap-2 bg-gold hover:bg-gold/90"
@@ -387,6 +389,11 @@ export default function EventDetailPage({
               )}
               {isPastEvent && !event.is_cancelled && (
                 <Badge variant="success">Completed</Badge>
+              )}
+              {event.host_user && (
+                <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5">
+                  Host: {event.host_user.name}
+                </Badge>
               )}
             </div>
 
@@ -452,7 +459,7 @@ export default function EventDetailPage({
             <CardContent>
               {!isPastEvent && !event.is_cancelled ? (
                 <div className="space-y-4">
-                  {!canManageEventsValue ? (
+                  {!canManageEventsValue && !isEventHost ? (
                     <>
                       {/* RSVP / Registration */}
                       {myRegistration?.status === "registered" ? (
@@ -568,8 +575,8 @@ export default function EventDetailPage({
             </CardContent>
           </Card>
 
-          {/* Invitations Card — Admin */}
-          {canManageEventsValue && invitationSummary && (
+          {/* Invitations Card — Admin / Host */}
+          {(canManageEventsValue || isEventHost) && invitationSummary && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-text-secondary">

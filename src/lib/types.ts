@@ -262,6 +262,9 @@ export type Event = {
   location: string;
   is_mandatory: boolean;
   is_cancelled: boolean;
+  created_by?: string;
+  host_id?: string | null;
+  host_user?: User;
   created_at: string;
 };
 
@@ -320,6 +323,7 @@ export type CreateEventDto = {
   end_time: string;
   location: string;
   is_mandatory?: boolean;
+  host_id?: string;
 };
 
 // ── Communication & Engagement ────────────────────────────────────────────────

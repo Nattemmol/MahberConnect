@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { use, useEffect } from "react";
+import { use, useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -48,12 +48,25 @@ export default function CreateEventPage({
   });
   const canManageEventsValue = canManageEvents(currentMember);
 
+  const { data: members } = useQuery({
+    queryKey: ["mahber-members", id],
+    queryFn: () => memberService.getMembers(id),
+    enabled: canManageEventsValue,
+  });
+
+  const activeMembers = useMemo(() => {
+    if (!members?.data) return [];
+    return members.data.filter((m: any) => m.status === "Active");
+  }, [members]);
+
   useEffect(() => {
     if (!isMemberLoading && user && !canManageEventsValue) {
       toast.error("You don't have permission to create events");
       router.push(`/mahbers/${id}/events`);
     }
   }, [isMemberLoading, user, canManageEventsValue, router, id]);
+
+  const [selectedHostId, setSelectedHostId] = useState<string>("");
 
   const {
     register,
@@ -78,7 +91,10 @@ export default function CreateEventPage({
 
   const onSubmit = async (data: EventFormValues) => {
     try {
-      await eventService.createEvent(id, data);
+      await eventService.createEvent(id, {
+        ...data,
+        host_id: selectedHostId || undefined,
+      });
       toast.success("Event created successfully!");
       router.push(`/mahbers/${id}/events`);
     } catch (error: unknown) {
@@ -214,6 +230,28 @@ export default function CreateEventPage({
                   Members may be fined for missing this event.
                 </p>
               </div>
+            </div>
+
+            {/* Assign Host */}
+            <div className="p-4 bg-background-dark/30 rounded-input border border-border-glass">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Assign Host (Optional)
+              </label>
+              <select
+                value={selectedHostId}
+                onChange={(e) => setSelectedHostId(e.target.value)}
+                className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
+              >
+                <option value="">No host assigned</option>
+                {activeMembers.map((member: any) => (
+                  <option key={member.member_id} value={member.member_id}>
+                    {member.user?.name ?? "Unknown"} — {member.user?.phone ?? ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-text-muted mt-1">
+                The host can manage invitations and record attendance for this event.
+              </p>
             </div>
 
             <div className="flex gap-4 justify-end pt-4 border-t border-border-glass">
