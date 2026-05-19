@@ -10,11 +10,14 @@ import LocaleSwitcher from '@/components/layout/locale-switcher';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useState, useEffect } from 'react';
 import { notificationService } from '@/lib/api/service-factory';
+import { socketService } from '@/lib/socket';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 export function TopBar() {
   const pathname = usePathname();
   const t = useTranslations('Dashboard');
   const { toggleSidebar } = useUIStore();
+  const { user } = useAuthStore();
 
   const segments = pathname.split('/').filter(Boolean);
   const title =
@@ -36,10 +39,26 @@ export function TopBar() {
         // Suppress console error to avoid spamming logs if unauthenticated
       }
     };
+    
     checkNotifications();
-    const interval = setInterval(checkNotifications, 15000); // Check every 15s
-    return () => clearInterval(interval);
-  }, []);
+
+    // Initialize socket connection
+    const socket = socketService.connect();
+    
+    if (user?.id && socket) {
+      socketService.joinUserRoom(user.id);
+      
+      const handleNewNotification = () => {
+        setUnreadCount(prev => prev + 1);
+      };
+      
+      socket.on('new_notification', handleNewNotification);
+      
+      return () => {
+        socket.off('new_notification', handleNewNotification);
+      };
+    }
+  }, [user?.id]);
 
   return (
     <header className="h-16 shrink-0 flex items-center justify-between px-4 md:px-6 border-b border-border bg-background-surface/80 backdrop-blur-md sticky top-0 z-40">

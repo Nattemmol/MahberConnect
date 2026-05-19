@@ -14,6 +14,7 @@ import { ChatMessage, Announcement, Poll } from "@/lib/types";
 import toast from "react-hot-toast";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { socketService } from "@/lib/socket";
 
 export default function ChatPage({
   params,
@@ -43,19 +44,16 @@ export default function ChatPage({
   const { data: messagesResponse, isLoading: isLoadingMessages } = useQuery({
     queryKey: ["mahber-chat", id],
     queryFn: () => communicationService.getChatMessages(id),
-    refetchInterval: 5000,
   });
 
   const { data: announcementsResponse, isLoading: isLoadingAnnouncements } = useQuery({
     queryKey: ["mahber-announcements", id],
     queryFn: () => communicationService.getAnnouncements(id),
-    refetchInterval: 10000,
   });
 
   const { data: pollsResponse, isLoading: isLoadingPolls } = useQuery({
     queryKey: ["mahber-polls", id],
     queryFn: () => communicationService.getPolls(id),
-    refetchInterval: 10000,
   });
 
   const [pollSelection, setPollSelection] = useState<Record<string, string[]>>({});
@@ -136,6 +134,38 @@ export default function ChatPage({
   useEffect(() => {
     scrollToBottom();
   }, [unifiedMessages]);
+
+  useEffect(() => {
+    const socket = socketService.connect();
+    
+    if (socket) {
+      socketService.joinMahberRoom(id);
+
+      const handleNewMessage = (message: any) => {
+        // Optimistically update the cache
+        queryClient.setQueryData(["mahber-chat", id], (old: any) => {
+          if (!old) return old;
+          // Avoid duplicates
+          if (old.data.some((m: any) => m.id === message.id)) return old;
+          return {
+            ...old,
+            data: [...old.data, message]
+          };
+        });
+      };
+
+      socket.on('new_message', handleNewMessage);
+      socket.on('new_announcement', () => queryClient.invalidateQueries({ queryKey: ["mahber-announcements", id] }));
+      socket.on('new_poll', () => queryClient.invalidateQueries({ queryKey: ["mahber-polls", id] }));
+
+      return () => {
+        socket.off('new_message', handleNewMessage);
+        socket.off('new_announcement');
+        socket.off('new_poll');
+        socketService.leaveMahberRoom(id);
+      };
+    }
+  }, [id, queryClient]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
