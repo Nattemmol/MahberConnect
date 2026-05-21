@@ -83,4 +83,38 @@ export const mahberMock = {
     if (index === -1) throw new Error("Mahber not found");
     mockMahbers.splice(index, 1);
   },
+
+  inviteMember: async (mahberId: string, phone: string) => {
+    await delay(800);
+    const joinRequest: JoinRequest = {
+      id: `jr_${Math.random().toString(36).substring(7)}`,
+      mahber_id: mahberId,
+      user_id: "usr_3",
+      status: "Pending",
+      is_invitation: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    return joinRequest;
+  },
+
+  getInvitations: async () => {
+    await delay(500);
+    return [];
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  respondToInvitation: async (requestId: string, action: "accept" | "reject") => {
+    await delay(800);
+    const joinRequest: JoinRequest = {
+      id: requestId,
+      mahber_id: "mah_1",
+      user_id: "usr_1",
+      status: action === "accept" ? "Approved" : "Rejected",
+      is_invitation: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    return joinRequest;
+  },
 };

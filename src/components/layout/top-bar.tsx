@@ -23,9 +23,9 @@ export function TopBar() {
   const title =
     segments.length > 0
       ? segments[segments.length - 1]
-          .charAt(0)
-          .toUpperCase() +
-        segments[segments.length - 1].slice(1).replace(/-/g, ' ')
+        .charAt(0)
+        .toUpperCase() +
+      segments[segments.length - 1].slice(1).replace(/-/g, ' ')
       : 'Dashboard';
 
   const [unreadCount, setUnreadCount] = useState(0);
@@ -73,15 +73,7 @@ export function TopBar() {
           {title === 'Dashboard' ? t('title') : title}
         </h1>
 
-        {/* Desktop search */}
-        <div className="hidden md:flex items-center relative">
-          <Search className="w-4 h-4 absolute left-3 text-text-muted pointer-events-none" />
-          <input
-            type="text"
-            placeholder={t('search')}
-            className="pl-9 pr-4 py-2 h-9 w-56 bg-background-subtle border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all"
-          />
-        </div>
+
       </div>
 
       {/* Right */}

@@ -5,13 +5,21 @@
     "search": "Search...",
     "activeMahbers": "Active Mahbers",
     "totalBalance": "Total Balance",
-    "pendingPayments": "Pending Payments",
+    "paymentReminder": "Payment Reminder",
     "recentActivity": "Recent Activity",
     "monthlyContribution": "Monthly Contribution",
     "meetingAttendance": "Meeting Attendance",
     "present": "Present",
     "yesterday": "Yesterday",
-    "toggleMenu": "Toggle Menu"
+    "toggleMenu": "Toggle Menu",
+    "yourCommunities": "Your Communities",
+    "pendingInvitations": "Pending Invitations",
+    "invitedYou": "You have been invited to join this community.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "acceptSuccess": "Successfully joined Mahber!",
+    "rejectSuccess": "Invitation declined.",
+    "respondError": "Failed to respond to invitation."
   },
   "Sidebar": {
     "dashboard": "Dashboard",
@@ -166,5 +174,18 @@
     "appName": "MahberConnect",
     "en": "English",
     "am": "Amharic"
+  },
+  "Members": {
+    "title": "Members",
+    "description": "View and manage members of this community.",
+    "addMember": "Add Member",
+    "inviteTitle": "Invite Member",
+    "inviteDescription": "Search for a user by their phone number to invite them to this private Mahber.",
+    "phonePlaceholder": "Phone number (e.g. +2519...)",
+    "search": "Search",
+    "invite": "Invite",
+    "userNotFound": "User not found with this phone number.",
+    "inviteSuccess": "Invitation sent successfully!",
+    "inviteError": "Failed to send invitation."
   }
 }

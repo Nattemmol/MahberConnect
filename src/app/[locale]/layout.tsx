@@ -7,6 +7,7 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { ThemeProvider } from "@/providers/theme-provider";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -51,6 +52,7 @@ export default async function RootLayout({
           <NextIntlClientProvider messages={messages}>
             <QueryProvider>
               {children}
+              <Toaster position="top-right" />
             </QueryProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
