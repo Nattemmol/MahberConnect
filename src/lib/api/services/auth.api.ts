@@ -30,4 +30,9 @@ export const authApi = {
   changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
     await apiClient.patch('/auth/change-password', { currentPassword, newPassword });
   },
+
+  searchUserByPhone: async (phone: string): Promise<User> => {
+    const response = await apiClient.get<User>('/auth/users/search', { params: { phone } });
+    return response.data;
+  },
 };

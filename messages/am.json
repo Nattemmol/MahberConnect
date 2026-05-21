@@ -5,13 +5,21 @@
     "search": "ፈልግ...",
     "activeMahbers": "ንቁ ማህበራት",
     "totalBalance": "ጠቅላላ ቀሪ ሂሳብ",
-    "pendingPayments": "ያልተከፈሉ ክፍያዎች",
+    "paymentReminder": "የክፍያ ማሳሰቢያ",
     "recentActivity": "የቅርብ ጊዜ እንቅስቃሴዎች",
     "monthlyContribution": "ወርሃዊ መዋጮ",
     "meetingAttendance": "የስብሰባ ተሳትፎ",
     "present": "ተገኝቷል",
     "yesterday": "ትናንት",
-    "toggleMenu": "ሜኑ ቀይር"
+    "toggleMenu": "ሜኑ ቀይር",
+    "yourCommunities": "የእርስዎ ማህበራት",
+    "pendingInvitations": "እጩ ግብዣዎች",
+    "invitedYou": "ወደዚህ ማህበረሰብ ለመቀላቀል ተጋብዘዋል።",
+    "accept": "ተቀበል",
+    "decline": "አትቀበል",
+    "acceptSuccess": "ማህበሩን በተሳካ ሁኔታ ተቀላቅለዋል!",
+    "rejectSuccess": "ግብዣው ውድቅ ተደርጓል።",
+    "respondError": "ለግብዣው ምላሽ መስጠት አልተቻለም።"
   },
   "Sidebar": {
     "dashboard": "ዳሽቦርድ",
@@ -166,5 +174,18 @@
     "appName": "ማህበር ኮኔክት",
     "en": "English",
     "am": "አማርኛ"
+  },
+  "Members": {
+    "title": "አባላት",
+    "description": "የዚህን ማህበረሰብ አባላት ይመልከቱ እና ያስተዳድሩ።",
+    "addMember": "አባል ጨምር",
+    "inviteTitle": "አባል ጋብዝ",
+    "inviteDescription": "አንድን ተጠቃሚ ወደዚህ የግል ማህበር ለመጋበዝ በስልክ ቁጥራቸው ይፈልጉ።",
+    "phonePlaceholder": "የስልክ ቁጥር (ለምሳሌ +2519...)",
+    "search": "ፈልግ",
+    "invite": "ጋብዝ",
+    "userNotFound": "በዚህ የስልክ ቁጥር የተመዘገበ ተጠቃሚ አልተገኘም።",
+    "inviteSuccess": "ግብዣው በተሳካ ሁኔታ ተልኳል!",
+    "inviteError": "ግብዣ መላክ አልተሳካም።"
   }
 }

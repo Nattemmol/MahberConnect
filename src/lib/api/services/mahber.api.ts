@@ -1,5 +1,5 @@
 import { apiClient } from "../client";
-import { Mahber, CreateMahberDto, JoinRequest } from "@/lib/types";
+import { Mahber, CreateMahberDto, UpdateMahberDto, JoinRequest } from "@/lib/types";
 
 export const mahberApi = {
   getMahbers: async (): Promise<Mahber[]> => {
@@ -40,5 +40,20 @@ export const mahberApi = {
 
   deleteMahber: async (id: string): Promise<void> => {
     await apiClient.delete(`/mahbers/${id}`);
+  },
+
+  inviteMember: async (mahberId: string, phone: string): Promise<JoinRequest> => {
+    const response = await apiClient.post<JoinRequest>(`/mahbers/${mahberId}/join-requests/invite`, { phone });
+    return response.data;
+  },
+
+  getInvitations: async (): Promise<JoinRequest[]> => {
+    const response = await apiClient.get<JoinRequest[]>("/invitations");
+    return response.data;
+  },
+
+  respondToInvitation: async (requestId: string, action: "accept" | "reject"): Promise<JoinRequest> => {
+    const response = await apiClient.put<JoinRequest>(`/invitations/${requestId}/respond`, { action });
+    return response.data;
   },
 };

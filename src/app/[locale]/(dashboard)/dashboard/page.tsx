@@ -1,54 +1,164 @@
-import { useTranslations } from 'next-intl';
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { mahberService, financialService } from "@/lib/api/service-factory";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 export default function DashboardPage() {
-  const t = useTranslations('Dashboard');
+  const t = useTranslations("Dashboard");
+  const queryClient = useQueryClient();
+
+  const { data: mahbers, isLoading } = useQuery({
+    queryKey: ["mahbers"],
+    queryFn: () => mahberService.getMahbers(),
+  });
+
+  const { data: invitations } = useQuery({
+    queryKey: ["invitations"],
+    queryFn: () => mahberService.getInvitations(),
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: (data: { requestId: string; action: "accept" | "reject" }) =>
+      mahberService.respondToInvitation(data.requestId, data.action),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      queryClient.invalidateQueries({ queryKey: ["mahbers"] });
+      if (variables.action === "accept") {
+        toast.success(t("acceptSuccess"));
+      } else {
+        toast.success(t("rejectSuccess"));
+      }
+    },
+    onError: () => {
+      toast.error(t("respondError"));
+    },
+  });
+
+  const { data: pendingCount, isLoading: isPaymentsLoading } = useQuery({
+    queryKey: ["pendingPaymentsCount", mahbers],
+    queryFn: async () => {
+      if (!mahbers || mahbers.length === 0) return 0;
+
+      const allPaymentsResults = await Promise.all(
+        mahbers.map((mahber) => financialService.getMahberPayments(mahber.id))
+      );
+
+      let count = 0;
+      for (const res of allPaymentsResults) {
+        if (res?.data) {
+          const pendingForMahber = res.data.filter((p) => p.status === "Pending");
+          count += pendingForMahber.length;
+        }
+      }
+      return count;
+    },
+    enabled: !!mahbers && mahbers.length > 0,
+  });
 
   return (
     <div className="space-y-8">
-      <h1 className="text-4xl font-bold text-text-primary tracking-tight">{t('title')}</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass glass-hover rounded-card p-8 group transition-all duration-500">
-          <h3 className="text-text-secondary font-medium tracking-wide uppercase text-xs mb-1">{t('activeMahbers')}</h3>
-          <p className="text-4xl font-bold text-gold group-hover:scale-110 transition-transform duration-500 origin-left">3</p>
+      <h1 className="text-4xl font-bold text-text-primary tracking-tight">{t("title")}</h1>
+
+
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass glass-hover rounded-card p-8 group transition-all duration-500 flex flex-col justify-between min-h-[160px]">
+          <div>
+            <h3 className="text-text-secondary font-medium tracking-wide uppercase text-xs mb-1">{t("activeMahbers")}</h3>
+            {isLoading ? (
+              <Skeleton className="h-10 w-16 my-1 bg-gold/10" />
+            ) : (
+              <p className="text-4xl font-bold text-gold group-hover:scale-110 transition-transform duration-500 origin-left mb-4">
+                {mahbers?.length || 0}
+              </p>
+            )}
+          </div>
+
+          {!isLoading && mahbers && mahbers.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gold/10 space-y-2">
+              <p className="text-[10px] text-text-secondary font-medium uppercase tracking-wider">{t("yourCommunities")}</p>
+              <div className="flex flex-wrap gap-2">
+                {mahbers.map((m) => (
+                  <Link
+                    key={m.id}
+                    href={`/mahbers/${m.id}`}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gold/5 text-gold border border-gold/10 hover:bg-gold/20 transition-colors"
+                  >
+                    {m.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        
-        <div className="glass glass-hover rounded-card p-8 group transition-all duration-500">
-          <h3 className="text-text-secondary font-medium tracking-wide uppercase text-xs mb-1">{t('totalBalance')}</h3>
-          <p className="text-4xl font-bold text-gold group-hover:scale-110 transition-transform duration-500 origin-left">12,500 <span className="text-lg font-medium text-text-secondary">ETB</span></p>
-        </div>
-        
-        <div className="glass glass-hover rounded-card p-8 group transition-all duration-500">
-          <h3 className="text-text-secondary font-medium tracking-wide uppercase text-xs mb-1">{t('pendingPayments')}</h3>
-          <p className="text-4xl font-bold text-status-warning group-hover:scale-110 transition-transform duration-500 origin-left">1</p>
+
+        <div className="glass glass-hover rounded-card p-8 group transition-all duration-500 min-h-[160px]">
+          <h3 className="text-text-secondary font-medium tracking-wide uppercase text-xs mb-1">{t("paymentReminder")}</h3>
+          {isLoading || isPaymentsLoading ? (
+            <Skeleton className="h-10 w-16 my-1 bg-gold/10" />
+          ) : (
+            <p className="text-4xl font-bold text-status-warning group-hover:scale-110 transition-transform duration-500 origin-left">
+              {pendingCount ?? 0}
+            </p>
+          )}
         </div>
       </div>
-      
-      <div className="glass rounded-card p-8 shadow-xl shadow-gold/5">
-        <h2 className="text-2xl font-semibold mb-6 text-text-primary">{t('recentActivity')}</h2>
-        <div className="space-y-2">
-          <div className="p-4 rounded-input hover:bg-gold/5 transition-colors flex justify-between items-center group">
-            <div>
-              <p className="font-semibold text-text-primary group-hover:text-gold transition-colors">{t('monthlyContribution')}</p>
-              <p className="text-sm text-text-secondary">Addis Iddir</p>
-            </div>
-            <div className="text-right">
-              <span className="text-status-success font-bold text-lg">+500 ETB</span>
-              <p className="text-[10px] text-text-muted mt-0.5">Jan 12, 2024</p>
-            </div>
-          </div>
-          <div className="p-4 rounded-input hover:bg-gold/5 transition-colors flex justify-between items-center group">
-            <div>
-              <p className="font-semibold text-text-primary group-hover:text-gold transition-colors">{t('meetingAttendance')}</p>
-              <p className="text-sm text-text-secondary">Tech Equb</p>
-            </div>
-            <div className="text-right">
-              <span className="text-text-secondary font-medium uppercase text-xs tracking-wider">{t('present')}</span>
-              <p className="text-[10px] text-text-muted mt-0.5">{t('yesterday')}</p>
-            </div>
+
+      {invitations && invitations.length > 0 && (
+        <div className="glass rounded-card p-8 shadow-xl shadow-gold/5 mt-8">
+          <h2 className="text-2xl font-semibold mb-6 text-text-primary">{t("pendingInvitations")}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {invitations.map((invitation) => (
+              <div
+                key={invitation.id}
+                className="glass rounded-card p-6 flex flex-col justify-between border border-gold/20 shadow-sm"
+              >
+                <div>
+                  <h3 className="font-semibold text-lg text-text-primary">
+                    {invitation.mahber?.name}
+                  </h3>
+                  <p className="text-xs text-text-secondary uppercase tracking-wider mt-1">
+                    {invitation.mahber?.type}
+                  </p>
+                  <p className="text-sm text-text-secondary mt-2">
+                    {t("invitedYou")}
+                  </p>
+                </div>
+                <div className="flex gap-3 mt-4 pt-4 border-t border-border-glass">
+                  <Button
+                    onClick={() => respondMutation.mutate({ requestId: invitation.id, action: "accept" })}
+                    disabled={respondMutation.isPending}
+                    className="flex-1 bg-gold hover:bg-gold-dark text-black text-xs font-semibold py-2"
+                  >
+                    {respondMutation.isPending && respondMutation.variables?.requestId === invitation.id && respondMutation.variables?.action === "accept" ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-2 border-black border-t-transparent" />
+                    ) : (
+                      t("accept")
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => respondMutation.mutate({ requestId: invitation.id, action: "reject" })}
+                    disabled={respondMutation.isPending}
+                    variant="outline"
+                    className="flex-1 text-xs font-semibold py-2 border border-border-glass hover:bg-surface-active"
+                  >
+                    {respondMutation.isPending && respondMutation.variables?.requestId === invitation.id && respondMutation.variables?.action === "reject" ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-2 border-text-primary border-t-transparent" />
+                    ) : (
+                      t("decline")
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

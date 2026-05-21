@@ -31,8 +31,15 @@ export const notificationApi = {
   },
 
   getNotifications: async (): Promise<Notification[]> => {
-    const response = await apiClient.get('/notifications');
-    return response.data;
+    try {
+      const response = await apiClient.get('/notifications');
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
   },
 
   markAsRead: async (id: string): Promise<void> => {
