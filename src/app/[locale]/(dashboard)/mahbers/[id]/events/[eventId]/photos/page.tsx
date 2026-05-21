@@ -69,13 +69,7 @@ export default function EventPhotosPage({
       const formData = new FormData();
       // Append multiple files using the 'files' key
       if (selectedFiles && selectedFiles.length > 0) {
-        if (selectedFiles.length === 1) {
-          // Append both 'file' and 'files' for maximum compatibility with backends
-          formData.append("file", selectedFiles[0]);
-          formData.append("files", selectedFiles[0]);
-        } else {
-          selectedFiles.forEach((f) => formData.append("files", f));
-        }
+        selectedFiles.forEach((f) => formData.append("files", f));
       }
       // If no files selected, let backend/mock handle placeholder behavior
       if (caption) formData.append("caption", caption);

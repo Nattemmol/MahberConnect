@@ -141,10 +141,12 @@ export type JoinRequest = {
   status: JoinRequestStatus;
   invitation_code?: string | null;
   rejection_reason?: string;
+  is_invitation?: boolean;
   approval_date?: string | null;
   created_at: string;
   updated_at: string;
   user?: User;
+  mahber?: Mahber;
 };
 
 export type UpdateRoleDto = {

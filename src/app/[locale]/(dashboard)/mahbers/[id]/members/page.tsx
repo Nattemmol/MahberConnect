@@ -9,8 +9,9 @@ import {
   UserCheck,
   ShieldAlert,
   User as UserIcon,
+  UserPlus,
 } from "lucide-react";
-import { memberService } from "@/lib/api/service-factory";
+import { memberService, mahberService, authService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,9 +28,11 @@ import {
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog } from "@/components/ui/dialog";
-import { MemberDetail, RoleName } from "@/lib/types";
+import { MemberDetail, RoleName, User } from "@/lib/types";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { useTranslations } from "next-intl";
 
 export default function MembersPage({
   params,
@@ -39,11 +42,39 @@ export default function MembersPage({
   const { id } = use(params);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const t = useTranslations("Members");
+
+  // Invite states
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [invitePhone, setInvitePhone] = useState("");
+  const [searchUserLoading, setSearchUserLoading] = useState(false);
+  const [searchedUser, setSearchedUser] = useState<User | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const { data: mahber } = useQuery({
+    queryKey: ["mahber-details", id],
+    queryFn: () => mahberService.getMahberById(id),
+  });
 
   const { data: membersResponse, isLoading } = useQuery({
     queryKey: ["mahber-members", id],
     queryFn: () => memberService.getMembers(id),
   });
+
+  const { data: joinRequests } = useQuery({
+    queryKey: ["mahber-join-requests", id],
+    queryFn: () => memberService.getJoinRequests(id),
+  });
+
+  const myMembership = membersResponse?.data?.find((m) => m.user?.id === user?.id);
+  const isAdmin =
+    myMembership?.role === "ADMIN" ||
+    myMembership?.role === "Admin" ||
+    (myMembership?.role as any)?.name === "Admin" ||
+    (myMembership?.role as any)?.name === "ADMIN" ||
+    (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+    (myMembership?.role as any)?.permissions?.includes("manage_finances");
 
   const suspendMutation = useMutation({
     mutationFn: (memberId: string) => memberService.suspendMember(id, memberId),
@@ -90,6 +121,66 @@ export default function MembersPage({
     onError: () => toast.error("Failed to update role"),
   });
 
+  const handleSearchUser = async () => {
+    setSearchUserLoading(true);
+    setSearchedUser(null);
+    try {
+      // Normalize phone number to international format (+251...)
+      const cleanedPhone = invitePhone.trim().replace(/\s+/g, "");
+      const formattedPhone = cleanedPhone.startsWith("0")
+        ? `+251${cleanedPhone.slice(1)}`
+        : cleanedPhone;
+
+      const data = await authService.searchUserByPhone(formattedPhone);
+      setSearchedUser(data);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || t("userNotFound"));
+    } finally {
+      setSearchUserLoading(false);
+    }
+  };
+
+  const handleSendInvite = async () => {
+    if (!searchedUser) return;
+
+    // Check if user is already a member
+    const isAlreadyMember = membersResponse?.data?.some(
+      (m) => m.user?.id === searchedUser.id || m.user?.phone === searchedUser.phone
+    );
+    if (isAlreadyMember) {
+      toast.error("User already in Mahber");
+      setSearchedUser(null);
+      setInvitePhone("");
+      setIsInviteDialogOpen(false);
+      return;
+    }
+
+    // Check if user is already invited
+    const isAlreadyInvited = joinRequests?.some(
+      (r) => r.user?.id === searchedUser.id || r.user?.phone === searchedUser.phone
+    );
+    if (isAlreadyInvited) {
+      toast.error("User is already invited");
+      setSearchedUser(null);
+      setInvitePhone("");
+      setIsInviteDialogOpen(false);
+      return;
+    }
+
+    setInviteLoading(true);
+    try {
+      await mahberService.inviteMember(id, searchedUser.phone);
+      toast.success(t("inviteSuccess"));
+      setIsInviteDialogOpen(false);
+      setInvitePhone("");
+      setSearchedUser(null);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || t("inviteError"));
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   const filteredMembers = (membersResponse?.data || []).filter(
     (m) =>
       m.user?.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -121,12 +212,23 @@ export default function MembersPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Members"
-        description="View and manage members of this community."
+        title={t("title")}
+        description={t("description")}
       >
-        <Button asChild variant="outline">
-          <Link href={`/mahbers/${id}/join-requests`}>Join Requests</Link>
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && mahber && !mahber.is_public && (
+            <Button
+              onClick={() => setIsInviteDialogOpen(true)}
+              className="bg-gold hover:bg-gold-dark text-black gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              {t("addMember")}
+            </Button>
+          )}
+          <Button asChild variant="outline">
+            <Link href={`/mahbers/${id}/join-requests`}>Join Requests</Link>
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="relative max-w-md">
@@ -254,6 +356,37 @@ export default function MembersPage({
         </Table>
       )}
 
+      {/* Pending Invitations Section */}
+      {isAdmin && joinRequests && joinRequests.filter(r => r.is_invitation && r.status === "Pending").length > 0 && (
+        <div className="space-y-4 pt-6 mt-6 border-t border-border">
+          <h2 className="text-xl font-semibold text-text-primary">Pending Invitations</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invited User</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Invited On</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {joinRequests.filter(r => r.is_invitation && r.status === "Pending").map((req) => (
+                <TableRow key={req.id}>
+                  <TableCell className="font-medium">{req.user?.name}</TableCell>
+                  <TableCell className="text-text-secondary">{req.user?.phone}</TableCell>
+                  <TableCell>
+                    <Badge variant="warning">{req.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-text-secondary">
+                    {new Date(req.created_at).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
       {/* Role Selection Dialog */}
       <Dialog
         isOpen={isRoleDialogOpen}
@@ -310,6 +443,60 @@ export default function MembersPage({
           >
             Confirm Unban
           </Button>
+        </div>
+      </Dialog>
+
+      {/* Invite Member Dialog */}
+      <Dialog
+        isOpen={isInviteDialogOpen}
+        onClose={() => {
+          setIsInviteDialogOpen(false);
+          setInvitePhone("");
+          setSearchedUser(null);
+        }}
+        title={t("inviteTitle")}
+        description={t("inviteDescription")}
+      >
+        <div className="space-y-4 py-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder={t("phonePlaceholder")}
+              value={invitePhone}
+              onChange={(e) => setInvitePhone(e.target.value)}
+              disabled={searchUserLoading || inviteLoading}
+            />
+            <Button
+              onClick={handleSearchUser}
+              disabled={!invitePhone || searchUserLoading || inviteLoading}
+              className="bg-gold hover:bg-gold-dark text-black shrink-0"
+            >
+              {searchUserLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-black border-t-transparent" />
+              ) : (
+                t("search")
+              )}
+            </Button>
+          </div>
+
+          {searchedUser && (
+            <div className="p-4 rounded-lg bg-surface-active/50 border border-border-glass flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-text-primary">{searchedUser.name}</p>
+                <p className="text-xs text-text-muted">{searchedUser.phone}</p>
+              </div>
+              <Button
+                onClick={handleSendInvite}
+                disabled={inviteLoading}
+                className="bg-gold hover:bg-gold-dark text-black"
+              >
+                {inviteLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-black border-t-transparent" />
+                ) : (
+                  t("invite")
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </Dialog>
     </div>

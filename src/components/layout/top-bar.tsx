@@ -10,19 +10,22 @@ import LocaleSwitcher from '@/components/layout/locale-switcher';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useState, useEffect } from 'react';
 import { notificationService } from '@/lib/api/service-factory';
+import { socketService } from '@/lib/socket';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 export function TopBar() {
   const pathname = usePathname();
   const t = useTranslations('Dashboard');
   const { toggleSidebar } = useUIStore();
+  const { user } = useAuthStore();
 
   const segments = pathname.split('/').filter(Boolean);
   const title =
     segments.length > 0
       ? segments[segments.length - 1]
-          .charAt(0)
-          .toUpperCase() +
-        segments[segments.length - 1].slice(1).replace(/-/g, ' ')
+        .charAt(0)
+        .toUpperCase() +
+      segments[segments.length - 1].slice(1).replace(/-/g, ' ')
       : 'Dashboard';
 
   const [unreadCount, setUnreadCount] = useState(0);
@@ -36,10 +39,26 @@ export function TopBar() {
         // Suppress console error to avoid spamming logs if unauthenticated
       }
     };
+    
     checkNotifications();
-    const interval = setInterval(checkNotifications, 15000); // Check every 15s
-    return () => clearInterval(interval);
-  }, []);
+
+    // Initialize socket connection
+    const socket = socketService.connect();
+    
+    if (user?.id && socket) {
+      socketService.joinUserRoom(user.id);
+      
+      const handleNewNotification = () => {
+        setUnreadCount(prev => prev + 1);
+      };
+      
+      socket.on('new_notification', handleNewNotification);
+      
+      return () => {
+        socket.off('new_notification', handleNewNotification);
+      };
+    }
+  }, [user?.id]);
 
   return (
     <header className="h-16 shrink-0 flex items-center justify-between px-4 md:px-6 border-b border-border bg-background-surface/80 backdrop-blur-md sticky top-0 z-40">
@@ -54,15 +73,7 @@ export function TopBar() {
           {title === 'Dashboard' ? t('title') : title}
         </h1>
 
-        {/* Desktop search */}
-        <div className="hidden md:flex items-center relative">
-          <Search className="w-4 h-4 absolute left-3 text-text-muted pointer-events-none" />
-          <input
-            type="text"
-            placeholder={t('search')}
-            className="pl-9 pr-4 py-2 h-9 w-56 bg-background-subtle border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all"
-          />
-        </div>
+
       </div>
 
       {/* Right */}

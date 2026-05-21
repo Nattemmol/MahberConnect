@@ -35,5 +35,12 @@ export const authMock = {
   getProfile: async () => {
     await delay(500);
     return mockUsers[0];
+  },
+
+  searchUserByPhone: async (phone: string) => {
+    await delay(600);
+    const user = mockUsers.find(u => u.phone === phone);
+    if (!user) throw new Error('User not found');
+    return user;
   }
 };
