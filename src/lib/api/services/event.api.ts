@@ -5,6 +5,8 @@ import {
   CreateEventDto,
   QRCodeResponse,
   Attendance,
+  AttendanceAnalytics,
+  AttendanceTrends,
   EventPhoto,
   UploadResponse,
   EventInvitation,
@@ -219,5 +221,39 @@ export const eventApi = {
       `/mahbers/${mahberId}/events/${eventId}/attendance?page=${page}&limit=${limit}`,
     );
     return response.data;
+  },
+
+  // ── Analytics ──────────────────────────────────────────────────────────────
+  getAttendanceAnalytics: async (
+    mahberId: string,
+    eventId: string,
+  ): Promise<AttendanceAnalytics> => {
+    const response = await apiClient.get<AttendanceAnalytics>(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/analytics`,
+    );
+    return response.data;
+  },
+
+  getAttendanceTrends: async (
+    mahberId: string,
+    eventId: string,
+    months: number = 6,
+  ): Promise<AttendanceTrends> => {
+    const response = await apiClient.get<AttendanceTrends>(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/trends?months=${months}`,
+    );
+    return response.data;
+  },
+
+  exportAttendanceReport: async (
+    mahberId: string,
+    eventId: string,
+    params?: { startDate?: string; endDate?: string },
+  ): Promise<Blob> => {
+    const response = await apiClient.get(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/report`,
+      { params, responseType: 'blob' },
+    );
+    return response.data as Blob;
   },
 };

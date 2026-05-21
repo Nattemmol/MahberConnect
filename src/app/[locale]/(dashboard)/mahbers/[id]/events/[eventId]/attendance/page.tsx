@@ -15,6 +15,9 @@ import {
   Search,
   Filter,
   AlertCircle,
+  BarChart3,
+  Download,
+  TrendingUp,
 } from "lucide-react";
 import { eventService, memberService } from "@/lib/api/service-factory";
 import { MemberDetail, PaginatedResponse } from "@/lib/types";
@@ -25,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 export default function EventAttendancePage({
   params,
@@ -101,6 +105,33 @@ export default function EventAttendancePage({
 
   const isAbsenteesLoading = isMembersLoading || isFetchingNextPage;
 
+  // ── Analytics ──
+  const { data: analytics } = useQuery({
+    queryKey: ["event-attendance-analytics", id, eventId],
+    queryFn: () => eventService.getAttendanceAnalytics(id, eventId),
+  });
+
+  const { data: trends } = useQuery({
+    queryKey: ["event-attendance-trends", id],
+    queryFn: () => eventService.getAttendanceTrends(id, eventId, 6),
+  });
+
+  const handleExportReport = async () => {
+    try {
+      const blob = await eventService.exportAttendanceReport(id, eventId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `attendance-report-${id}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to export report");
+    }
+  };
+
   // Filter attendance based on search query
   const filteredAttendance = attendance.filter(
     (record) =>
@@ -134,7 +165,91 @@ export default function EventAttendancePage({
       <PageHeader
         title="Attendance"
         description={`Track member check-ins for ${event?.title || "this event"}.`}
-      />
+      >
+        <Button variant="outline" className="gap-2" onClick={handleExportReport}>
+          <Download className="w-4 h-4" />
+          Export Report
+        </Button>
+      </PageHeader>
+
+      {/* Analytics Section */}
+      {analytics && (
+        <Card className="bg-gradient-to-br from-gold/5 to-background-dark border-gold/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-gold" />
+                <h3 className="font-semibold text-text-primary">Attendance Rate</h3>
+              </div>
+              <span className={`text-2xl font-bold ${analytics.attendance_percentage >= 75 ? 'text-status-success' : analytics.attendance_percentage >= 50 ? 'text-amber-400' : 'text-status-error'}`}>
+                {analytics.attendance_percentage}%
+              </span>
+            </div>
+            <div className="w-full h-3 bg-background-dark/50 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  analytics.attendance_percentage >= 75 ? 'bg-status-success' : analytics.attendance_percentage >= 50 ? 'bg-amber-400' : 'bg-status-error'
+                }`}
+                style={{ width: `${analytics.attendance_percentage}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-3 text-sm text-text-secondary">
+              <span>{analytics.attended} attended</span>
+              <span>{analytics.absent} absent</span>
+              <span>{analytics.total_members} total</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Trends Section */}
+      {trends && trends.trends.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-text-primary flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-gold" />
+              Monthly Attendance Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-2 h-32">
+              {trends.trends.map((t) => {
+                const maxRate = Math.max(...trends.trends.map((x) => x.average_attendance_rate), 1);
+                const height = (t.average_attendance_rate / maxRate) * 100;
+                return (
+                  <div key={t.month} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs text-text-secondary font-medium">
+                      {t.average_attendance_rate}%
+                    </span>
+                    <div
+                      className="w-full rounded-t-sm transition-all duration-500"
+                      style={{
+                        height: `${height}%`,
+                        backgroundColor: t.average_attendance_rate >= 75 ? '#15803d' : t.average_attendance_rate >= 50 ? '#f59e0b' : '#dc2626',
+                        minHeight: '4px',
+                      }}
+                    />
+                    <span className="text-[10px] text-text-muted mt-1">
+                      {t.month.slice(5)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-4 text-xs text-text-secondary">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-status-success inline-block" /> Good (≥75%)
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Fair (50-74%)
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-status-error inline-block" /> Low (&lt;50%)
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

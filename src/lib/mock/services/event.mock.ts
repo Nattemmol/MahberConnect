@@ -4,7 +4,7 @@ import { mockAttendance } from "../data/attendance";
 import { mockPhotos } from "../data/photos";
 import { mockUsers } from "../data/users";
 import { mockMemberDetails } from "../data/memberships";
-import { CreateEventDto, EventPhoto, UploadResponse, SendInvitationsResponse, EventInvitation, EventInvitationStatus } from "@/lib/types";
+import { CreateEventDto, EventPhoto, UploadResponse, SendInvitationsResponse, EventInvitation, EventInvitationStatus, AttendanceAnalytics, AttendanceTrends } from "@/lib/types";
 
 let events = [...mockEvents];
 let attendance = [...mockAttendance];
@@ -359,5 +359,45 @@ export const eventMock = {
       data,
       meta: { total: data.length, page: 1, limit: 20, totalPages: 1 },
     };
+  },
+
+  // ── Analytics (Mock) ───────────────────────────────────────────────────────
+  getAttendanceAnalytics: async (_mahberId: string, _eventId: string) => {
+    await delay(400);
+    const total_members = 12;
+    const attended = 9;
+    return {
+      event_id: _eventId,
+      total_members,
+      attended,
+      absent: total_members - attended,
+      attendance_percentage: Math.round((attended / total_members) * 100),
+      is_mandatory: true,
+      is_cancelled: false,
+    } satisfies AttendanceAnalytics;
+  },
+
+  getAttendanceTrends: async (_mahberId: string, _eventId: string, months = 6) => {
+    await delay(500);
+    const trends = [];
+    const now = new Date();
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = d.toISOString().slice(0, 7);
+      trends.push({
+        month,
+        event_count: 2 + Math.floor(Math.random() * 4),
+        total_members: 12,
+        total_attended: 7 + Math.floor(Math.random() * 4),
+        average_attendance_rate: 60 + Math.floor(Math.random() * 30),
+      });
+    }
+    return { trends, total_active_members: 12 } satisfies AttendanceTrends;
+  },
+
+  exportAttendanceReport: async (_mahberId: string, _eventId: string, _params?: any) => {
+    await delay(800);
+    const dummyPdf = new Uint8Array(100);
+    return new Blob([dummyPdf], { type: 'application/pdf' });
   },
 };

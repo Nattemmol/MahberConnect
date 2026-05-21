@@ -274,6 +274,27 @@ export type Attendance = {
   user?: User;
 };
 
+export type AttendanceAnalytics = {
+  event_id: string;
+  total_members: number;
+  attended: number;
+  absent: number;
+  attendance_percentage: number;
+  is_mandatory: boolean;
+  is_cancelled: boolean;
+};
+
+export type AttendanceTrends = {
+  trends: Array<{
+    month: string;
+    event_count: number;
+    total_members: number;
+    total_attended: number;
+    average_attendance_rate: number;
+  }>;
+  total_active_members: number;
+};
+
 export type EventPhoto = {
   id: string;
   event_id: string;
