@@ -1,5 +1,5 @@
 import { apiClient } from "../client";
-import { Mahber, CreateMahberDto, JoinRequest } from "@/lib/types";
+import { Mahber, CreateMahberDto, UpdateMahberDto, JoinRequest } from "@/lib/types";
 
 export const mahberApi = {
   getMahbers: async (): Promise<Mahber[]> => {
@@ -30,6 +30,29 @@ export const mahberApi = {
       `/mahbers/${id}/join-requests`,
       data ?? {},
     );
+    return response.data;
+  },
+
+  joinMahberSubsystem: async (
+    id: string
+  ): Promise<{
+    paymentRequired: boolean;
+    amount?: number;
+    currency?: string;
+    paymentUrl?: string;
+    token?: string;
+    message?: string;
+    active?: boolean;
+  }> => {
+    const response = await apiClient.post<{
+      paymentRequired: boolean;
+      amount?: number;
+      currency?: string;
+      paymentUrl?: string;
+      token?: string;
+      message?: string;
+      active?: boolean;
+    }>(`/mahbers/${id}/join`);
     return response.data;
   },
 

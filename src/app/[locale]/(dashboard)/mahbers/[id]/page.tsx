@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
-import { mahberService, memberService } from "@/lib/api/service-factory";
+import toast from "react-hot-toast";
+import { mahberService, memberService, financialService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,12 +40,40 @@ export default function MahberOverviewPage({
   });
 
   const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
-  const isAdmin = myMembership?.role === "ADMIN" || 
-                 myMembership?.role === "Admin" ||
+  const isAdmin = (myMembership?.role as any) === "ADMIN" || 
+                 (myMembership?.role as any) === "Admin" ||
                  (myMembership?.role as any)?.name === "Admin" ||
                  (myMembership?.role as any)?.name === "ADMIN" ||
                  (myMembership?.role as any)?.permissions?.includes("manage_members") ||
                  (myMembership?.role as any)?.permissions?.includes("manage_finances");
+
+  const [isPaying, setIsPaying] = useState(false);
+
+  const handlePayRecurring = async () => {
+    try {
+      setIsPaying(true);
+      const res = await financialService.payRecurring(id);
+      if (res.checkout_url) {
+        window.location.href = res.checkout_url;
+      } else {
+        toast.error("Payment checkout URL not found.");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to initiate payment.");
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  const nextPaymentDue = myMembership?.next_payment_due;
+  let isPaymentDueSoon = false;
+  if (nextPaymentDue) {
+    const dueDate = new Date(nextPaymentDue);
+    const now = new Date();
+    const diffTime = dueDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    isPaymentDueSoon = diffDays <= 7;
+  }
 
   const isLoading = isMahberLoading || isMyMahbersLoading;
 
@@ -103,6 +132,29 @@ export default function MahberOverviewPage({
 
   return (
     <div className="space-y-6">
+      {isMember && isPaymentDueSoon && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-gold/30 bg-gold/5 rounded-input mb-6">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-gold flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-text-primary">
+                Contribution due soon
+              </p>
+              <p className="text-sm text-text-secondary">
+                Contribution of {contributionAmount ?? 0} ETB is due soon ({nextPaymentDue ? new Date(nextPaymentDue).toLocaleDateString() : "approaching"}).
+              </p>
+            </div>
+          </div>
+          <Button 
+            onClick={handlePayRecurring} 
+            isLoading={isPaying}
+            className="bg-gold hover:bg-gold/80 text-black flex-shrink-0 font-medium"
+          >
+            Pay Now
+          </Button>
+        </div>
+      )}
+
       {!isMember && (
         <div className="flex items-center gap-4 p-4 border border-gold/30 bg-gold/5 rounded-input mb-6">
           <Clock className="w-8 h-8 text-gold" />

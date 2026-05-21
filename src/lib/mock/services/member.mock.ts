@@ -55,6 +55,18 @@ export const memberMock = {
     return member;
   },
 
+  unbanMember: async (mahberId: string, memberId: string) => {
+    await delay(800);
+    randomError(0.05);
+    const member = members.find(
+      (m) => m.mahber_id === mahberId && (m.id === memberId || m.member_id === memberId),
+    );
+    if (!member) throw new Error("Member not found");
+    member.status = "Active";
+    member.updated_at = new Date().toISOString();
+    return member;
+  },
+
   updateMemberRole: async (
     mahberId: string,
     memberId: string,

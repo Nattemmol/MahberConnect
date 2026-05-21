@@ -190,7 +190,7 @@ export default function MahberSettingsPage({
                     configuration: { 
                       ...settings.configuration, 
                       contribution_amount: Number(e.target.value) 
-                    }
+                    } as any
                   })}
                   className="bg-surface-active border-border-glass font-mono"
                 />
@@ -198,7 +198,7 @@ export default function MahberSettingsPage({
                   This is the standard amount members are expected to pay each cycle.
                 </p>
               </div>
-
+ 
               <div className="space-y-2 pt-2">
                 <label className="text-sm font-medium">Payment Cycle</label>
                 <select 
@@ -209,7 +209,7 @@ export default function MahberSettingsPage({
                     configuration: { 
                       ...settings.configuration, 
                       cycle: e.target.value 
-                    }
+                    } as any
                   })}
                 >
                   <option value="Daily">Daily</option>

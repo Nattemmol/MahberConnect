@@ -45,17 +45,21 @@ export default function DiscoverMahbersPage() {
 
     try {
       setJoiningId(joinTarget.id);
-      const code = invitationCode.trim();
-      await mahberService.joinMahber(
-        joinTarget.id,
-        code ? { invitation_code: code } : undefined,
-      );
+      const response = await mahberService.joinMahberSubsystem(joinTarget.id);
       
-      setRequestedIds(prev => new Set(prev).add(joinTarget.id));
-      toast.success("Join request sent successfully!");
-      
-      // Redirect to the mahber overview page
-      router.push(`/mahbers/${joinTarget.id}`);
+      if (response.paymentRequired) {
+        if (response.token) {
+          localStorage.setItem("pending_join_token", response.token);
+        }
+        if (response.paymentUrl) {
+          window.location.href = response.paymentUrl;
+        } else {
+          toast.error("Payment URL not found.");
+        }
+      } else {
+        toast.success("Welcome! You have successfully joined the Mahber.");
+        router.push(`/mahbers/${joinTarget.id}`);
+      }
       
       setJoinTarget(null);
       setInvitationCode("");
@@ -63,7 +67,7 @@ export default function DiscoverMahbersPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const error = err as any;
       toast.error(
-        error.response?.data?.message || "Failed to send join request.",
+        error.response?.data?.message || "Failed to join Mahber",
       );
     } finally {
       setJoiningId(null);

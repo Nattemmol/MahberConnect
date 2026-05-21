@@ -79,4 +79,18 @@ export const mockMemberDetails: MemberDetail[] = [
     updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
     user: { id: 'usr_5', phone: '+251955678901', name: 'Bereket Haile', created_at: '', updated_at: '' },
   },
+  {
+    id: 'mem_detail_6',
+    mahber_id: 'mah_1',
+    member_id: 'usr_6',
+    status: 'Banned',
+    role: 'MEMBER',
+    role_name: 'Member',
+    permissions: [],
+    balance: '0.00',
+    has_won_current_cycle: false,
+    created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+    user: { id: 'usr_6', phone: '+251966789012', name: 'Mulugeta Kebede', created_at: '', updated_at: '' },
+  },
 ];

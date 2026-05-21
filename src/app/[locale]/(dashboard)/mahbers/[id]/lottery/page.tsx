@@ -3,14 +3,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState, useEffect } from "react";
 import { Trophy, Dices, Calendar, Gift, Sparkles } from "lucide-react";
-import { financialService, mahberService } from "@/lib/api/service-factory";
+import { financialService, mahberService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
-import { LotteryDraw } from "@/lib/types";
+import { MemberDetail, LotteryDraw } from "@/lib/types";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import toast from "react-hot-toast";
 
@@ -63,9 +63,9 @@ export default function LotteryPage({
     queryFn: () => memberService.getMembers(id, 1, 100),
   });
 
-  const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
-  const isAdmin = myMembership?.role === "ADMIN" || 
-                 myMembership?.role === "Admin" ||
+  const myMembership = membersResponse?.data?.find((m: any) => m.user?.id === user?.id);
+  const isAdmin = (myMembership?.role as any) === "ADMIN" || 
+                 (myMembership?.role as any) === "Admin" ||
                  (myMembership?.role as any)?.name === "Admin" ||
                  (myMembership?.role as any)?.name === "ADMIN" ||
                  (myMembership?.role as any)?.permissions?.includes("manage_members") ||
