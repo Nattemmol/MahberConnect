@@ -2,18 +2,24 @@
 
 import { use, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Settings, 
-  Shield, 
-  CreditCard, 
-  Globe, 
-  Trash2, 
-  Save, 
-  AlertTriangle 
+import {
+  Settings,
+  Shield,
+  CreditCard,
+  Globe,
+  Trash2,
+  Save,
+  AlertTriangle,
 } from "lucide-react";
 import { mahberService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,15 +39,22 @@ export default function MahberSettingsPage({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [settings, setSettings] = useState<UpdateMahberDto>({
     name: "",
     is_public: true,
     configuration: {
       contribution_amount: 0,
-      cycle: "Monthly"
-    }
+      cycle: "Monthly",
+      payment_frequency: "Monthly",
+      join_fee_required: false,
+      join_fee_amount: 0,
+      penalty_rate: 0,
+      penalty_mode: "fixed",
+      penalty_interval: "30d",
+      max_fine_total: 0,
+    },
   });
 
   const { data: mahber, isLoading: isLoadingMahber } = useQuery({
@@ -55,23 +68,49 @@ export default function MahberSettingsPage({
   });
 
   // Find current user's membership to check if admin
-  const myMembership = membersResponse?.data.find(m => m.user?.id === user?.id);
-  const isAdmin = myMembership?.role === "ADMIN" || 
-                 (myMembership?.role as any)?.name === "Admin" || 
-                 (myMembership?.role as any)?.permissions?.includes("manage_members");
+  const myMembership = membersResponse?.data.find(
+    (m) => m.user?.id === user?.id,
+  );
+  const isAdmin =
+    myMembership?.role === "ADMIN" ||
+    (myMembership?.role as any)?.name === "Admin" ||
+    (myMembership?.role as any)?.permissions?.includes("manage_members");
 
   useEffect(() => {
     if (mahber) {
+      const paymentFrequency =
+        mahber.configuration.payment_frequency ??
+        mahber.configuration.cycle ??
+        "Monthly";
+
       setSettings({
         name: mahber.name,
         is_public: mahber.is_public,
         configuration: {
           contribution_amount: mahber.configuration.contribution_amount,
-          cycle: mahber.configuration.cycle
-        }
+          cycle: paymentFrequency,
+          payment_frequency: paymentFrequency as any,
+          join_fee_required: mahber.configuration.join_fee_required ?? false,
+          join_fee_amount: mahber.configuration.join_fee_amount ?? 0,
+          penalty_rate: mahber.configuration.penalty_rate ?? 0,
+          penalty_mode: mahber.configuration.penalty_mode ?? "fixed",
+          penalty_interval: mahber.configuration.penalty_interval ?? "30d",
+          max_fine_total: mahber.configuration.max_fine_total ?? 0,
+        },
       });
     }
   }, [mahber]);
+
+  const setPaymentFrequency = (value: string) => {
+    setSettings((current) => ({
+      ...current,
+      configuration: {
+        ...(current.configuration ?? {}),
+        cycle: value,
+        payment_frequency: value as any,
+      } as any,
+    }));
+  };
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateMahberDto) => mahberService.updateMahber(id, data),
@@ -115,7 +154,9 @@ export default function MahberSettingsPage({
       <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Shield className="w-16 h-16 text-text-muted opacity-20" />
         <h2 className="text-xl font-bold">Admin Access Required</h2>
-        <p className="text-text-secondary">You don't have permission to modify this Mahber's settings.</p>
+        <p className="text-text-secondary">
+          You don't have permission to modify this Mahber's settings.
+        </p>
         <Button onClick={() => router.back()}>Go Back</Button>
       </div>
     );
@@ -144,9 +185,11 @@ export default function MahberSettingsPage({
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Mahber Name</label>
-                <Input 
+                <Input
                   value={settings.name}
-                  onChange={(e) => setSettings({...settings, name: e.target.value})}
+                  onChange={(e) =>
+                    setSettings({ ...settings, name: e.target.value })
+                  }
                   className="bg-surface-active border-border-glass"
                 />
               </div>
@@ -155,15 +198,20 @@ export default function MahberSettingsPage({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-gold" />
-                    <span className="font-medium text-sm">Public Visibility</span>
+                    <span className="font-medium text-sm">
+                      Public Visibility
+                    </span>
                   </div>
                   <p className="text-xs text-text-muted">
-                    When public, others can discover and request to join your Mahber.
+                    When public, others can discover and request to join your
+                    Mahber.
                   </p>
                 </div>
-                <Switch 
+                <Switch
                   checked={settings.is_public}
-                  onCheckedChange={(checked) => setSettings({...settings, is_public: checked})}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, is_public: checked })
+                  }
                 />
               </div>
             </CardContent>
@@ -181,42 +229,176 @@ export default function MahberSettingsPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Contribution Amount (ETB)</label>
-                <Input 
+                <label className="text-sm font-medium">
+                  Contribution Amount (ETB)
+                </label>
+                <Input
                   type="number"
                   value={settings.configuration?.contribution_amount}
-                  onChange={(e) => setSettings({
-                    ...settings, 
-                    configuration: { 
-                      ...settings.configuration, 
-                      contribution_amount: Number(e.target.value) 
-                    } as any
-                  })}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      configuration: {
+                        ...settings.configuration,
+                        contribution_amount: Number(e.target.value),
+                      } as any,
+                    })
+                  }
                   className="bg-surface-active border-border-glass font-mono"
                 />
                 <p className="text-xs text-text-muted">
-                  This is the standard amount members are expected to pay each cycle.
+                  This is the standard amount members are expected to pay each
+                  cycle.
                 </p>
               </div>
- 
+
               <div className="space-y-2 pt-2">
-                <label className="text-sm font-medium">Payment Cycle</label>
-                <select 
+                <label className="text-sm font-medium">Payment Frequency</label>
+                <select
                   className="w-full bg-surface-active border border-border-glass rounded-input p-2.5 text-sm focus:outline-none focus:border-gold/50"
                   value={settings.configuration?.cycle}
-                  onChange={(e) => setSettings({
-                    ...settings, 
-                    configuration: { 
-                      ...settings.configuration, 
-                      cycle: e.target.value 
-                    } as any
-                  })}
+                  onChange={(e) => setPaymentFrequency(e.target.value)}
                 >
                   <option value="Daily">Daily</option>
                   <option value="Weekly">Weekly</option>
-                  <option value="Bi-Weekly">Bi-Weekly</option>
                   <option value="Monthly">Monthly</option>
+                  <option value="Quarterly">Quarterly</option>
                 </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-sm font-medium">
+                      Join Fee Required
+                    </label>
+                    <Switch
+                      checked={
+                        settings.configuration?.join_fee_required ?? false
+                      }
+                      onCheckedChange={(checked) =>
+                        setSettings({
+                          ...settings,
+                          configuration: {
+                            ...settings.configuration,
+                            join_fee_required: checked,
+                          } as any,
+                        })
+                      }
+                    />
+                  </div>
+                  <p className="text-xs text-text-muted">
+                    Require a payment before a member can join this Mahber.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Join Fee Amount (ETB)
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={settings.configuration?.join_fee_amount}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        configuration: {
+                          ...settings.configuration,
+                          join_fee_amount: Number(e.target.value),
+                        } as any,
+                      })
+                    }
+                    className="bg-surface-active border-border-glass font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Penalty Rate</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={settings.configuration?.penalty_rate}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        configuration: {
+                          ...settings.configuration,
+                          penalty_rate: Number(e.target.value),
+                        } as any,
+                      })
+                    }
+                    className="bg-surface-active border-border-glass font-mono"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Penalty Mode</label>
+                  <select
+                    value={settings.configuration?.penalty_mode ?? "fixed"}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        configuration: {
+                          ...settings.configuration,
+                          penalty_mode: e.target.value as any,
+                        } as any,
+                      })
+                    }
+                    className="w-full bg-surface-active border border-border-glass rounded-input p-2.5 text-sm focus:outline-none focus:border-gold/50"
+                  >
+                    <option value="fixed">Fixed</option>
+                    <option value="percentage">Percentage</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Penalty Interval
+                  </label>
+                  <Input
+                    type="text"
+                    value={settings.configuration?.penalty_interval}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        configuration: {
+                          ...settings.configuration,
+                          penalty_interval: e.target.value,
+                        } as any,
+                      })
+                    }
+                    placeholder="30d"
+                    className="bg-surface-active border-border-glass font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <label className="text-sm font-medium">
+                  Maximum Unpaid Fine Total (ETB)
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={settings.configuration?.max_fine_total}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      configuration: {
+                        ...settings.configuration,
+                        max_fine_total: Number(e.target.value),
+                      } as any,
+                    })
+                  }
+                  className="bg-surface-active border-border-glass font-mono"
+                />
+                <p className="text-xs text-text-muted">
+                  Members are automatically banned once unpaid fines exceed this
+                  amount.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -229,8 +411,8 @@ export default function MahberSettingsPage({
               <CardTitle className="text-sm">Save Changes</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                onClick={handleSave} 
+              <Button
+                onClick={handleSave}
                 className="w-full bg-gold hover:bg-gold-dark text-black font-bold"
                 isLoading={updateMutation.isPending}
                 disabled={!settings.name}
@@ -238,7 +420,11 @@ export default function MahberSettingsPage({
                 <Save className="w-4 h-4 mr-2" />
                 Update Settings
               </Button>
-              <Button variant="ghost" onClick={() => router.back()} className="w-full">
+              <Button
+                variant="ghost"
+                onClick={() => router.back()}
+                className="w-full"
+              >
                 Cancel
               </Button>
             </CardContent>
@@ -253,10 +439,11 @@ export default function MahberSettingsPage({
             </CardHeader>
             <CardContent>
               <p className="text-xs text-text-muted mb-4">
-                Deleting this Mahber is permanent and cannot be undone. All financial records will be lost.
+                Deleting this Mahber is permanent and cannot be undone. All
+                financial records will be lost.
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full border-status-error/50 text-status-error hover:bg-status-error/10"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
@@ -269,8 +456,8 @@ export default function MahberSettingsPage({
       </div>
 
       {/* Delete Confirmation */}
-      <Dialog 
-        isOpen={isDeleteDialogOpen} 
+      <Dialog
+        isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         title="Are you absolutely sure?"
         description={`This action cannot be undone. This will permanently delete the ${mahber?.name} and remove all member data.`}
@@ -279,8 +466,8 @@ export default function MahberSettingsPage({
           <Button variant="ghost" onClick={() => setIsDeleteDialogOpen(false)}>
             Cancel
           </Button>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             onClick={() => deleteMutation.mutate()}
             isLoading={deleteMutation.isPending}
           >

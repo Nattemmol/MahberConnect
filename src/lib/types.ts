@@ -12,10 +12,19 @@ export type User = {
 export type MahberType = "MAHBER" | "EQUB" | "IDDIR";
 export type MemberRole = "ADMIN" | "MEMBER";
 export type JoinRequestStatus = "Pending" | "Approved" | "Rejected";
+export type PaymentFrequency = "Daily" | "Weekly" | "Monthly" | "Quarterly";
+export type PenaltyMode = "percentage" | "fixed";
 
 export type MahberConfiguration = {
   cycle: string;
   contribution_amount: number;
+  payment_frequency?: PaymentFrequency;
+  join_fee_required?: boolean;
+  join_fee_amount?: number;
+  penalty_rate?: number;
+  penalty_mode?: PenaltyMode;
+  penalty_interval?: string;
+  max_fine_total?: number;
 };
 
 export type Mahber = {
