@@ -5,6 +5,9 @@ import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/stores/ui-store';
+import { useQuery } from '@tanstack/react-query';
+import { mahberService } from '@/lib/api/service-factory';
+import { useNotificationStore } from '@/lib/stores/notification-store';
 import {
   LayoutDashboard,
   Users,
@@ -25,7 +28,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations('Sidebar');
   const { activeMahberId, sidebarOpen, setSidebarOpen } = useUIStore();
+  const { unreadCount } = useNotificationStore();
   const [mounted, setMounted] = React.useState(false);
+
+  const { data: myMahbers } = useQuery({
+    queryKey: ['mahbers'],
+    queryFn: () => mahberService.getMahbers(),
+  });
 
   React.useEffect(() => {
     setMounted(true);
@@ -43,15 +52,21 @@ export function Sidebar() {
     { href: '/notifications', label: t('notifications'), icon: Bell },
   ];
 
+  const isFullyJoined = Array.isArray(myMahbers) && myMahbers.some((m) => m.id === activeMahberId);
+
   const mahberLinks = activeMahberId
     ? [
         { href: `/mahbers/${activeMahberId}`, label: t('overview'), icon: LayoutDashboard },
-        { href: `/mahbers/${activeMahberId}/members`, label: t('members'), icon: Users },
-        { href: `/mahbers/${activeMahberId}/events`, label: t('events'), icon: Calendar },
-        { href: `/mahbers/${activeMahberId}/payments`, label: t('finances'), icon: Wallet },
-        { href: `/mahbers/${activeMahberId}/chat`, label: t('chat'), icon: MessageSquare },
-        { href: `/mahbers/${activeMahberId}/audit`, label: t('auditTrail'), icon: Activity },
-        { href: `/mahbers/${activeMahberId}/settings`, label: t('settings'), icon: Settings },
+        ...(isFullyJoined
+          ? [
+              { href: `/mahbers/${activeMahberId}/members`, label: t('members'), icon: Users },
+              { href: `/mahbers/${activeMahberId}/events`, label: t('events'), icon: Calendar },
+              { href: `/mahbers/${activeMahberId}/payments`, label: t('finances'), icon: Wallet },
+              { href: `/mahbers/${activeMahberId}/chat`, label: t('chat'), icon: MessageSquare },
+              { href: `/mahbers/${activeMahberId}/audit`, label: t('auditTrail'), icon: Activity },
+              { href: `/mahbers/${activeMahberId}/settings`, label: t('settings'), icon: Settings },
+            ]
+          : []),
       ]
     : [];
 
@@ -121,14 +136,21 @@ export function Sidebar() {
                 href={link.href}
                 onClick={closeMobileMenu}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors justify-between',
                   isActive
                     ? 'bg-gold/10 text-gold'
                     : 'text-text-secondary hover:bg-background-subtle hover:text-text-primary'
                 )}
               >
-                <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-gold' : 'text-text-muted')} />
-                {link.label}
+                <div className="flex items-center gap-3">
+                  <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-gold' : 'text-text-muted')} />
+                  {link.label}
+                </div>
+                {link.href === '/notifications' && unreadCount > 0 && (
+                  <span className="flex h-5 items-center justify-center rounded-full bg-status-error px-2 text-[10px] font-bold text-white shadow-sm">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -64,6 +64,14 @@ export default function PaymentsDashboard({
         description="Manage your payments, contributions, and fines."
       >
         <div className="flex gap-2">
+          {isAdmin && (
+            <Button asChild variant="outline" className="gap-2 border-primary/50 text-primary hover:bg-primary/10">
+              <Link href={`/mahbers/${id}/payments/audit`}>
+                <Wallet className="w-4 h-4" />
+                Financial Audit
+              </Link>
+            </Button>
+          )}
           {isEqub && (
             <Button asChild variant="outline" className="gap-2 border-gold/50 text-gold hover:bg-gold/10">
               <Link href={`/mahbers/${id}/lottery`}>

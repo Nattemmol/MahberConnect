@@ -32,7 +32,7 @@ export default function MahberOverviewPage({
     queryFn: () => mahberService.getMahbers(),
   });
 
-  const isMember = myMahbers?.some(m => m.id === id);
+  const isMember = Array.isArray(myMahbers) && myMahbers.some(m => m.id === id);
   const { data: membersResponse } = useQuery({
     queryKey: ["mahber-members-check", id],
     queryFn: () => memberService.getMembers(id, 1, 100),
