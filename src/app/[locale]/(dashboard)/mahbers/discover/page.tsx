@@ -3,7 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Compass, Users } from "lucide-react";
-import { mahberService } from "@/lib/api/service-factory";
+import { mahberService, memberService } from '@/lib/api/service-factory';
+import { useQueries } from '@tanstack/react-query';
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Link } from "@/i18n/routing";
 
 export default function DiscoverMahbersPage() {
   const router = useRouter();
@@ -39,6 +41,22 @@ export default function DiscoverMahbersPage() {
     queryKey: ["public-mahbers"],
     queryFn: () => mahberService.getPublicMahbers(),
   });
+
+  const { data: myMahbers } = useQuery({
+    queryKey: ["mahbers"],
+    queryFn: () => mahberService.getMahbers(),
+  });
+
+  const memberCountQueries = useQueries({
+    queries: (mahbers ?? []).map((mahber) => ({
+      queryKey: ['mahber-members-count', mahber.id],
+      queryFn: () => memberService.getMembers(mahber.id, 1, 1),
+      select: (data) => data.meta.total,
+      enabled: !!mahbers,
+    })),
+  });
+
+  const joinedIds = new Set(myMahbers?.map((m) => m.id) || []);
 
   const handleJoin = async () => {
     if (!joinTarget) return;
@@ -103,7 +121,7 @@ export default function DiscoverMahbersPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mahbers?.map((mahber) => (
+          {mahbers?.map((mahber, index) => (
             <Card
               key={mahber.id}
               className="hover:border-gold/50 transition-colors"
@@ -123,7 +141,7 @@ export default function DiscoverMahbersPage() {
                   </Badge>
                   <div className="flex items-center text-text-secondary text-sm">
                     <Users className="w-4 h-4 mr-1" />
-                    {mahber._count?.members || 0}
+                    {memberCountQueries[index]?.data ?? 0}
                   </div>
                 </div>
                 <CardTitle>{mahber.name}</CardTitle>
@@ -132,18 +150,28 @@ export default function DiscoverMahbersPage() {
                 </CardDescription>
               </CardHeader>
               <CardFooter>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setJoinTarget({ id: mahber.id, name: mahber.name });
-                    setInvitationCode("");
-                  }}
-                  isLoading={joiningId === mahber.id}
-                  disabled={requestedIds.has(mahber.id)}
-                  variant={requestedIds.has(mahber.id) ? "outline" : "default"}
-                >
-                  {requestedIds.has(mahber.id) ? "Requested" : "Request to Join"}
-                </Button>
+                {joinedIds.has(mahber.id) ? (
+                  <Button
+                    className="w-full bg-success/20 text-success hover:bg-success/30 border-success/30"
+                    variant="outline"
+                    asChild
+                  >
+                    <Link href={`/mahbers/${mahber.id}`}>Joined</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setJoinTarget({ id: mahber.id, name: mahber.name });
+                      setInvitationCode("");
+                    }}
+                    isLoading={joiningId === mahber.id}
+                    disabled={requestedIds.has(mahber.id)}
+                    variant={requestedIds.has(mahber.id) ? "outline" : "default"}
+                  >
+                    {requestedIds.has(mahber.id) ? "Requested" : "Request to Join"}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           ))}

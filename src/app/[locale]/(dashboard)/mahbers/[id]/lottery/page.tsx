@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState, useEffect } from "react";
 import { Trophy, Dices, Calendar, Gift, Sparkles } from "lucide-react";
-import { financialService, mahberService } from "@/lib/api/service-factory";
+import { financialService, mahberService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,12 +64,18 @@ export default function LotteryPage({
   });
 
   const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
-  const isAdmin = myMembership?.role === "ADMIN" || 
-                 myMembership?.role === "Admin" ||
-                 (myMembership?.role as any)?.name === "Admin" ||
-                 (myMembership?.role as any)?.name === "ADMIN" ||
-                 (myMembership?.role as any)?.permissions?.includes("manage_members") ||
-                 (myMembership?.role as any)?.permissions?.includes("manage_finances");
+  const roleName = typeof myMembership?.role === 'string'
+    ? myMembership.role
+    : (myMembership?.role as any)?.name;
+
+  const canDrawLottery = roleName === "ADMIN" || 
+                         roleName === "Admin" ||
+                         roleName === "Treasurer" ||
+                         roleName === "TREASURER" ||
+                         roleName === "Secretary" ||
+                         roleName === "SECRETARY" ||
+                         (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+                         (myMembership?.role as any)?.permissions?.includes("manage_finances");
 
   return (
     <div className="space-y-8 pb-20">
@@ -78,7 +84,7 @@ export default function LotteryPage({
         description="View the history of past winners and participate in the community draw."
       />
 
-      {isAdmin && (
+      {canDrawLottery && (
         <Card className="border-gold/30 bg-gradient-to-br from-background-dark via-background-dark to-gold/10 relative overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.1)]">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Dices className="w-48 h-48 text-gold" />
@@ -116,7 +122,7 @@ export default function LotteryPage({
         </Card>
       )}
 
-      {!isAdmin && (
+      {!canDrawLottery && (
         <Card className="bg-surface-active/30 border-border-glass">
           <CardContent className="p-8 text-center space-y-2">
              <Trophy className="w-12 h-12 text-gold mx-auto mb-2 opacity-50" />

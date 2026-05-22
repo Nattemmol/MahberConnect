@@ -58,5 +58,12 @@ export const financialApi = {
     // Backend route: POST /mahbers/:id/lottery/execute
     const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, data || {});
     return response.data;
+  },
+
+  // ── Audit ───────────────────────────────────────────────────────────────────
+  getFinancialAudit: async (mahberId: string): Promise<any> => {
+    // Backend route: GET /mahbers/:id/reports/audit
+    const response = await apiClient.get<any>(`/mahbers/${mahberId}/reports/audit`);
+    return response.data;
   }
 };

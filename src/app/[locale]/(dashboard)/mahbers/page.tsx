@@ -71,7 +71,7 @@ export default function MyMahbersPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mahbers?.map((mahber) => (
+                    {Array.isArray(mahbers) && mahbers.map((mahber) => (
             <Card
               key={mahber.id}
               className="hover:border-gold/50 transition-colors"
