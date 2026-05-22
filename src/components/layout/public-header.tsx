@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export function PublicHeader() {
   const pathname = usePathname();
@@ -25,10 +26,14 @@ export function PublicHeader() {
       <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gold/15 flex items-center justify-center">
-            <span className="text-gold font-bold text-sm">M</span>
-          </div>
-          <span className="font-semibold text-text-primary tracking-tight">{commonT('appName')}</span>
+          <Image
+            src="/Mahber_Connect_Logo.svg"
+            alt="MahberConnect"
+            width={250}
+            height={120}
+            unoptimized
+            className="h-20 w-auto"
+          />
         </Link>
 
         {/* Nav links — only on landing page */}

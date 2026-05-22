@@ -15,7 +15,7 @@ const createMahberSchema = z.object({
     .string()
     .min(3, "Name must be at least 3 characters")
     .max(50, "Name is too long"),
-  type: z.enum(["MAHBER", "EQUB", "IDDIR"]),
+  type: z.enum(["MAHBER", "EQUB"]),
   configuration: z.object({
     contribution_amount: z
       .number({ error: "Contribution amount is required" })
@@ -98,7 +98,6 @@ export default function CreateMahberPage() {
               >
                 <option value="MAHBER">Mahber (General Community)</option>
                 <option value="EQUB">Equb (Rotating Savings)</option>
-                <option value="IDDIR">Iddir (Emergency Fund)</option>
               </select>
               {errors.type && (
                 <p className="text-status-error text-xs mt-1">

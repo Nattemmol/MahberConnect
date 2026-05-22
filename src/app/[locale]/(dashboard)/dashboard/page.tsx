@@ -64,8 +64,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <h1 className="text-4xl font-bold text-text-primary tracking-tight">{t("title")}</h1>
 
-
-
+      {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="glass glass-hover rounded-card p-8 group transition-all duration-500 flex flex-col justify-between min-h-[160px]">
           <div>
@@ -109,33 +108,43 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {invitations && invitations.length > 0 && (
-        <div className="glass rounded-card p-8 shadow-xl shadow-gold/5 mt-8">
-          <h2 className="text-2xl font-semibold mb-6 text-text-primary">{t("pendingInvitations")}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Invitation Requests — shown at the bottom */}
+      <div className="glass rounded-card p-8 shadow-xl shadow-gold/5">
+        <h2 className="text-2xl font-semibold mb-2 text-text-primary">{t("invitationRequests")}</h2>
+        <p className="text-sm text-text-secondary mb-6">{t("invitationRequestsDesc")}</p>
+
+        {!invitations ? (
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : invitations.length === 0 ? (
+          <div className="text-center py-10 rounded-input border border-border-glass">
+            <p className="text-text-muted text-sm">{t("noInvitations")}</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
             {invitations.map((invitation) => (
               <div
                 key={invitation.id}
-                className="glass rounded-card p-6 flex flex-col justify-between border border-gold/20 shadow-sm"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-input border border-gold/20 hover:border-gold/40 transition-colors"
               >
                 <div>
-                  <h3 className="font-semibold text-lg text-text-primary">
-                    {invitation.mahber?.name}
-                  </h3>
-                  <p className="text-xs text-text-secondary uppercase tracking-wider mt-1">
+                  <p className="font-semibold text-text-primary">{invitation.mahber?.name}</p>
+                  <p className="text-xs text-text-secondary uppercase tracking-wider mt-0.5">
                     {invitation.mahber?.type}
                   </p>
-                  <p className="text-sm text-text-secondary mt-2">
-                    {t("invitedYou")}
-                  </p>
+                  <p className="text-xs text-text-muted mt-1">{t("invitedYou")}</p>
                 </div>
-                <div className="flex gap-3 mt-4 pt-4 border-t border-border-glass">
+                <div className="flex gap-2 shrink-0">
                   <Button
                     onClick={() => respondMutation.mutate({ requestId: invitation.id, action: "accept" })}
                     disabled={respondMutation.isPending}
-                    className="flex-1 bg-gold hover:bg-gold-dark text-black text-xs font-semibold py-2"
+                    className="bg-gold hover:bg-gold-dark text-black text-xs font-semibold px-5"
                   >
-                    {respondMutation.isPending && respondMutation.variables?.requestId === invitation.id && respondMutation.variables?.action === "accept" ? (
+                    {respondMutation.isPending &&
+                    respondMutation.variables?.requestId === invitation.id &&
+                    respondMutation.variables?.action === "accept" ? (
                       <div className="animate-spin rounded-full h-3 w-3 border-2 border-black border-t-transparent" />
                     ) : (
                       t("accept")
@@ -145,9 +154,11 @@ export default function DashboardPage() {
                     onClick={() => respondMutation.mutate({ requestId: invitation.id, action: "reject" })}
                     disabled={respondMutation.isPending}
                     variant="outline"
-                    className="flex-1 text-xs font-semibold py-2 border border-border-glass hover:bg-surface-active"
+                    className="text-xs font-semibold px-5 border border-border-glass hover:bg-surface-active"
                   >
-                    {respondMutation.isPending && respondMutation.variables?.requestId === invitation.id && respondMutation.variables?.action === "reject" ? (
+                    {respondMutation.isPending &&
+                    respondMutation.variables?.requestId === invitation.id &&
+                    respondMutation.variables?.action === "reject" ? (
                       <div className="animate-spin rounded-full h-3 w-3 border-2 border-text-primary border-t-transparent" />
                     ) : (
                       t("decline")
@@ -157,8 +168,8 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

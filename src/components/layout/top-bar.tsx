@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/lib/stores/ui-store';

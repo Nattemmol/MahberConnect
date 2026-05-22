@@ -21,7 +21,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "MahberConnect",
   description: "Ethiopian community financial management platform",
-  manifest: "/manifest.json",
 };
 
 export default async function RootLayout({
@@ -43,6 +42,9 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className={`${inter.className} bg-background-subtle text-text-primary antialiased min-h-screen`}>
         <ThemeProvider
           attribute="class"
