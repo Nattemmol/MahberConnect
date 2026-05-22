@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/stores/ui-store';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -45,14 +46,14 @@ export function Sidebar() {
 
   const mahberLinks = activeMahberId
     ? [
-        { href: `/mahbers/${activeMahberId}`, label: t('overview'), icon: LayoutDashboard },
-        { href: `/mahbers/${activeMahberId}/members`, label: t('members'), icon: Users },
-        { href: `/mahbers/${activeMahberId}/events`, label: t('events'), icon: Calendar },
-        { href: `/mahbers/${activeMahberId}/payments`, label: t('finances'), icon: Wallet },
-        { href: `/mahbers/${activeMahberId}/chat`, label: t('chat'), icon: MessageSquare },
-        { href: `/mahbers/${activeMahberId}/audit`, label: t('auditTrail'), icon: Activity },
-        { href: `/mahbers/${activeMahberId}/settings`, label: t('settings'), icon: Settings },
-      ]
+      { href: `/mahbers/${activeMahberId}`, label: t('overview'), icon: LayoutDashboard },
+      { href: `/mahbers/${activeMahberId}/members`, label: t('members'), icon: Users },
+      { href: `/mahbers/${activeMahberId}/events`, label: t('events'), icon: Calendar },
+      { href: `/mahbers/${activeMahberId}/payments`, label: t('finances'), icon: Wallet },
+      { href: `/mahbers/${activeMahberId}/chat`, label: t('chat'), icon: MessageSquare },
+      { href: `/mahbers/${activeMahberId}/audit`, label: t('auditTrail'), icon: Activity },
+      { href: `/mahbers/${activeMahberId}/settings`, label: t('settings'), icon: Settings },
+    ]
     : [];
 
   const links = isGlobalRoute ? globalLinks : mahberLinks;
@@ -81,10 +82,14 @@ export function Sidebar() {
         {/* Logo — links back to landing page */}
         <div className="h-16 flex items-center px-5 border-b border-border">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gold/15 flex items-center justify-center">
-              <span className="text-gold font-bold text-sm">M</span>
-            </div>
-            <span className="font-semibold text-text-primary tracking-tight">MahberConnect</span>
+            <Image
+              src="/Mahber_Connect_Logo.svg"
+              alt="MahberConnect"
+              width={220}
+              height={90}
+              unoptimized
+              className="h-20 w-auto"
+            />
           </Link>
         </div>
 
