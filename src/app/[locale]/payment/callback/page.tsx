@@ -27,7 +27,7 @@ function PaymentCallbackContent() {
       try {
         const payment = await financialService.verifyPayment(tx_ref);
         setMahberId(payment.mahber_id);
-        setStatus(payment.status === 'COMPLETED' ? 'success' : 'failed');
+        setStatus((payment.status || '').toUpperCase() === 'COMPLETED' ? 'success' : 'failed');
       } catch {
         setStatus('failed');
       }

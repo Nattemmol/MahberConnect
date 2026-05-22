@@ -8,7 +8,9 @@ export const mockLotteryDraws: LotteryDraw[] = [
     cycle_number: 2,
     winner_id: 'usr_2',
     payout_amount: 50000,
-    draw_date: new Date(Date.now() - 86400000 * 30).toISOString(), // 1 month ago
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString(), // 1 month ago
+    eligible_members: ['usr_1', 'usr_2', 'usr_3', 'usr_4'],
+    random_seed: 'mockseed1234567890',
     winner: mockUsers[1]
   },
   {
@@ -17,7 +19,9 @@ export const mockLotteryDraws: LotteryDraw[] = [
     cycle_number: 1,
     winner_id: 'usr_1',
     payout_amount: 50000,
-    draw_date: new Date(Date.now() - 86400000 * 60).toISOString(), // 2 months ago
+    created_at: new Date(Date.now() - 86400000 * 60).toISOString(), // 2 months ago
+    eligible_members: ['usr_1', 'usr_2', 'usr_3', 'usr_4'],
+    random_seed: 'mockseed1234567890',
     winner: mockUsers[0]
   }
 ];

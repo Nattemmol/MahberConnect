@@ -24,6 +24,11 @@ export const memberApi = {
     return response.data;
   },
 
+  unbanMember: async (mahberId: string, memberId: string): Promise<MemberDetail> => {
+    const response = await apiClient.post<MemberDetail>(`/mahbers/${mahberId}/members/${memberId}/unban`);
+    return response.data;
+  },
+
   updateMemberRole: async (mahberId: string, memberId: string, data: UpdateRoleDto): Promise<MemberDetail> => {
     const response = await apiClient.put<MemberDetail>(`/mahbers/${mahberId}/members/${memberId}/role`, data);
     return response.data;

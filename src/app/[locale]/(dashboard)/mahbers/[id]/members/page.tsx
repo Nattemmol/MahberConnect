@@ -69,8 +69,8 @@ export default function MembersPage({
 
   const myMembership = membersResponse?.data?.find((m) => m.user?.id === user?.id);
   const isAdmin =
-    myMembership?.role === "ADMIN" ||
-    myMembership?.role === "Admin" ||
+    (myMembership?.role as any) === "ADMIN" ||
+    (myMembership?.role as any) === "Admin" ||
     (myMembership?.role as any)?.name === "Admin" ||
     (myMembership?.role as any)?.name === "ADMIN" ||
     (myMembership?.role as any)?.permissions?.includes("manage_members") ||
@@ -95,7 +95,19 @@ export default function MembersPage({
     onError: () => toast.error("Failed to reinstate member"),
   });
 
+  const unbanMutation = useMutation({
+    mutationFn: (memberId: string) =>
+      memberService.unbanMember(id, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mahber-members", id] });
+      toast.success("Member successfully unbanned.");
+      setUnbanTarget(null);
+    },
+    onError: () => toast.error("Failed to unban member"),
+  });
+
   const [selectedMember, setSelectedMember] = useState<MemberDetail | null>(null);
+  const [unbanTarget, setUnbanTarget] = useState<MemberDetail | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
 
   const roleMutation = useMutation({
@@ -281,7 +293,7 @@ export default function MembersPage({
                     variant={
                       member.status === "Active"
                         ? "success"
-                        : member.status === "Suspended"
+                        : member.status === "Suspended" || member.status === "Banned"
                           ? "destructive"
                           : "warning"
                     }
@@ -293,38 +305,50 @@ export default function MembersPage({
                   {new Date(member.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu
-                    trigger={
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    }
-                  >
-                    <DropdownMenuItem onClick={() => {
-                      setSelectedMember(member);
-                      setIsRoleDialogOpen(true);
-                    }}>
-                      <ShieldAlert className="w-4 h-4 mr-2" />
-                      Change Role
-                    </DropdownMenuItem>
-                    {member.status === "Active" ? (
-                      <DropdownMenuItem
-                        onClick={() => suspendMutation.mutate(member.id)}
-                      >
-                        <UserMinus className="w-4 h-4 mr-2" />
-                        Suspend
+                  {member.status === "Banned" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUnbanTarget(member)}
+                      className="border-gold/50 text-gold hover:bg-gold/10"
+                    >
+                      <UserCheck className="w-4 h-4 mr-1.5" />
+                      Unban
+                    </Button>
+                  ) : (
+                    <DropdownMenu
+                      trigger={
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      }
+                    >
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedMember(member);
+                        setIsRoleDialogOpen(true);
+                      }}>
+                        <ShieldAlert className="w-4 h-4 mr-2" />
+                        Change Role
                       </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          reinstateMutation.mutate(member.id)
-                        }
-                      >
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        Reinstate
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenu>
+                      {member.status === "Active" ? (
+                        <DropdownMenuItem
+                          onClick={() => suspendMutation.mutate(member.id)}
+                        >
+                          <UserMinus className="w-4 h-4 mr-2" />
+                          Suspend
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            reinstateMutation.mutate(member.id)
+                          }
+                        >
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          Reinstate
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenu>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -394,6 +418,31 @@ export default function MembersPage({
               {roleMutation.isPending && <div className="animate-spin rounded-full h-4 w-4 border-2 border-gold border-t-transparent" />}
             </button>
           ))}
+        </div>
+      </Dialog>
+
+      {/* Unban Confirmation Dialog */}
+      <Dialog
+        isOpen={!!unbanTarget}
+        onClose={() => setUnbanTarget(null)}
+        title="Confirm Unban Member"
+        description={`Are you sure you want to unban ${unbanTarget?.user?.name}? This will restore their active status in the Mahber.`}
+      >
+        <div className="flex justify-end gap-3 pt-4">
+          <Button variant="ghost" onClick={() => setUnbanTarget(null)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (unbanTarget) {
+                unbanMutation.mutate(unbanTarget.id);
+              }
+            }}
+            isLoading={unbanMutation.isPending}
+            className="bg-gold hover:bg-gold-dark text-black font-semibold"
+          >
+            Confirm Unban
+          </Button>
         </div>
       </Dialog>
 

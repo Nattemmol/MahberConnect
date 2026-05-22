@@ -48,8 +48,8 @@ export default function PaymentsDashboard({
 
   const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
   const isAdmin = !membersResponse ||
-    myMembership?.role === "ADMIN" ||
-    myMembership?.role === "Admin" ||
+    (myMembership?.role as any) === "ADMIN" ||
+    (myMembership?.role as any) === "Admin" ||
     (myMembership?.role as any)?.name === "Admin" ||
     (myMembership?.role as any)?.name === "ADMIN" ||
     (myMembership?.role as any)?.permissions?.includes("manage_members") ||
@@ -80,6 +80,12 @@ export default function PaymentsDashboard({
               </Link>
             </Button>
           )}
+          <Button asChild variant="outline" className="gap-2">
+            <Link href={`/mahbers/${id}/wallet`}>
+              <Wallet className="w-4 h-4" />
+              Wallet Ledger
+            </Link>
+          </Button>
           <Button asChild className="gap-2">
             <Link href={`/mahbers/${id}/payments/initiate`}>
               <CreditCard className="w-4 h-4" />

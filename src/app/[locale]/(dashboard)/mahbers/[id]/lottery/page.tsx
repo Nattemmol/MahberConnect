@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
-import { LotteryDraw } from "@/lib/types";
+import { MemberDetail, LotteryDraw } from "@/lib/types";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import toast from "react-hot-toast";
 
@@ -68,7 +68,7 @@ export default function LotteryPage({
     ? myMembership.role
     : (myMembership?.role as any)?.name;
 
-  const canDrawLottery = roleName === "ADMIN" || 
+  const canDrawLottery = roleName === "ADMIN" ||
                          roleName === "Admin" ||
                          roleName === "Treasurer" ||
                          roleName === "TREASURER" ||
