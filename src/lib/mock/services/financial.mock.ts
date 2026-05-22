@@ -4,11 +4,39 @@ import { InitiatePaymentDto } from '@/lib/types';
 import { mockFines } from '../data/fines';
 import { mockLotteryDraws } from '../data/lottery';
 import { mockUsers } from '../data/users';
+import { mockMahbers } from '../data/mahbers';
 
 let fines = [...mockFines];
 let lotteryDraws = [...mockLotteryDraws];
 
 export const financialMock = {
+  payRecurring: async (id: string) => {
+    await delay(1000);
+    randomError(0.05);
+
+    const tx_ref = `tx_contrib_${Date.now()}`;
+    const mockCheckoutUrl = `/payment/callback?tx_ref=${tx_ref}&status=success`;
+    const mahber = mockMahbers.find(m => m.id === id);
+    const contributionAmount = mahber?.configuration?.contribution_amount ?? 500;
+
+    mockPayments.push({
+      id: `pay_${Math.random()}`,
+      user_id: 'usr_1',
+      mahber_id: id,
+      amount: contributionAmount,
+      payment_type: 'Contribution',
+      status: 'Pending',
+      tx_ref: tx_ref,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+
+    return {
+      checkout_url: mockCheckoutUrl,
+      payment_id: tx_ref
+    };
+  },
+
   initiatePayment: async (data: InitiatePaymentDto) => {
     await delay(1200);
     randomError(0.05);
@@ -60,6 +88,71 @@ export const financialMock = {
     return {
       data,
       meta: { total: data.length, page: 1, limit: 20, totalPages: 1 }
+    };
+  },
+
+  getWallet: async (id: string, params?: { memberId?: string; page?: number; limit?: number }) => {
+    await delay(600);
+    const relevantPayments = mockPayments.filter(p => p.mahber_id === id && p.status === 'Completed');
+    
+    const initialEntries = [
+      {
+        id: "ledger-entry-1",
+        mahber_id: id,
+        member_id: params?.memberId || "usr_1",
+        transaction_type: "Contribution",
+        amount: "5000.00",
+        running_balance: "5000.00",
+        payment_id: "pay_1",
+        fine_id: null,
+        lottery_id: null,
+        description: "Contribution payment via Chapa callback (tx_ref: tx_mock_123)",
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString()
+      },
+      {
+        id: "ledger-entry-2",
+        mahber_id: id,
+        member_id: params?.memberId || "usr_1",
+        transaction_type: "Fine",
+        amount: "-250.00",
+        running_balance: "4750.00",
+        payment_id: null,
+        fine_id: "fine-uuid",
+        lottery_id: null,
+        description: "Missed contribution payment (frequency: Monthly)",
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString()
+      }
+    ];
+
+    let currentBalance = 4750;
+    
+    relevantPayments.forEach((p) => {
+      if (p.id !== 'pay_1') {
+        currentBalance += p.amount;
+        initialEntries.unshift({
+          id: `ledger-entry-pay-${p.id}`,
+          mahber_id: id,
+          member_id: p.user_id,
+          transaction_type: p.payment_type === 'JoinFee' ? 'JoinFee' : 'Contribution',
+          amount: p.amount.toFixed(2),
+          running_balance: currentBalance.toFixed(2),
+          payment_id: p.id,
+          fine_id: null,
+          lottery_id: null,
+          description: `${p.payment_type} payment via Chapa callback (tx_ref: ${p.tx_ref})`,
+          created_at: p.created_at
+        });
+      }
+    });
+
+    let filteredEntries = initialEntries;
+    if (params?.memberId) {
+      filteredEntries = initialEntries.filter(e => e.member_id === params.memberId);
+    }
+
+    return {
+      entries: filteredEntries,
+      balance: currentBalance.toFixed(2)
     };
   },
 

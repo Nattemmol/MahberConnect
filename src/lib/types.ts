@@ -112,7 +112,8 @@ export type MembershipStatus =
   | "Active"
   | "Suspended"
   | "Rejected"
-  | "Invalidated";
+  | "Invalidated"
+  | "Banned";
 
 export type MemberDetail = {
   id: string;
@@ -124,6 +125,7 @@ export type MemberDetail = {
   permissions?: Permission[];
   balance: string;
   has_won_current_cycle: boolean;
+  next_payment_due?: string | null;
   approval_date?: string;
   activation_date?: string;
   created_at: string;

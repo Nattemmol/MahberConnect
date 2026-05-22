@@ -33,6 +33,29 @@ export const mahberApi = {
     return response.data;
   },
 
+  joinMahberSubsystem: async (
+    id: string
+  ): Promise<{
+    paymentRequired: boolean;
+    amount?: number;
+    currency?: string;
+    paymentUrl?: string;
+    token?: string;
+    message?: string;
+    active?: boolean;
+  }> => {
+    const response = await apiClient.post<{
+      paymentRequired: boolean;
+      amount?: number;
+      currency?: string;
+      paymentUrl?: string;
+      token?: string;
+      message?: string;
+      active?: boolean;
+    }>(`/mahbers/${id}/join`);
+    return response.data;
+  },
+
   updateMahber: async (id: string, data: UpdateMahberDto): Promise<Mahber> => {
     const response = await apiClient.put<Mahber>(`/mahbers/${id}`, data);
     return response.data;

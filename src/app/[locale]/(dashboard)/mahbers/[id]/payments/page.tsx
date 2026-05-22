@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import Link from "next/link";
 import { CreditCard, Wallet, ArrowUpRight, Trophy } from "lucide-react";
-import { financialService, memberService } from "@/lib/api/service-factory";
+import { financialService, memberService, mahberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,8 +48,8 @@ export default function PaymentsDashboard({
 
   const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
   const isAdmin = !membersResponse ||
-    myMembership?.role === "ADMIN" ||
-    myMembership?.role === "Admin" ||
+    (myMembership?.role as any) === "ADMIN" ||
+    (myMembership?.role as any) === "Admin" ||
     (myMembership?.role as any)?.name === "Admin" ||
     (myMembership?.role as any)?.name === "ADMIN" ||
     (myMembership?.role as any)?.permissions?.includes("manage_members") ||
@@ -64,6 +64,14 @@ export default function PaymentsDashboard({
         description="Manage your payments, contributions, and fines."
       >
         <div className="flex gap-2">
+          {isAdmin && (
+            <Button asChild variant="outline" className="gap-2 border-primary/50 text-primary hover:bg-primary/10">
+              <Link href={`/mahbers/${id}/payments/audit`}>
+                <Wallet className="w-4 h-4" />
+                Financial Audit
+              </Link>
+            </Button>
+          )}
           {isEqub && (
             <Button asChild variant="outline" className="gap-2 border-gold/50 text-gold hover:bg-gold/10">
               <Link href={`/mahbers/${id}/lottery`}>
@@ -72,6 +80,12 @@ export default function PaymentsDashboard({
               </Link>
             </Button>
           )}
+          <Button asChild variant="outline" className="gap-2">
+            <Link href={`/mahbers/${id}/wallet`}>
+              <Wallet className="w-4 h-4" />
+              Wallet Ledger
+            </Link>
+          </Button>
           <Button asChild className="gap-2">
             <Link href={`/mahbers/${id}/payments/initiate`}>
               <CreditCard className="w-4 h-4" />

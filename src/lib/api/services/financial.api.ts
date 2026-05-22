@@ -12,6 +12,14 @@ export const financialApi = {
     return response.data;
   },
 
+  payRecurring: async (id: string): Promise<{ checkout_url: string; payment_id: string }> => {
+    // Backend route: POST /mahbers/:id/pay
+    const response = await apiClient.post<{ checkout_url: string; payment_id: string }>(
+      `/mahbers/${id}/pay`
+    );
+    return response.data;
+  },
+
   verifyPayment: async (tx_ref: string): Promise<Payment> => {
     // NOTE: The backend does not expose a dedicated verify endpoint.
     // Payment verification happens via the Chapa webhook controller (POST /webhooks/chapa).
@@ -31,6 +39,45 @@ export const financialApi = {
   getMahberLedger: async (mahberId: string): Promise<PaginatedResponse<Transaction>> => {
     // Backend route: GET /mahbers/:id/ledger
     const response = await apiClient.get<PaginatedResponse<Transaction>>(`/mahbers/${mahberId}/ledger`);
+    return response.data;
+  },
+
+  getWallet: async (
+    id: string,
+    params?: { memberId?: string; page?: number; limit?: number }
+  ): Promise<{
+    entries: Array<{
+      id: string;
+      mahber_id: string;
+      member_id: string;
+      transaction_type: string;
+      amount: string;
+      running_balance: string;
+      payment_id: string | null;
+      fine_id: string | null;
+      lottery_id: string | null;
+      description: string;
+      created_at: string;
+    }>;
+    balance: string;
+  }> => {
+    // Backend route: GET /mahbers/:id/wallet
+    const response = await apiClient.get<{
+      entries: Array<{
+        id: string;
+        mahber_id: string;
+        member_id: string;
+        transaction_type: string;
+        amount: string;
+        running_balance: string;
+        payment_id: string | null;
+        fine_id: string | null;
+        lottery_id: string | null;
+        description: string;
+        created_at: string;
+      }>;
+      balance: string;
+    }>(`/mahbers/${id}/wallet`, { params });
     return response.data;
   },
 
@@ -57,6 +104,13 @@ export const financialApi = {
   executeLottery: async (mahberId: string, data?: { operationalCostRate?: number; fineThreshold?: number }): Promise<LotteryDraw> => {
     // Backend route: POST /mahbers/:id/lottery/execute
     const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, data || {});
+    return response.data;
+  },
+
+  // ── Audit ───────────────────────────────────────────────────────────────────
+  getFinancialAudit: async (mahberId: string): Promise<any> => {
+    // Backend route: GET /mahbers/:id/reports/audit
+    const response = await apiClient.get<any>(`/mahbers/${mahberId}/reports/audit`);
     return response.data;
   }
 };

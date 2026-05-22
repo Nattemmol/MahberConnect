@@ -13,11 +13,15 @@ import { notificationService } from '@/lib/api/service-factory';
 import { socketService } from '@/lib/socket';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
+import { useNotificationStore } from '@/lib/stores/notification-store';
+
 export function TopBar() {
   const pathname = usePathname();
   const t = useTranslations('Dashboard');
   const { toggleSidebar } = useUIStore();
   const { user } = useAuthStore();
+  
+  const { unreadCount, setUnreadCount, incrementUnreadCount } = useNotificationStore();
 
   const segments = pathname.split('/').filter(Boolean);
   const title =
@@ -27,8 +31,6 @@ export function TopBar() {
         .toUpperCase() +
       segments[segments.length - 1].slice(1).replace(/-/g, ' ')
       : 'Dashboard';
-
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const checkNotifications = async () => {
@@ -49,7 +51,7 @@ export function TopBar() {
       socketService.joinUserRoom(user.id);
       
       const handleNewNotification = () => {
-        setUnreadCount(prev => prev + 1);
+        incrementUnreadCount();
       };
       
       socket.on('new_notification', handleNewNotification);
@@ -58,7 +60,7 @@ export function TopBar() {
         socket.off('new_notification', handleNewNotification);
       };
     }
-  }, [user?.id]);
+  }, [user?.id, setUnreadCount, incrementUnreadCount]);
 
   return (
     <header className="h-16 shrink-0 flex items-center justify-between px-4 md:px-6 border-b border-border bg-background-surface/80 backdrop-blur-md sticky top-0 z-40">

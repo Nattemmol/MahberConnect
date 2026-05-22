@@ -1,5 +1,6 @@
 import { delay, randomError } from "../utils";
 import { mockMahbers, mockMemberships } from "../data/mahbers";
+import { mockPayments } from "../data/financial";
 import { CreateMahberDto, JoinRequest } from "@/lib/types";
 
 export const mahberMock = {
@@ -57,6 +58,56 @@ export const mahberMock = {
       updated_at: new Date().toISOString(),
     };
     return joinRequest;
+  },
+
+  joinMahberSubsystem: async (id: string) => {
+    await delay(1000);
+    const mahber = mockMahbers.find((m) => m.id === id);
+    if (!mahber) throw new Error("Mahber not found");
+
+    // EQUB and private-like mahbers require a join fee for mock simulation
+    const joinFeeRequired = mahber.type === "EQUB" || mahber.id === "mah_1";
+    const joinFeeAmount = 150;
+
+    if (joinFeeRequired) {
+      const tx_ref = `tx_join_${Date.now()}`;
+      
+      // Store in mock payments for callback verification
+      mockPayments.push({
+        id: `pay_join_${Date.now()}`,
+        user_id: 'usr_1',
+        mahber_id: id,
+        amount: joinFeeAmount,
+        payment_type: 'JoinFee',
+        status: 'Pending',
+        tx_ref,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+      return {
+        paymentRequired: true,
+        amount: joinFeeAmount,
+        currency: "ETB",
+        paymentUrl: `/payment/callback?tx_ref=${tx_ref}&status=success`,
+        token: tx_ref,
+      };
+    } else {
+      mockMemberships.push({
+        id: `mem_${Math.random().toString(36).substring(7)}`,
+        user_id: "usr_1",
+        mahber_id: id,
+        role: "MEMBER",
+        joined_at: new Date().toISOString(),
+        mahber,
+      });
+
+      return {
+        paymentRequired: false,
+        message: "Successfully joined Mahber",
+        active: true,
+      };
+    }
   },
 
   updateMahber: async (id: string, data: any) => {
