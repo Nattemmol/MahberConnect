@@ -69,8 +69,8 @@ export default function MembersPage({
 
   const myMembership = membersResponse?.data?.find((m) => m.user?.id === user?.id);
   const isAdmin =
-    myMembership?.role === "ADMIN" ||
-    myMembership?.role === "Admin" ||
+    (myMembership?.role as any) === "ADMIN" ||
+    (myMembership?.role as any) === "Admin" ||
     (myMembership?.role as any)?.name === "Admin" ||
     (myMembership?.role as any)?.name === "ADMIN" ||
     (myMembership?.role as any)?.permissions?.includes("manage_members") ||
