@@ -4,7 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { use, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { mahberService, memberService, financialService } from "@/lib/api/service-factory";
+import {
+  mahberService,
+  memberService,
+  financialService,
+} from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +25,7 @@ export default function MahberOverviewPage({
 }) {
   const { id } = use(params);
   const { user } = useAuthStore();
-  
+
   const { data: mahber, isLoading: isMahberLoading } = useQuery({
     queryKey: ["mahber", id],
     queryFn: () => mahberService.getMahberById(id),
@@ -32,20 +36,24 @@ export default function MahberOverviewPage({
     queryFn: () => mahberService.getMahbers(),
   });
 
-  const isMember = Array.isArray(myMahbers) && myMahbers.some(m => m.id === id);
+  const isMember =
+    Array.isArray(myMahbers) && myMahbers.some((m) => m.id === id);
   const { data: membersResponse } = useQuery({
     queryKey: ["mahber-members-check", id],
     queryFn: () => memberService.getMembers(id, 1, 100),
     enabled: isMember,
   });
 
-  const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
-  const isAdmin = (myMembership?.role as any) === "ADMIN" || 
-                 (myMembership?.role as any) === "Admin" ||
-                 (myMembership?.role as any)?.name === "Admin" ||
-                 (myMembership?.role as any)?.name === "ADMIN" ||
-                 (myMembership?.role as any)?.permissions?.includes("manage_members") ||
-                 (myMembership?.role as any)?.permissions?.includes("manage_finances");
+  const myMembership = membersResponse?.data?.find(
+    (m) => m.user?.id === user?.id,
+  );
+  const isAdmin =
+    (myMembership?.role as any) === "ADMIN" ||
+    (myMembership?.role as any) === "Admin" ||
+    (myMembership?.role as any)?.name === "Admin" ||
+    (myMembership?.role as any)?.name === "ADMIN" ||
+    (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+    (myMembership?.role as any)?.permissions?.includes("manage_finances");
 
   const [isPaying, setIsPaying] = useState(false);
 
@@ -90,6 +98,10 @@ export default function MahberOverviewPage({
   const displayCycle = cycle
     ? `${cycle.charAt(0).toUpperCase()}${cycle.slice(1)}`
     : "—";
+  const paymentFrequency =
+    typeof mahber?.configuration?.payment_frequency === "string"
+      ? mahber.configuration.payment_frequency
+      : displayCycle;
 
   if (isLoading) {
     return (
@@ -121,7 +133,8 @@ export default function MahberOverviewPage({
           Mahber Not Found
         </h3>
         <p className="text-text-secondary mb-6">
-          We couldn&apos;t load this mahber. It may have been removed or you don&apos;t have access.
+          We couldn&apos;t load this mahber. It may have been removed or you
+          don&apos;t have access.
         </p>
         <Button asChild>
           <Link href="/mahbers">Back to Mahbers</Link>
@@ -141,12 +154,16 @@ export default function MahberOverviewPage({
                 Contribution due soon
               </p>
               <p className="text-sm text-text-secondary">
-                Contribution of {contributionAmount ?? 0} ETB is due soon ({nextPaymentDue ? new Date(nextPaymentDue).toLocaleDateString() : "approaching"}).
+                Contribution of {contributionAmount ?? 0} ETB is due soon (
+                {nextPaymentDue
+                  ? new Date(nextPaymentDue).toLocaleDateString()
+                  : "approaching"}
+                ).
               </p>
             </div>
           </div>
-          <Button 
-            onClick={handlePayRecurring} 
+          <Button
+            onClick={handlePayRecurring}
             isLoading={isPaying}
             className="bg-gold hover:bg-gold/80 text-black flex-shrink-0 font-medium"
           >
@@ -163,7 +180,8 @@ export default function MahberOverviewPage({
               Join Request Pending
             </p>
             <p className="text-xs text-text-secondary">
-              You have requested to join this community. Some features will be available once your request is approved.
+              You have requested to join this community. Some features will be
+              available once your request is approved.
             </p>
           </div>
         </div>
@@ -183,7 +201,11 @@ export default function MahberOverviewPage({
                 <Link href={`/mahbers/${id}/payments`}>Payments</Link>
               </Button>
               {mahber.type === "EQUB" && (
-                <Button asChild variant="outline" className="border-gold/50 text-gold hover:bg-gold/10 gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-gold/50 text-gold hover:bg-gold/10 gap-2"
+                >
                   <Link href={`/mahbers/${id}/lottery`}>
                     <Trophy className="w-4 h-4" />
                     Lottery Draw
@@ -191,7 +213,11 @@ export default function MahberOverviewPage({
                 </Button>
               )}
               {isAdmin && (
-                <Button asChild variant="default" className="bg-gold hover:bg-gold-dark text-black">
+                <Button
+                  asChild
+                  variant="default"
+                  className="bg-gold hover:bg-gold-dark text-black"
+                >
                   <Link href={`/mahbers/${id}/settings`}>Settings</Link>
                 </Button>
               )}
@@ -267,6 +293,31 @@ export default function MahberOverviewPage({
             <div>
               <p className="text-sm text-text-secondary">Cycle</p>
               <p className="text-base text-text-primary">{displayCycle}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-text-secondary">Join Fee</p>
+              <p className="text-base text-text-primary">
+                {mahber.configuration?.join_fee_required
+                  ? `${mahber.configuration?.join_fee_amount ?? 0} ETB`
+                  : "Not required"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-text-secondary">Payment Frequency</p>
+              <p className="text-base text-text-primary">{paymentFrequency}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-text-secondary">Penalty Rules</p>
+              <p className="text-base text-text-primary">
+                {mahber.configuration?.penalty_rate ?? 0}{" "}
+                {mahber.configuration?.penalty_mode ?? "fixed"}
+                {mahber.configuration?.penalty_interval
+                  ? ` every ${mahber.configuration.penalty_interval}`
+                  : ""}
+              </p>
             </div>
           </CardContent>
         </Card>

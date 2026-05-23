@@ -65,9 +65,8 @@ export const mahberMock = {
     const mahber = mockMahbers.find((m) => m.id === id);
     if (!mahber) throw new Error("Mahber not found");
 
-    // EQUB and private-like mahbers require a join fee for mock simulation
-    const joinFeeRequired = mahber.type === "EQUB" || mahber.id === "mah_1";
-    const joinFeeAmount = 150;
+    const joinFeeRequired = mahber.configuration?.join_fee_required ?? (mahber.type === "EQUB" || mahber.id === "mah_1");
+    const joinFeeAmount = mahber.configuration?.join_fee_amount ?? 150;
 
     if (joinFeeRequired) {
       const tx_ref = `tx_join_${Date.now()}`;

@@ -6,10 +6,12 @@ export const financialApi = {
   initiatePayment: async (data: InitiatePaymentDto): Promise<{ checkoutUrl: string; tx_ref: string }> => {
     // Backend route: POST /mahbers/:id/payments/initiate
     const { mahber_id, ...payload } = data;
-    const response = await apiClient.post<{ checkoutUrl: string; tx_ref: string }>(
-      `/mahbers/${mahber_id}/payments/initiate`, payload
-    );
-    return response.data;
+    const response = await apiClient.post(`/mahbers/${mahber_id}/payments/initiate`, payload);
+    const raw = response.data as any;
+    return {
+      checkoutUrl: raw.checkoutUrl ?? raw.checkout_url ?? raw.checkout_url ?? '',
+      tx_ref: raw.tx_ref ?? raw.payment_id ?? raw.paymentId ?? ''
+    };
   },
 
   payRecurring: async (id: string): Promise<{ checkout_url: string; payment_id: string }> => {
@@ -21,10 +23,7 @@ export const financialApi = {
   },
 
   verifyPayment: async (tx_ref: string): Promise<Payment> => {
-    // NOTE: The backend does not expose a dedicated verify endpoint.
-    // Payment verification happens via the Chapa webhook controller (POST /webhooks/chapa).
-    // This method is kept for mock compatibility; during real integration, the frontend should
-    // poll the payment status via GET /mahbers/:id/payments/:paymentId instead.
+    // Backend route: GET /webhooks/chapa/verify/:tx_ref
     const response = await apiClient.get<Payment>(`/webhooks/chapa/verify/${tx_ref}`);
     return response.data;
   },
