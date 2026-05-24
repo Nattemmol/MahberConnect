@@ -61,17 +61,23 @@ export type CreateMahberDto = {
 
 export type UpdateMahberDto = Partial<CreateMahberDto>;
 
-export type PaymentStatus = "Pending" | "Completed" | "Failed";
+export type PaymentStatus = "Pending" | "Completed" | "Failed" | "Expired";
 export type PaymentType = "Contribution" | "JoinFee" | "Fine";
 
 export type Payment = {
   id: string;
-  user_id: string;
+  member_id: string;
   mahber_id: string;
   amount: number;
   payment_type: PaymentType;
   status: PaymentStatus;
   tx_ref: string;
+  checkout_url?: string | null;
+  fine_ids?: string[] | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  expires_at?: string | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
   user?: User;
@@ -89,13 +95,27 @@ export type Transaction = {
   payment?: Payment;
 };
 
-export type InitiatePaymentDto = {
-  mahber_id: string; // Used for URL, will be removed from body
+export type OutstandingFine = {
+  id: string;
   amount: number;
-  payment_type: PaymentType;
-  email?: string;
-  first_name?: string;
-  last_name?: string;
+  reason: string;
+  issued_at: string;
+};
+
+export type OutstandingObligations = {
+  contribution_due: number | null;
+  contribution_due_date: string | null;
+  pending_fines: OutstandingFine[];
+  total_outstanding: number;
+  has_pending_payment: boolean;
+  pending_payment_id?: string;
+  pending_payment_amount?: number;
+  pending_payment_type?: PaymentType;
+};
+
+export type InitiatePaymentDto = {
+  mahber_id: string;
+  fine_ids?: string[];
 };
 
 // ── RBAC ──────────────────────────────────────────────────────────────────────

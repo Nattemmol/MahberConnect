@@ -4,7 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import Link from "next/link";
 import { CreditCard, Wallet, ArrowUpRight, Trophy } from "lucide-react";
-import { financialService, memberService, mahberService } from "@/lib/api/service-factory";
+import {
+  financialService,
+  memberService,
+  mahberService,
+} from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,11 +34,11 @@ export default function PaymentsDashboard({
       .filter(
         (p) => p.status === "Completed" && p.payment_type === "Contribution",
       )
-      .reduce((acc, p) => acc + p.amount, 0) || 0;
+      .reduce((acc, p) => acc + Number(p.amount), 0) || 0;
   const pendingAmount =
     paymentsList
       .filter((p) => p.status === "Pending")
-      .reduce((acc, p) => acc + p.amount, 0) || 0;
+      .reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
   const { data: mahber } = useQuery({
     queryKey: ["mahber", id],
@@ -46,8 +50,22 @@ export default function PaymentsDashboard({
     queryFn: () => memberService.getMembers(id, 1, 100),
   });
 
-  const myMembership = membersResponse?.data?.find(m => m.user?.id === user?.id);
-  const isAdmin = !membersResponse ||
+  const myMembership = membersResponse?.data?.find(
+    (m) => m.user?.id === user?.id,
+  );
+
+  const { data: outstanding } = useQuery({
+    queryKey: ["mahber-outstanding", id],
+    queryFn: () => financialService.getOutstanding(id),
+    enabled: Boolean(myMembership),
+  });
+
+  const isPaymentInProgress = outstanding?.has_pending_payment ?? false;
+  const hasOutstanding =
+    (outstanding?.total_outstanding ?? 0) > 0 || isPaymentInProgress;
+
+  const isAdmin =
+    !membersResponse ||
     (myMembership?.role as any) === "ADMIN" ||
     (myMembership?.role as any) === "Admin" ||
     (myMembership?.role as any)?.name === "Admin" ||
@@ -55,7 +73,10 @@ export default function PaymentsDashboard({
     (myMembership?.role as any)?.permissions?.includes("manage_members") ||
     (myMembership?.role as any)?.permissions?.includes("manage_finances");
 
-  const isEqub = !mahber || mahber?.type === "EQUB" || (mahber?.type as string)?.toUpperCase() === "EQUB";
+  const isEqub =
+    !mahber ||
+    mahber?.type === "EQUB" ||
+    (mahber?.type as string)?.toUpperCase() === "EQUB";
 
   return (
     <div className="space-y-6">
@@ -65,7 +86,11 @@ export default function PaymentsDashboard({
       >
         <div className="flex gap-2">
           {isAdmin && (
-            <Button asChild variant="outline" className="gap-2 border-primary/50 text-primary hover:bg-primary/10">
+            <Button
+              asChild
+              variant="outline"
+              className="gap-2 border-primary/50 text-primary hover:bg-primary/10"
+            >
               <Link href={`/mahbers/${id}/payments/audit`}>
                 <Wallet className="w-4 h-4" />
                 Financial Audit
@@ -73,7 +98,11 @@ export default function PaymentsDashboard({
             </Button>
           )}
           {isEqub && (
-            <Button asChild variant="outline" className="gap-2 border-gold/50 text-gold hover:bg-gold/10">
+            <Button
+              asChild
+              variant="outline"
+              className="gap-2 border-gold/50 text-gold hover:bg-gold/10"
+            >
               <Link href={`/mahbers/${id}/lottery`}>
                 <Trophy className="w-4 h-4" />
                 Lottery Draw
@@ -86,12 +115,22 @@ export default function PaymentsDashboard({
               Wallet Ledger
             </Link>
           </Button>
-          <Button asChild className="gap-2">
-            <Link href={`/mahbers/${id}/payments/initiate`}>
-              <CreditCard className="w-4 h-4" />
-              Make a Payment
-            </Link>
-          </Button>
+          {hasOutstanding && !isPaymentInProgress ? (
+            <Button asChild className="gap-2">
+              <Link href={`/mahbers/${id}/payments/initiate`}>
+                <CreditCard className="w-4 h-4" />
+                Make a Payment
+              </Link>
+            </Button>
+          ) : isPaymentInProgress ? (
+            <Button disabled variant="secondary" className="gap-2">
+              Payment in Progress
+            </Button>
+          ) : (
+            <Button disabled variant="secondary" className="gap-2">
+              All paid up!
+            </Button>
+          )}
         </div>
       </PageHeader>
 
@@ -127,6 +166,14 @@ export default function PaymentsDashboard({
           </CardContent>
         </Card>
       </div>
+
+      {!hasOutstanding && !isLoading && (
+        <Card className="border-border-glass bg-background/60">
+          <CardContent className="p-4 text-text-secondary">
+            You have no outstanding payments at this time.
+          </CardContent>
+        </Card>
+      )}
 
       <h3 className="text-lg font-semibold mb-4">Payment History</h3>
 

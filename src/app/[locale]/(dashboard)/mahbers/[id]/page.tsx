@@ -1,9 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { use, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
-import toast from "react-hot-toast";
 import {
   mahberService,
   memberService,
@@ -14,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Clock, Trophy } from "lucide-react";
+import { AlertCircle, Clock, Trophy, CircleAlert } from "lucide-react";
 
 import { useAuthStore } from "@/lib/stores/auth-store";
 
@@ -55,34 +54,6 @@ export default function MahberOverviewPage({
     (myMembership?.role as any)?.permissions?.includes("manage_members") ||
     (myMembership?.role as any)?.permissions?.includes("manage_finances");
 
-  const [isPaying, setIsPaying] = useState(false);
-
-  const handlePayRecurring = async () => {
-    try {
-      setIsPaying(true);
-      const res = await financialService.payRecurring(id);
-      if (res.checkout_url) {
-        window.location.href = res.checkout_url;
-      } else {
-        toast.error("Payment checkout URL not found.");
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to initiate payment.");
-    } finally {
-      setIsPaying(false);
-    }
-  };
-
-  const nextPaymentDue = myMembership?.next_payment_due;
-  let isPaymentDueSoon = false;
-  if (nextPaymentDue) {
-    const dueDate = new Date(nextPaymentDue);
-    const now = new Date();
-    const diffTime = dueDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    isPaymentDueSoon = diffDays <= 7;
-  }
-
   const isLoading = isMahberLoading || isMyMahbersLoading;
 
   const contributionAmount =
@@ -102,6 +73,18 @@ export default function MahberOverviewPage({
     typeof mahber?.configuration?.payment_frequency === "string"
       ? mahber.configuration.payment_frequency
       : displayCycle;
+
+  const outstandingQuery = useQuery({
+    queryKey: ["mahber-outstanding", id],
+    queryFn: () => financialService.getOutstanding(id),
+    enabled: isMember,
+  });
+
+  const outstanding = outstandingQuery.data;
+  const outstandingTotal = outstanding?.total_outstanding ?? 0;
+  const pendingFineCount = outstanding?.pending_fines?.length ?? 0;
+  const hasPendingPayment = outstanding?.has_pending_payment ?? false;
+  const hasOutstandingPayment = outstandingTotal > 0 || hasPendingPayment;
 
   if (isLoading) {
     return (
@@ -145,30 +128,42 @@ export default function MahberOverviewPage({
 
   return (
     <div className="space-y-6">
-      {isMember && isPaymentDueSoon && (
+      {isMember && hasOutstandingPayment && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-gold/30 bg-gold/5 rounded-input mb-6">
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-6 h-6 text-gold flex-shrink-0" />
+            {hasPendingPayment ? (
+              <CircleAlert className="w-6 h-6 text-status-warning flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-6 h-6 text-gold flex-shrink-0" />
+            )}
             <div>
               <p className="font-semibold text-text-primary">
-                Contribution due soon
+                {hasPendingPayment
+                  ? "Payment in progress"
+                  : "Outstanding payment due"}
               </p>
               <p className="text-sm text-text-secondary">
-                Contribution of {contributionAmount ?? 0} ETB is due soon (
-                {nextPaymentDue
-                  ? new Date(nextPaymentDue).toLocaleDateString()
-                  : "approaching"}
-                ).
+                {hasPendingPayment
+                  ? `You already have a pending payment of ${outstanding?.pending_payment_amount ?? 0} ETB.`
+                  : `You owe ${outstandingTotal.toLocaleString()} ETB. ${pendingFineCount > 0 ? `${pendingFineCount} pending fine(s) are included.` : ""}`}
               </p>
             </div>
           </div>
-          <Button
-            onClick={handlePayRecurring}
-            isLoading={isPaying}
-            className="bg-gold hover:bg-gold/80 text-black flex-shrink-0 font-medium"
-          >
-            Pay Now
-          </Button>
+          {hasPendingPayment ? (
+            <Button
+              disabled
+              className="bg-gold hover:bg-gold/80 text-black flex-shrink-0 font-medium"
+            >
+              Payment in Progress
+            </Button>
+          ) : (
+            <Button
+              asChild
+              className="bg-gold hover:bg-gold/80 text-black flex-shrink-0 font-medium"
+            >
+              <Link href={`/mahbers/${id}/payments/initiate`}>Pay Now</Link>
+            </Button>
+          )}
         </div>
       )}
 

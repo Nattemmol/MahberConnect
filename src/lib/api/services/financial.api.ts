@@ -1,5 +1,6 @@
 import { apiClient } from '../client';
-import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse } from '@/lib/types';
+import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations } from '@/lib/types';
+import { auditApi } from './audit.api';
 
 export const financialApi = {
   // ── Payments ────────────────────────────────────────────────────────────────
@@ -14,12 +15,21 @@ export const financialApi = {
     };
   },
 
+  getOutstanding: async (mahberId: string): Promise<OutstandingObligations> => {
+    const response = await apiClient.get<OutstandingObligations>(`/mahbers/${mahberId}/payments/outstanding`);
+    return response.data;
+  },
+
   payRecurring: async (id: string): Promise<{ checkout_url: string; payment_id: string }> => {
     // Backend route: POST /mahbers/:id/pay
-    const response = await apiClient.post<{ checkout_url: string; payment_id: string }>(
-      `/mahbers/${id}/pay`
+    const response = await apiClient.post<{ checkout_url: string; tx_ref: string }>(
+      `/mahbers/${id}/payments/initiate`,
+      {}
     );
-    return response.data;
+    return {
+      checkout_url: response.data.checkout_url,
+      payment_id: response.data.tx_ref,
+    };
   },
 
   verifyPayment: async (tx_ref: string): Promise<Payment> => {
@@ -108,8 +118,6 @@ export const financialApi = {
 
   // ── Audit ───────────────────────────────────────────────────────────────────
   getFinancialAudit: async (mahberId: string): Promise<any> => {
-    // Backend route: GET /mahbers/:id/reports/audit
-    const response = await apiClient.get<any>(`/mahbers/${mahberId}/reports/audit`);
-    return response.data;
+    return auditApi.getAuditTrail(mahberId, { limit: 100 });
   }
 };

@@ -1,27 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { financialService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CreditCard } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CreditCard, CircleAlert, CheckCircle2 } from "lucide-react";
 
-const paymentSchema = z.object({
-  amount: z
-    .number({ error: "Valid amount is required" })
-    .min(10, "Amount must be at least 10 ETB"),
-  payment_type: z.enum(["Contribution", "JoinFee", "Fine"]),
-});
-
-type PaymentFormValues = z.infer<typeof paymentSchema>;
-
-export default function InitiatePaymentPage({
+export default function ConfirmPaymentPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -29,107 +20,168 @@ export default function InitiatePaymentPage({
   const { id } = use(params);
   const router = useRouter();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: { payment_type: "Contribution", amount: 500 },
+  const { data: outstanding, isLoading } = useQuery({
+    queryKey: ["mahber-outstanding", id],
+    queryFn: () => financialService.getOutstanding(id),
   });
 
-  const onSubmit = async (data: PaymentFormValues) => {
+  const handleConfirm = async () => {
     try {
-      const result = await financialService.initiatePayment({
-        mahber_id: id,
-        amount: data.amount,
-        payment_type: data.payment_type,
-      });
-
-      toast.loading("Redirecting to Chapa...", { duration: 2000 });
-      // In a real app, this redirectUrl points to checkout.chapa.co
-      // In our mock, it points to /payment/callback
-      window.location.href = result.checkoutUrl;
-    } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const error = err as any;
+      const result = await financialService.initiatePayment({ mahber_id: id });
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+      toast.error("Unable to start checkout.");
+    } catch (err: any) {
       toast.error(
-        error.response?.data?.message || "Failed to initiate payment",
+        err.response?.data?.message ||
+          "Unable to process payment. Please try again.",
       );
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Confirm Payment"
+          description="Review the system-calculated amount before checkout."
+        />
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-10 w-40" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!outstanding || outstanding.total_outstanding <= 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="All Paid Up"
+          description="You have no outstanding payments at this time."
+        />
+        <Card>
+          <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+            <CheckCircle2 className="h-12 w-12 text-status-success" />
+            <p className="text-text-secondary">
+              You have no outstanding payments at this time.
+            </p>
+            <Button onClick={() => router.back()}>Go Back</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const contributionDue = outstanding.contribution_due ?? 0;
+  const fineTotal = outstanding.pending_fines.reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  );
+  const pendingFineCount = outstanding.pending_fines.length;
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-3xl mx-auto">
       <PageHeader
-        title="Initiate Payment"
-        description="Make a secure contribution or pay a fine via Chapa."
+        title="Confirm Payment"
+        description="Review the system-calculated obligations. Amounts are read-only."
       />
 
-      <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="flex items-center gap-4 p-4 border border-gold/30 bg-gold/5 rounded-input mb-6">
-              <CreditCard className="w-8 h-8 text-gold" />
-              <div>
-                <p className="font-semibold text-text-primary">
-                  Secured by Chapa
-                </p>
-                <p className="text-xs text-text-secondary">
-                  You will be redirected to complete your payment.
-                </p>
+      <Card className="border-gold/30 bg-gold/5">
+        <CardContent className="p-6 space-y-6">
+          <div className="flex items-center gap-4 p-4 border border-gold/30 bg-background/60 rounded-xl">
+            <CreditCard className="h-10 w-10 text-gold" />
+            <div className="flex-1">
+              <p className="font-semibold text-text-primary">
+                Secure checkout via Chapa
+              </p>
+              <p className="text-sm text-text-secondary">
+                The system has calculated your total. You only need to confirm.
+              </p>
+            </div>
+            {outstanding.has_pending_payment && (
+              <Badge variant="warning">Payment in progress</Badge>
+            )}
+          </div>
+
+          {outstanding.has_pending_payment && (
+            <div className="flex items-start gap-3 p-4 rounded-xl border border-status-warning/30 bg-status-warning/10 text-sm text-text-secondary">
+              <CircleAlert className="h-5 w-5 text-status-warning mt-0.5" />
+              <p>
+                You already have a pending payment in progress. Please wait for
+                it to complete before starting another one.
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-3 border-b border-border-glass">
+              <span className="text-text-secondary">Contribution</span>
+              <span className="font-semibold">
+                {contributionDue.toLocaleString()} ETB
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-3 border-b border-border-glass">
+              <span className="text-text-secondary">Late fines</span>
+              <span className="font-semibold">
+                {fineTotal.toLocaleString()} ETB{" "}
+                {pendingFineCount > 0 ? `(${pendingFineCount} pending)` : ""}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-4 text-lg font-bold">
+              <span>Total due</span>
+              <span className="text-gold">
+                {outstanding.total_outstanding.toLocaleString()} ETB
+              </span>
+            </div>
+          </div>
+
+          {pendingFineCount > 0 && (
+            <div className="space-y-3">
+              <p className="font-medium text-text-primary">Fine line items</p>
+              <div className="space-y-2">
+                {outstanding.pending_fines.map((fine) => (
+                  <div
+                    key={fine.id}
+                    className="flex items-center justify-between rounded-lg border border-border-glass bg-background/40 px-4 py-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-text-primary">
+                        {fine.reason}
+                      </p>
+                      <p className="text-text-secondary">
+                        Issued {new Date(fine.issued_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className="font-semibold">
+                      {fine.amount.toLocaleString()} ETB
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
-                Amount (ETB)
-              </label>
-              <input
-                type="number"
-                placeholder="500"
-                {...register("amount", { valueAsNumber: true })}
-                className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.amount ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors`}
-              />
-              {errors.amount && (
-                <p className="text-status-error text-xs mt-1">
-                  {errors.amount.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
-                Payment Purpose
-              </label>
-              <select
-                {...register("payment_type")}
-                className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
-              >
-                <option value="Contribution">Regular Contribution</option>
-                <option value="JoinFee">Join Fee</option>
-                <option value="Fine">Late Fine / Penalty</option>
-              </select>
-              {errors.payment_type && (
-                <p className="text-status-error text-xs mt-1">
-                  {errors.payment_type.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex gap-4 justify-end pt-4">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => router.back()}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={isSubmitting}>
-                Proceed to Checkout
-              </Button>
-            </div>
-          </form>
+          <div className="flex flex-col sm:flex-row gap-3 justify-end pt-2">
+            <Button variant="ghost" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={outstanding.has_pending_payment}
+              isLoading={false}
+            >
+              Pay Now
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

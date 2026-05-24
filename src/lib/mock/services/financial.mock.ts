@@ -5,11 +5,45 @@ import { mockFines } from '../data/fines';
 import { mockLotteryDraws } from '../data/lottery';
 import { mockUsers } from '../data/users';
 import { mockMahbers } from '../data/mahbers';
+import { mockMemberDetails } from '../data/memberships';
 
 let fines = [...mockFines];
 let lotteryDraws = [...mockLotteryDraws];
 
 export const financialMock = {
+  getOutstanding: async (mahberId: string) => {
+    await delay(400);
+
+    const mahber = mockMahbers.find((m) => m.id === mahberId);
+    const currentMember = mockMemberDetails.find((m) => m.mahber_id === mahberId && m.member_id === 'usr_1');
+    const contributionAmount = mahber?.configuration?.contribution_amount ?? 500;
+    const pendingFines = fines.filter((f) => f.mahber_id === mahberId && f.member_id === 'usr_1' && !f.is_waived && !f.paid_at).map((f) => ({
+      id: f.id,
+      amount: Number(f.amount),
+      reason: f.violation_type === 'MISSED_ATTENDANCE' ? 'Missed attendance' : 'Missed payment',
+      issued_at: f.created_at,
+    }));
+    const hasPendingPayment = mockPayments.some((p) => p.mahber_id === mahberId && p.member_id === 'usr_1' && p.status === 'Pending');
+
+    const contributionDueDate = currentMember?.next_payment_due ? new Date(currentMember.next_payment_due) : null;
+    const contributionDue =
+      currentMember?.status === 'Active' &&
+      contributionDueDate !== null &&
+      contributionDueDate.getTime() <= Date.now();
+    const pendingPayment = mockPayments.find((p) => p.mahber_id === mahberId && p.member_id === 'usr_1' && p.status === 'Pending');
+
+    return {
+      contribution_due: contributionDue ? contributionAmount : null,
+      contribution_due_date: contributionDue ? currentMember?.next_payment_due ?? null : null,
+      pending_fines: pendingFines,
+      total_outstanding: pendingFines.reduce((sum, fine) => sum + fine.amount, 0) + (contributionDue ? contributionAmount : 0),
+      has_pending_payment: hasPendingPayment,
+      pending_payment_id: pendingPayment?.id,
+      pending_payment_amount: pendingPayment ? Number(pendingPayment.amount) : undefined,
+      pending_payment_type: pendingPayment?.payment_type,
+    };
+  },
+
   payRecurring: async (id: string) => {
     await delay(1000);
     randomError(0.05);
@@ -21,12 +55,18 @@ export const financialMock = {
 
     mockPayments.push({
       id: `pay_${Math.random()}`,
-      user_id: 'usr_1',
+      member_id: 'usr_1',
       mahber_id: id,
       amount: contributionAmount,
       payment_type: 'Contribution',
       status: 'Pending',
       tx_ref: tx_ref,
+      checkout_url: mockCheckoutUrl,
+      fine_ids: null,
+      period_start: null,
+      period_end: null,
+      expires_at: null,
+      completed_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
@@ -40,22 +80,29 @@ export const financialMock = {
   initiatePayment: async (data: InitiatePaymentDto) => {
     await delay(1200);
     randomError(0.05);
-    
+
+    const outstanding = await financialMock.getOutstanding(data.mahber_id);
     const tx_ref = `tx_mock_${Date.now()}`;
-    
-    // In a real app, Chapa redirects here. 
+
+    // In a real app, Chapa redirects here.
     // We will simulate the Chapa checkout page by redirecting to our own mock callback URL
     const mockCheckoutUrl = `/payment/callback?tx_ref=${tx_ref}&status=success`;
 
     // Temporarily store it in our mock data as pending
     mockPayments.push({
       id: `pay_${Math.random()}`,
-      user_id: 'usr_1',
+      member_id: 'usr_1',
       mahber_id: data.mahber_id,
-      amount: data.amount,
-      payment_type: data.payment_type,
+      amount: outstanding.total_outstanding,
+      payment_type: outstanding.contribution_due ? 'Contribution' : 'JoinFee',
       status: 'Pending',
       tx_ref: tx_ref,
+      checkout_url: mockCheckoutUrl,
+      fine_ids: data.fine_ids ?? outstanding.pending_fines.map((fine) => fine.id),
+      period_start: null,
+      period_end: null,
+      expires_at: null,
+      completed_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
@@ -132,7 +179,7 @@ export const financialMock = {
         initialEntries.unshift({
           id: `ledger-entry-pay-${p.id}`,
           mahber_id: id,
-          member_id: p.user_id,
+          member_id: p.member_id,
           transaction_type: p.payment_type === 'JoinFee' ? 'JoinFee' : 'Contribution',
           amount: p.amount.toFixed(2),
           running_balance: currentBalance.toFixed(2),
