@@ -477,7 +477,7 @@ export default function EventDetailPage({
               <CheckCircle className="h-4 w-4 text-status-success" />
             </CardHeader>
             <CardContent>
-              {!isPastEvent && !event.is_cancelled ? (
+              {(!isPastEvent || isEventOngoing) && !event.is_cancelled ? (
                 <div className="space-y-4">
                   {!canManageEventsValue && !isEventHost ? (
                     <>
