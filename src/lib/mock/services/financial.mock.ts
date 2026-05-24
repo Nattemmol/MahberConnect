@@ -1,6 +1,6 @@
-import { delay, randomError } from '../utils';
-import { mockPayments, mockTransactions } from '../data/financial';
-import { InitiatePaymentDto } from '@/lib/types';
+import { delay, randomError, paginate } from '../utils';
+import { mockPayments, mockTransactions, mockExpenses } from '../data/financial';
+import { InitiatePaymentDto, PaymentQueryParams, CreateExpenseDto } from '@/lib/types';
 import { mockFines } from '../data/fines';
 import { mockLotteryDraws } from '../data/lottery';
 import { mockUsers } from '../data/users';
@@ -9,6 +9,7 @@ import { mockMemberDetails } from '../data/memberships';
 
 let fines = [...mockFines];
 let lotteryDraws = [...mockLotteryDraws];
+let expenses = [...mockExpenses];
 
 export const financialMock = {
   getOutstanding: async (mahberId: string) => {
@@ -120,13 +121,41 @@ export const financialMock = {
     return payment;
   },
   
-  getMahberPayments: async (mahberId: string) => {
-    await delay(600);
-    const data = mockPayments.filter(p => p.mahber_id === mahberId);
-    return {
-      data,
-      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 }
-    };
+  getMahberPayments: async (mahberId: string, params?: PaymentQueryParams) => {
+    await delay(400);
+
+    const { page = 1, limit = 10, search, type, sort = 'date', order = 'desc' } = params || {};
+
+    let filtered = mockPayments.filter(p => p.mahber_id === mahberId);
+
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.tx_ref.toLowerCase().includes(q) ||
+          p.payment_type.toLowerCase().includes(q) ||
+          p.status.toLowerCase().includes(q) ||
+          (p.user?.name?.toLowerCase().includes(q) ?? false)
+      );
+    }
+
+    if (type && type !== 'All') {
+      filtered = filtered.filter((p) => p.payment_type === type);
+    }
+
+    filtered.sort((a, b) => {
+      let cmp = 0;
+      if (sort === 'date') {
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sort === 'amount') {
+        cmp = a.amount - b.amount;
+      } else if (sort === 'status') {
+        cmp = a.status.localeCompare(b.status);
+      }
+      return order === 'desc' ? -cmp : cmp;
+    });
+
+    return paginate(filtered, page, limit);
   },
 
   getMahberLedger: async (mahberId: string) => {
@@ -265,5 +294,48 @@ export const financialMock = {
 
     lotteryDraws = [newDraw, ...lotteryDraws];
     return newDraw;
+  },
+
+  // ── Expenses ──────────────────────────────────────────────────────────────
+  getExpenses: async (mahberId: string) => {
+    await delay(400);
+    const data = expenses.filter(e => e.mahber_id === mahberId);
+    return {
+      data,
+      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 }
+    };
+  },
+
+  createExpense: async (mahberId: string, data: CreateExpenseDto) => {
+    await delay(600);
+    randomError(0.05);
+
+    const creator = mockUsers[0];
+    const newExpense = {
+      id: `exp_${Date.now()}`,
+      mahber_id: mahberId,
+      amount: data.amount,
+      reason: data.reason,
+      category: data.category,
+      created_by: creator.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      creator,
+    };
+
+    expenses = [newExpense, ...expenses];
+
+    const currentBalance = 4750;
+    mockTransactions.unshift({
+      id: `txn_exp_${Date.now()}`,
+      mahber_id: mahberId,
+      type: 'DEBIT' as const,
+      amount: data.amount,
+      balance_after: currentBalance - data.amount,
+      description: `Expense: ${data.reason}`,
+      created_at: new Date().toISOString(),
+    });
+
+    return newExpense;
   }
 };

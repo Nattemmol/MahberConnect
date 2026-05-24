@@ -1,9 +1,21 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { use } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { CreditCard, Wallet, ArrowUpRight, Trophy } from "lucide-react";
+import {
+  CreditCard,
+  Wallet,
+  ArrowUpRight,
+  Trophy,
+  Search,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Receipt,
+  PlusCircle,
+} from "lucide-react";
 import {
   financialService,
   memberService,
@@ -14,6 +26,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import type { PaymentType, Expense } from "@/lib/types";
+
+type SortField = "date" | "amount" | "status";
+type SortOrder = "asc" | "desc";
 
 export default function PaymentsDashboard({
   params,
@@ -22,32 +38,55 @@ export default function PaymentsDashboard({
 }) {
   const { id } = use(params);
   const { user } = useAuthStore();
-  const { data: payments, isLoading } = useQuery({
-    queryKey: ["mahber-payments", id],
-    queryFn: () => financialService.getMahberPayments(id),
-  });
 
-  const paymentsList = payments?.data || [];
+  // ── Pagination, search, filter, sort state ──
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<PaymentType | "All">("All");
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const limit = 10;
+  const [tab, setTab] = useState<"payments" | "expenses">("payments");
 
-  const totalContributions =
-    paymentsList
-      .filter(
-        (p) => p.status === "Completed" && p.payment_type === "Contribution",
-      )
-      .reduce((acc, p) => acc + Number(p.amount), 0) || 0;
-  const pendingAmount =
-    paymentsList
-      .filter((p) => p.status === "Pending")
-      .reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
+  // Reset page when filters change
+  const onFilterChange = useCallback(
+    (updates: Partial<{ type: PaymentType | "All"; sortField: SortField; sortOrder: SortOrder }>) => {
+      if (updates.type !== undefined) setTypeFilter(updates.type);
+      if (updates.sortField !== undefined) setSortField(updates.sortField);
+      if (updates.sortOrder !== undefined) setSortOrder(updates.sortOrder);
+      setPage(1);
+    },
+    [],
+  );
+
+  // ── Queries ──
   const { data: mahber } = useQuery({
     queryKey: ["mahber", id],
     queryFn: () => mahberService.getMahberById(id),
   });
 
+  const { data: myMahbers } = useQuery({
+    queryKey: ["my-mahbers"],
+    queryFn: () => mahberService.getMahbers(),
+  });
+
+  const isMember =
+    Array.isArray(myMahbers) && myMahbers.some((m) => m.id === id);
+
   const { data: membersResponse } = useQuery({
     queryKey: ["mahber-members-check", id],
     queryFn: () => memberService.getMembers(id, 1, 100),
+    enabled: isMember,
   });
 
   const myMembership = membersResponse?.data?.find(
@@ -64,19 +103,105 @@ export default function PaymentsDashboard({
   const hasOutstanding =
     (outstanding?.total_outstanding ?? 0) > 0 || isPaymentInProgress;
 
-  const isAdmin =
-    !membersResponse ||
-    (myMembership?.role as any) === "ADMIN" ||
-    (myMembership?.role as any) === "Admin" ||
-    (myMembership?.role as any)?.name === "Admin" ||
-    (myMembership?.role as any)?.name === "ADMIN" ||
-    (myMembership?.role as any)?.permissions?.includes("manage_members") ||
-    (myMembership?.role as any)?.permissions?.includes("manage_finances");
+  const isAdmin = membersResponse
+    ? (myMembership?.role as any) === "ADMIN" ||
+      (myMembership?.role as any) === "Admin" ||
+      (myMembership?.role as any)?.name === "Admin" ||
+      (myMembership?.role as any)?.name === "ADMIN" ||
+      (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+      (myMembership?.role as any)?.permissions?.includes("manage_finances")
+    : false;
 
   const isEqub =
     !mahber ||
     mahber?.type === "EQUB" ||
     (mahber?.type as string)?.toUpperCase() === "EQUB";
+
+  // Paginated / filtered list
+  const {
+    data: paymentResponse,
+    isLoading,
+    isFetching,
+  } = useQuery({
+    queryKey: ["mahber-payments", id, page, search, typeFilter, sortField, sortOrder],
+    queryFn: () =>
+      financialService.getMahberPayments(id, {
+        page,
+        limit,
+        search: search || undefined,
+        type: typeFilter,
+        sort: sortField,
+        order: sortOrder,
+      }),
+  });
+
+  const paymentsList = paymentResponse?.data || [];
+  const { total = 0, totalPages = 0 } = paymentResponse?.meta || {};
+
+  // All payments (unpaginated) for stat totals
+  const { data: allPaymentsData } = useQuery({
+    queryKey: ["mahber-payments-all", id],
+    queryFn: () => financialService.getMahberPayments(id, { page: 1, limit: 1000 }),
+    staleTime: 30_000,
+  });
+
+  const { data: expensesData, isLoading: expensesLoading } = useQuery({
+    queryKey: ["mahber-expenses", id],
+    queryFn: () => financialService.getExpenses(id),
+  });
+
+  const expensesList = expensesData?.data || [];
+  const totalExpenses = expensesList.reduce((acc, e) => acc + Number(e.amount), 0);
+
+  const { data: walletData } = useQuery({
+    queryKey: ["mahber-wallet-balance", id],
+    queryFn: () => financialService.getWallet(id),
+    staleTime: 10_000,
+  });
+
+  const currentBalance = Number(walletData?.balance ?? 0);
+
+  const allPayments = allPaymentsData?.data || [];
+  const totalContributions =
+    allPayments
+      .filter((p) => p.status === "Completed" && p.payment_type === "Contribution")
+      .reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+  const pendingAmount =
+    allPayments
+      .filter((p) => p.status === "Pending")
+      .reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+
+  // ── Sort helpers ──
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      onFilterChange({ sortOrder: sortOrder === "desc" ? "asc" : "desc" });
+    } else {
+      onFilterChange({ sortField: field, sortOrder: "desc" });
+    }
+  };
+
+  const sortOptions: { label: string; field: SortField; order: SortOrder }[] = [
+    { label: "Newest", field: "date", order: "desc" },
+    { label: "Oldest", field: "date", order: "asc" },
+    { label: "Highest", field: "amount", order: "desc" },
+    { label: "Lowest", field: "amount", order: "asc" },
+  ];
+
+  const activeSortLabel =
+    sortOptions.find((o) => o.field === sortField && o.order === sortOrder)
+      ?.label || "Newest";
+
+  // ── Pagination helpers ──
+  const pageNumbers: (number | "...")[] = [];
+  if (totalPages > 0) {
+    pageNumbers.push(1);
+    if (page > 3) pageNumbers.push("...");
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+      pageNumbers.push(i);
+    }
+    if (page < totalPages - 2) pageNumbers.push("...");
+    if (totalPages > 1) pageNumbers.push(totalPages);
+  }
 
   return (
     <div className="space-y-6">
@@ -134,7 +259,101 @@ export default function PaymentsDashboard({
         </div>
       </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      {/* Tab bar */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <Button
+          variant={tab === "payments" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTab("payments")}
+          className="whitespace-nowrap"
+        >
+          <CreditCard className="w-4 h-4 mr-1.5" />
+          Payments
+        </Button>
+        <Button
+          variant={tab === "expenses" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTab("expenses")}
+          className="whitespace-nowrap"
+        >
+          <Receipt className="w-4 h-4 mr-1.5" />
+          Expenses
+        </Button>
+      </div>
+
+      {tab === "expenses" ? (
+        <>
+          {/* Expenses Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text-primary">
+              Expenses & Debits
+            </h2>
+            {isAdmin && (
+              <Button
+                asChild
+                className="gap-2 bg-gold hover:bg-gold-dark text-black font-medium"
+              >
+                <Link href={`/mahbers/${id}/expenses/create`}>
+                  <PlusCircle className="w-4 h-4" />
+                  Record Expense
+                </Link>
+              </Button>
+            )}
+          </div>
+
+          {/* Expenses List */}
+          {expensesLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="h-20 animate-pulse bg-surface-active/50" />
+              ))}
+            </div>
+          ) : expensesList.length === 0 ? (
+            <div className="text-center py-16 glass rounded-card">
+              <Receipt className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-40" />
+              <p className="text-text-secondary text-lg font-medium">
+                No expenses recorded yet.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {expensesList.map((expense) => (
+                <Card key={expense.id} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="p-5 flex flex-col h-full">
+                      <div className="flex justify-between items-start mb-3">
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-border-glass text-text-secondary"
+                        >
+                          {expense.category}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-text-primary mb-4 line-clamp-3">
+                        {expense.reason}
+                      </p>
+                      <div className="mt-auto pt-4 border-t border-border-glass flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-2xl font-bold text-status-error">
+                            -{expense.amount.toLocaleString()} ETB
+                          </span>
+                          <span className="text-xs text-text-muted mt-1">
+                            {new Date(expense.created_at).toLocaleDateString()}
+                            {expense.creator?.name && ` • ${expense.creator.name}`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-2">
         <Card className="bg-gradient-to-br from-gold/20 to-background-dark border-gold/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">
@@ -165,6 +384,34 @@ export default function PaymentsDashboard({
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-text-secondary">
+              Total Expenses
+            </CardTitle>
+            <ArrowUpRight className="h-4 w-4 text-status-error" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-status-error">
+              {totalExpenses.toLocaleString()} ETB
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-status-success/20 to-background-dark border-status-success/30">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-text-secondary">
+              Current Balance
+            </CardTitle>
+            <Wallet className="h-4 w-4 text-status-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-status-success">
+              {currentBalance.toLocaleString()} ETB
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {!hasOutstanding && !isLoading && (
@@ -175,62 +422,205 @@ export default function PaymentsDashboard({
         </Card>
       )}
 
-      <h3 className="text-lg font-semibold mb-4">Payment History</h3>
-
-      {isLoading ? (
-        <div className="space-y-4">
-          <Card className="h-20 animate-pulse bg-surface-active/50" />
-          <Card className="h-20 animate-pulse bg-surface-active/50" />
-        </div>
-      ) : paymentsList.length === 0 ? (
-        <div className="text-center py-12 glass rounded-card">
-          <p className="text-text-secondary">No payment history found.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {paymentsList.map((payment) => (
-            <Card
-              key={payment.id}
-              className="hover:bg-surface-hover/50 transition-colors"
+      {/* Search, Filter, Sort */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search by name, ref, type..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-background-dark/50 border border-border-glass rounded-input text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-gold transition-colors"
+          />
+          {searchInput && (
+            <button
+              onClick={() => {
+                setSearchInput("");
+                setSearch("");
+                setPage(1);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
             >
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-surface-active flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-gold" />
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-2 items-center w-full sm:w-auto">
+          {/* Type filter */}
+          <div className="flex items-center gap-1 bg-background-dark/50 border border-border-glass rounded-input px-1 py-1">
+            {(["All", "Contribution", "Fine", "JoinFee"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => onFilterChange({ type: t })}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  typeFilter === t
+                    ? "bg-gold text-black"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                {t === "JoinFee" ? "Join Fee" : t}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort dropdown */}
+          <div className="relative group">
+            <button className="flex items-center gap-1.5 px-3 py-2 bg-background-dark/50 border border-border-glass rounded-input text-sm text-text-secondary hover:text-text-primary transition-colors">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>{activeSortLabel}</span>
+            </button>
+            <div className="absolute right-0 top-full mt-1 w-36 bg-surface-card border border-border-glass rounded-card shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+              {sortOptions.map((opt) => (
+                <button
+                  key={`${opt.field}-${opt.order}`}
+                  onClick={() => onFilterChange({ sortField: opt.field, sortOrder: opt.order })}
+                  className={`block w-full text-left px-4 py-2 text-sm transition-colors first:rounded-t-card last:rounded-b-card ${
+                    sortField === opt.field && sortOrder === opt.order
+                      ? "bg-gold/10 text-gold"
+                      : "text-text-secondary hover:bg-surface-active"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment List */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="h-20 animate-pulse bg-surface-active/50" />
+            ))}
+          </div>
+        ) : paymentsList.length === 0 ? (
+          <div className="text-center py-16 glass rounded-card">
+            <CreditCard className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-40" />
+            <p className="text-text-secondary text-lg font-medium">
+              {search || typeFilter !== "All"
+                ? "No payments match your search."
+                : "No payment history found."}
+            </p>
+            {(search || typeFilter !== "All") && (
+              <Button
+                variant="ghost"
+                className="mt-3 text-sm"
+                onClick={() => {
+                  setSearchInput("");
+                  setSearch("");
+                  setTypeFilter("All");
+                  setPage(1);
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            {paymentsList.map((payment) => (
+              <Card
+                key={payment.id}
+                className="hover:bg-surface-hover/50 transition-colors"
+              >
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-surface-active flex items-center justify-center shrink-0">
+                      <CreditCard className="w-5 h-5 text-gold" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-text-primary truncate">
+                        {payment.payment_type.charAt(0) +
+                          payment.payment_type.slice(1).toLowerCase()}
+                      </p>
+                      <p className="text-xs text-text-secondary truncate">
+                        {new Date(payment.created_at).toLocaleDateString()} • Ref:{" "}
+                        {payment.tx_ref.slice(0, 8)}...
+                        {payment.user?.name && ` • ${payment.user.name}`}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-text-primary">
-                      {payment.payment_type.charAt(0) +
-                        payment.payment_type.slice(1).toLowerCase()}
-                    </p>
-                    <p className="text-xs text-text-secondary">
-                      {new Date(payment.created_at).toLocaleDateString()} • Ref:{" "}
-                      {payment.tx_ref.slice(0, 8)}...
-                    </p>
+
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className="font-bold">
+                      {payment.amount.toLocaleString()} ETB
+                    </span>
+                    <Badge
+                      variant={
+                        payment.status === "Completed"
+                          ? "success"
+                          : payment.status === "Pending"
+                            ? "warning"
+                            : "destructive"
+                      }
+                    >
+                      {payment.status}
+                    </Badge>
                   </div>
                 </div>
+              </Card>
+            ))}
 
-                <div className="flex items-center gap-4">
-                  <span className="font-bold">
-                    {payment.amount.toLocaleString()} ETB
-                  </span>
-                  <Badge
-                    variant={
-                      payment.status === "Completed"
-                        ? "success"
-                        : payment.status === "Pending"
-                          ? "warning"
-                          : "destructive"
-                    }
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 pb-2">
+                <p className="text-sm text-text-muted">
+                  Page {page} of {totalPages} ({total} payments)
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={page <= 1 || isFetching}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="h-8 w-8 p-0"
                   >
-                    {payment.status}
-                  </Badge>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+
+                  {pageNumbers.map((p, i) =>
+                    p === "..." ? (
+                      <span key={`ellipsis-${i}`} className="px-2 text-text-muted text-sm">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        disabled={isFetching}
+                        className={`h-8 min-w-[2rem] px-2 rounded-md text-sm font-medium transition-colors ${
+                          page === p
+                            ? "bg-gold text-black"
+                            : "text-text-secondary hover:bg-surface-active"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={page >= totalPages || isFetching}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
+      </>
+    )}
     </div>
   );
 }
