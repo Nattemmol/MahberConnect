@@ -118,6 +118,15 @@ export type InitiatePaymentDto = {
   fine_ids?: string[];
 };
 
+export type PaymentQueryParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: PaymentType | "All";
+  sort?: "date" | "amount" | "status";
+  order?: "asc" | "desc";
+};
+
 // ── RBAC ──────────────────────────────────────────────────────────────────────
 export type Permission =
   | "manage_members"
@@ -343,6 +352,27 @@ export type CreatePollDto = {
   poll_type: PollType;
   voting_deadline: string;
   eligibility_criteria?: string;
+};
+
+// ── Expenses ────────────────────────────────────────────────────────────────
+export type ExpenseCategory = "Operational" | "Maintenance" | "Event" | "Other";
+
+export type Expense = {
+  id: string;
+  mahber_id: string;
+  amount: number;
+  reason: string;
+  category: ExpenseCategory;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  creator?: User;
+};
+
+export type CreateExpenseDto = {
+  amount: number;
+  reason: string;
+  category: ExpenseCategory;
 };
 
 // ── Fines & Lottery ──────────────────────────────────────────────────────────

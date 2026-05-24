@@ -1,5 +1,5 @@
 import { apiClient } from '../client';
-import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations } from '@/lib/types';
+import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations, PaymentQueryParams, Expense, CreateExpenseDto } from '@/lib/types';
 import { auditApi } from './audit.api';
 
 export const financialApi = {
@@ -38,9 +38,9 @@ export const financialApi = {
     return response.data;
   },
   
-  getMahberPayments: async (mahberId: string): Promise<PaginatedResponse<Payment>> => {
+  getMahberPayments: async (mahberId: string, params?: PaymentQueryParams): Promise<PaginatedResponse<Payment>> => {
     // Backend route: GET /mahbers/:id/payments
-    const response = await apiClient.get<PaginatedResponse<Payment>>(`/mahbers/${mahberId}/payments`);
+    const response = await apiClient.get<PaginatedResponse<Payment>>(`/mahbers/${mahberId}/payments`, { params });
     return response.data;
   },
 
@@ -113,6 +113,17 @@ export const financialApi = {
   executeLottery: async (mahberId: string, data?: { operationalCostRate?: number; fineThreshold?: number }): Promise<LotteryDraw> => {
     // Backend route: POST /mahbers/:id/lottery/execute
     const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, data || {});
+    return response.data;
+  },
+
+  // ── Expenses ────────────────────────────────────────────────────────────────
+  createExpense: async (mahberId: string, data: CreateExpenseDto): Promise<Expense> => {
+    const response = await apiClient.post<Expense>(`/mahbers/${mahberId}/expenses`, data);
+    return response.data;
+  },
+
+  getExpenses: async (mahberId: string): Promise<PaginatedResponse<Expense>> => {
+    const response = await apiClient.get<PaginatedResponse<Expense>>(`/mahbers/${mahberId}/expenses`);
     return response.data;
   },
 
