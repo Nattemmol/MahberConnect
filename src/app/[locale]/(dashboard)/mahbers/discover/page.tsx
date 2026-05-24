@@ -3,8 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Compass, Users } from "lucide-react";
-import { mahberService, memberService } from '@/lib/api/service-factory';
-import { useQueries } from '@tanstack/react-query';
+import { mahberService } from '@/lib/api/service-factory';
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,15 +44,6 @@ export default function DiscoverMahbersPage() {
   const { data: myMahbers } = useQuery({
     queryKey: ["mahbers"],
     queryFn: () => mahberService.getMahbers(),
-  });
-
-  const memberCountQueries = useQueries({
-    queries: (mahbers ?? []).map((mahber) => ({
-      queryKey: ['mahber-members-count', mahber.id],
-      queryFn: () => memberService.getMembers(mahber.id, 1, 1),
-      select: (data) => data.meta.total,
-      enabled: !!mahbers,
-    })),
   });
 
   const joinedIds = new Set(myMahbers?.map((m) => m.id) || []);
@@ -125,7 +115,7 @@ export default function DiscoverMahbersPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mahbers?.map((mahber, index) => (
+          {mahbers?.map((mahber) => (
             <Card
               key={mahber.id}
               className="hover:border-gold/50 transition-colors"
@@ -145,7 +135,7 @@ export default function DiscoverMahbersPage() {
                   </Badge>
                   <div className="flex items-center text-text-secondary text-sm">
                     <Users className="w-4 h-4 mr-1" />
-                    {memberCountQueries[index]?.data ?? 0}
+                    {mahber._count?.members ?? 0}
                   </div>
                 </div>
                 <CardTitle>{mahber.name}</CardTitle>

@@ -44,11 +44,19 @@ apiClient.interceptors.response.use(
       const method = (error.config?.method || "unknown")
         .toString()
         .toUpperCase();
+      const base = error.config?.baseURL || API_URL;
       const url = error.config?.url || "";
+      const fullUrl = `${base}${url}`;
+      const hasAuthHeader = !!error.config?.headers?.Authorization;
+      const hasAuthStoreToken = !!useAuthStore.getState().token;
+      const hasAuth = hasAuthHeader || hasAuthStoreToken;
+
       console.error(
-        `[apiClient] Error ${method} ${url} ->`,
+        `[apiClient] Error ${method} ${fullUrl} ->`,
         error.response?.status,
+        error.response?.statusText,
         error.response?.data || error.message,
+        { hasAuth },
       );
     } catch (err) {
       console.error("[apiClient] Failed to log error", err);

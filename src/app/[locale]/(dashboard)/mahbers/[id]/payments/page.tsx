@@ -40,6 +40,14 @@ export default function PaymentsDashboard({
       .filter((p) => p.status === "Pending")
       .reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
+  const { data: myMahbers } = useQuery({
+    queryKey: ["my-mahbers"],
+    queryFn: () => mahberService.getMahbers(),
+  });
+
+  const isMember =
+    Array.isArray(myMahbers) && myMahbers.some((m) => m.id === id);
+
   const { data: mahber } = useQuery({
     queryKey: ["mahber", id],
     queryFn: () => mahberService.getMahberById(id),
@@ -48,6 +56,7 @@ export default function PaymentsDashboard({
   const { data: membersResponse } = useQuery({
     queryKey: ["mahber-members-check", id],
     queryFn: () => memberService.getMembers(id, 1, 100),
+    enabled: isMember,
   });
 
   const myMembership = membersResponse?.data?.find(
@@ -64,14 +73,14 @@ export default function PaymentsDashboard({
   const hasOutstanding =
     (outstanding?.total_outstanding ?? 0) > 0 || isPaymentInProgress;
 
-  const isAdmin =
-    !membersResponse ||
-    (myMembership?.role as any) === "ADMIN" ||
-    (myMembership?.role as any) === "Admin" ||
-    (myMembership?.role as any)?.name === "Admin" ||
-    (myMembership?.role as any)?.name === "ADMIN" ||
-    (myMembership?.role as any)?.permissions?.includes("manage_members") ||
-    (myMembership?.role as any)?.permissions?.includes("manage_finances");
+  const isAdmin = membersResponse
+    ? (myMembership?.role as any) === "ADMIN" ||
+      (myMembership?.role as any) === "Admin" ||
+      (myMembership?.role as any)?.name === "Admin" ||
+      (myMembership?.role as any)?.name === "ADMIN" ||
+      (myMembership?.role as any)?.permissions?.includes("manage_members") ||
+      (myMembership?.role as any)?.permissions?.includes("manage_finances")
+    : false;
 
   const isEqub =
     !mahber ||
