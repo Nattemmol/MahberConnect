@@ -48,6 +48,11 @@ export default function EventPhotosPage({
     queryFn: () => eventService.getEventById(id, eventId),
   });
 
+  const isEventOngoing = event
+    ? new Date() >= new Date(event.start_time) &&
+      new Date() <= new Date(event.end_time)
+    : false;
+
   const { data: photosResponse, isLoading: isPhotosLoading } = useQuery({
     queryKey: ["event-photos", id, eventId, currentPage, pageSize],
     queryFn: () => eventService.getPhotos(id, eventId, currentPage, pageSize),
@@ -243,7 +248,11 @@ export default function EventPhotosPage({
         title={`${event?.title || "Event"} Photos`}
         description="View and share memories from this event."
       >
-        <Button onClick={() => setShowUpload(true)} className="gap-2">
+        <Button
+          onClick={() => setShowUpload(true)}
+          className="gap-2"
+          disabled={!isEventOngoing}
+        >
           <Upload className="w-4 h-4" />
           Upload Photo
         </Button>
@@ -265,6 +274,7 @@ export default function EventPhotosPage({
             variant="link"
             onClick={() => setShowUpload(true)}
             className="mt-2 text-gold"
+            disabled={!isEventOngoing}
           >
             Be the first to share a memory!
           </Button>
