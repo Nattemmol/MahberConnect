@@ -48,6 +48,7 @@ export default function MahberSettingsPage({
       contribution_amount: 0,
       cycle: "Monthly",
       payment_frequency: "Monthly",
+      payment_day: 1,
       join_fee_required: false,
       join_fee_amount: 0,
       penalty_rate: 0,
@@ -90,6 +91,7 @@ export default function MahberSettingsPage({
           contribution_amount: mahber.configuration.contribution_amount,
           cycle: paymentFrequency,
           payment_frequency: paymentFrequency as any,
+          payment_day: mahber.configuration.payment_day ?? 1,
           join_fee_required: mahber.configuration.join_fee_required ?? false,
           join_fee_amount: mahber.configuration.join_fee_amount ?? 0,
           penalty_rate: mahber.configuration.penalty_rate ?? 0,
@@ -108,6 +110,7 @@ export default function MahberSettingsPage({
         ...(current.configuration ?? {}),
         cycle: value,
         payment_frequency: value as any,
+        payment_day: value === 'Weekly' ? 1 : 1,
       } as any,
     }));
   };
@@ -265,6 +268,53 @@ export default function MahberSettingsPage({
                   <option value="Quarterly">Quarterly</option>
                 </select>
               </div>
+
+              {settings.configuration?.cycle === "Weekly" ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Payment Day of Week</label>
+                  <select
+                    className="w-full bg-surface-active border border-border-glass rounded-input p-2.5 text-sm focus:outline-none focus:border-gold/50"
+                    value={settings.configuration?.payment_day ?? 1}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        configuration: {
+                          ...settings.configuration,
+                          payment_day: Number(e.target.value),
+                        } as any,
+                      })
+                    }
+                  >
+                    <option value={1}>Monday</option>
+                    <option value={2}>Tuesday</option>
+                    <option value={3}>Wednesday</option>
+                    <option value={4}>Thursday</option>
+                    <option value={5}>Friday</option>
+                    <option value={6}>Saturday</option>
+                    <option value={0}>Sunday</option>
+                  </select>
+                </div>
+              ) : settings.configuration?.cycle === "Monthly" || settings.configuration?.cycle === "Quarterly" ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Payment Day of Month</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={settings.configuration?.payment_day ?? 1}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        configuration: {
+                          ...settings.configuration,
+                          payment_day: Number(e.target.value),
+                        } as any,
+                      })
+                    }
+                    className="bg-surface-active border-border-glass font-mono"
+                  />
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
