@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Activity,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { auditService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,7 @@ export default function AuditTrailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations("AuditTrail");
   const { id } = use(params);
   const { data: auditResponse, isLoading } = useQuery({
     queryKey: ["mahber-audit", id],
@@ -68,7 +70,7 @@ export default function AuditTrailPage({
 
   const formatDetails = (log: any) => {
     const details = log.new_value || log.metadata || {};
-    if (Object.keys(details).length === 0) return `Performed ${log.action.replace(/_/g, " ")}`;
+    if (Object.keys(details).length === 0) return t('performed', { action: log.action.replace(/_/g, " ") });
     
     try {
       return Object.entries(details)
@@ -86,8 +88,8 @@ export default function AuditTrailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Audit Trail"
-        description="A transparent log of all administrative actions and system events."
+        title={t('title')}
+        description={t('description')}
       />
 
       {isLoading ? (
@@ -100,7 +102,7 @@ export default function AuditTrailPage({
         <div className="text-center py-16 glass rounded-card">
           <AlertCircle className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
           <p className="text-text-secondary text-lg">
-            No audit logs found for this Mahber.
+            {t('noLogs')}
           </p>
         </div>
       ) : (
@@ -139,10 +141,7 @@ export default function AuditTrailPage({
                       </div>
 
                       <div className="pt-2 text-xs text-text-muted flex items-center gap-1">
-                        By:{" "}
-                        <span className="font-medium text-text-primary">
-                          {log.actor?.name || "System / Admin"}
-                        </span>
+                        {t('by', { name: log.actor?.name || t('systemAdmin') })}
                       </div>
                     </div>
                   </CardContent>

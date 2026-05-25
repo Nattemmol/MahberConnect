@@ -441,7 +441,6 @@
     "description": "Schedule a new gathering for your community.",
     "eventTitle": "Event Title",
     "eventTitlePlaceholder": "e.g., Monthly General Meeting",
-    "description": "Description",
     "descriptionPlaceholder": "Details about the event...",
     "eventType": "Event Type",
     "meeting": "Meeting",

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { use, useState, useEffect, useCallback } from "react";
 import {
@@ -58,179 +59,180 @@ const HIGHLIGHT_KEYS = [
   "period_end",
 ];
 
-function humanizeKey(key: string) {
-  return key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
-}
-
-function formatScalar(value: unknown) {
-  if (value === null || value === undefined) return "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "number") return value.toLocaleString();
-  if (typeof value === "string") return value;
-  return "Available";
-}
-
-function summarizeValue(value: unknown) {
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "None";
-    return `${value.length} item${value.length === 1 ? "" : "s"}`;
-  }
-
-  if (value && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(
-        ([key, item]) =>
-          HIGHLIGHT_KEYS.includes(key) && item !== undefined && item !== null,
-      )
-      .slice(0, 4)
-      .map(([key, item]) => `${humanizeKey(key)}: ${formatScalar(item)}`);
-
-    return entries.length > 0 ? entries.join(" • ") : "Available";
-  }
-
-  return formatScalar(value);
-}
-
-function buildFieldRows(value?: Record<string, unknown> | null) {
-  if (!value) return [];
-
-  return Object.entries(value)
-    .filter(
-      ([key, item]) =>
-        HIGHLIGHT_KEYS.includes(key) && item !== undefined && item !== null,
-    )
-    .map(([key, item]) => ({
-      key,
-      label: humanizeKey(key),
-      value: Array.isArray(item)
-        ? item.length > 0
-          ? item.join(", ")
-          : "None"
-        : typeof item === "object"
-          ? summarizeValue(item)
-          : formatScalar(item),
-    }));
-}
-
-function DetailGrid({
-  title,
-  value,
-}: {
-  title: string;
-  value?: Record<string, unknown> | null;
-}) {
-  const rows = buildFieldRows(value);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="rounded-xl border border-border-glass bg-background/50 p-4 space-y-3">
-      <p className="text-sm font-medium text-text-primary">{title}</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {rows.map((row) => (
-          <div
-            key={row.key}
-            className="rounded-lg border border-border-glass/70 bg-background/60 p-3"
-          >
-            <p className="text-[11px] uppercase tracking-wide text-text-muted">
-              {row.label}
-            </p>
-            <p className="text-sm text-text-primary mt-1 break-words">
-              {row.value}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ChangeSummary({ entry }: { entry: AuditTrailEntry }) {
-  const oldValue = (entry.old_value ?? null) as Record<string, unknown> | null;
-  const newValue = (entry.new_value ?? null) as Record<string, unknown> | null;
-  const metadata = (entry.metadata ?? null) as Record<string, unknown> | null;
-
-  if (!oldValue && !newValue && !metadata) return null;
-
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-        <div className="rounded-lg border border-border-glass bg-background/50 p-3">
-          <p className="text-text-muted mb-1 flex items-center gap-1.5">
-            <ArrowRightLeft className="w-3.5 h-3.5" />
-            Transition
-          </p>
-          <p className="text-text-primary break-words">
-            {formatScalar(oldValue?.status)} → {formatScalar(newValue?.status)}
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-border-glass bg-background/50 p-3">
-          <p className="text-text-muted mb-1 flex items-center gap-1.5">
-            <Hash className="w-3.5 h-3.5" />
-            Reference
-          </p>
-          <p className="text-text-primary break-words">
-            {formatScalar(
-              newValue?.tx_ref ?? metadata?.tx_ref ?? entry.entity_id,
-            )}
-          </p>
-        </div>
-      </div>
-
-      <DetailGrid
-        title="Payment details"
-        value={newValue ?? oldValue ?? metadata}
-      />
-
-      {metadata && metadata.webhook_payload ? (
-        <div className="rounded-xl border border-border-glass bg-background/50 p-4 space-y-2">
-          <p className="text-sm font-medium text-text-primary flex items-center gap-2">
-            <BadgeCheck className="w-4 h-4 text-status-success" />
-            Webhook snapshot
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-            <div className="rounded-lg border border-border-glass/70 bg-background/60 p-3">
-              <p className="text-text-muted mb-1">Status</p>
-              <p className="text-text-primary">
-                {formatScalar(
-                  (metadata.webhook_payload as Record<string, unknown>).status,
-                )}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border-glass/70 bg-background/60 p-3">
-              <p className="text-text-muted mb-1">Amount</p>
-              <p className="text-text-primary">
-                {formatScalar(
-                  (metadata.webhook_payload as Record<string, unknown>).amount,
-                )}{" "}
-                ETB
-              </p>
-            </div>
-            <div className="rounded-lg border border-border-glass/70 bg-background/60 p-3">
-              <p className="text-text-muted mb-1">Reference</p>
-              <p className="text-text-primary break-all">
-                {formatScalar(
-                  (metadata.webhook_payload as Record<string, unknown>)
-                    .reference,
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function FinancialAuditPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("FinancialAudit");
+
+  function humanizeKey(key: string) {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+
+  function formatScalar(value: unknown) {
+    if (value === null || value === undefined) return "\u2014";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (typeof value === "number") return value.toLocaleString();
+    if (typeof value === "string") return value;
+    return "Available";
+  }
+
+  function summarizeValue(value: unknown) {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "None";
+      return `${value.length} item${value.length === 1 ? "" : "s"}`;
+    }
+
+    if (value && typeof value === "object") {
+      const entries = Object.entries(value as Record<string, unknown>)
+        .filter(
+          ([key, item]) =>
+            HIGHLIGHT_KEYS.includes(key) && item !== undefined && item !== null,
+        )
+        .slice(0, 4)
+        .map(([key, item]) => `${humanizeKey(key)}: ${formatScalar(item)}`);
+
+      return entries.length > 0 ? entries.join(" • ") : "Available";
+    }
+
+    return formatScalar(value);
+  }
+
+  function buildFieldRows(value?: Record<string, unknown> | null) {
+    if (!value) return [];
+
+    return Object.entries(value)
+      .filter(
+        ([key, item]) =>
+          HIGHLIGHT_KEYS.includes(key) && item !== undefined && item !== null,
+      )
+      .map(([key, item]) => ({
+        key,
+        label: humanizeKey(key),
+        value: Array.isArray(item)
+          ? item.length > 0
+            ? item.join(", ")
+            : "None"
+          : typeof item === "object"
+            ? summarizeValue(item)
+            : formatScalar(item),
+      }));
+  }
+
+  function DetailGrid({
+    title,
+    value,
+  }: {
+    title: string;
+    value?: Record<string, unknown> | null;
+  }) {
+    const rows = buildFieldRows(value);
+
+    if (rows.length === 0) return null;
+
+    return (
+      <div className="rounded-xl border border-border-glass bg-background/50 p-4 space-y-3">
+        <p className="text-sm font-medium text-text-primary">{title}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {rows.map((row) => (
+            <div
+              key={row.key}
+              className="rounded-lg border border-border-glass/70 bg-background/60 p-3"
+            >
+              <p className="text-[11px] uppercase tracking-wide text-text-muted">
+                {row.label}
+              </p>
+              <p className="text-sm text-text-primary mt-1 break-words">
+                {row.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function ChangeSummary({ entry }: { entry: AuditTrailEntry }) {
+    const oldValue = (entry.old_value ?? null) as Record<string, unknown> | null;
+    const newValue = (entry.new_value ?? null) as Record<string, unknown> | null;
+    const metadata = (entry.metadata ?? null) as Record<string, unknown> | null;
+
+    if (!oldValue && !newValue && !metadata) return null;
+
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div className="rounded-lg border border-border-glass bg-background/50 p-3">
+            <p className="text-text-muted mb-1 flex items-center gap-1.5">
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+              {t('transition')}
+            </p>
+            <p className="text-text-primary break-words">
+              {formatScalar(oldValue?.status)} → {formatScalar(newValue?.status)}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border-glass bg-background/50 p-3">
+            <p className="text-text-muted mb-1 flex items-center gap-1.5">
+              <Hash className="w-3.5 h-3.5" />
+              {t('reference')}
+            </p>
+            <p className="text-text-primary break-words">
+              {formatScalar(
+                newValue?.tx_ref ?? metadata?.tx_ref ?? entry.entity_id,
+              )}
+            </p>
+          </div>
+        </div>
+
+        <DetailGrid
+          title={t('paymentDetails')}
+          value={newValue ?? oldValue ?? metadata}
+        />
+
+        {metadata && metadata.webhook_payload ? (
+          <div className="rounded-xl border border-border-glass bg-background/50 p-4 space-y-2">
+            <p className="text-sm font-medium text-text-primary flex items-center gap-2">
+              <BadgeCheck className="w-4 h-4 text-status-success" />
+              {t('webhookSnapshot')}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="rounded-lg border border-border-glass/70 bg-background/60 p-3">
+                <p className="text-text-muted mb-1">{t('status')}</p>
+                <p className="text-text-primary">
+                  {formatScalar(
+                    (metadata.webhook_payload as Record<string, unknown>).status,
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border-glass/70 bg-background/60 p-3">
+                <p className="text-text-muted mb-1">{t('amount')}</p>
+                <p className="text-text-primary">
+                  {formatScalar(
+                    (metadata.webhook_payload as Record<string, unknown>).amount,
+                  )}{" "}
+                  ETB
+                </p>
+              </div>
+              <div className="rounded-lg border border-border-glass/70 bg-background/60 p-3">
+                <p className="text-text-muted mb-1">{t('ref')}</p>
+                <p className="text-text-primary break-all">
+                  {formatScalar(
+                    (metadata.webhook_payload as Record<string, unknown>)
+                      .reference,
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   // ── Pagination, search, filter, sort state ──
   const [page, setPage] = useState(1);
@@ -352,10 +354,10 @@ export default function FinancialAuditPage({
   if (error) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Financial Audit Log" description="Failed to load audit data." />
+        <PageHeader title={t('title')} description={t('loadFailed')} />
         <Card>
           <CardContent className="p-6 text-text-secondary">
-            Unable to load the audit trail.
+            {t('unableToLoad')}
           </CardContent>
         </Card>
       </div>
@@ -365,8 +367,8 @@ export default function FinancialAuditPage({
   return (
     <div className="space-y-6 pb-20">
       <PageHeader
-        title="Financial Audit Log"
-        description={`Audit trail for this Mahber (${totalEntries} total entries).`}
+        title={t('title')}
+        description={t('description', { count: totalEntries })}
       />
 
       {/* Stats */}
@@ -377,7 +379,7 @@ export default function FinancialAuditPage({
               <Wallet className="w-6 h-6 text-gold" />
             </div>
             <div>
-              <p className="text-sm text-text-secondary">Total Entries</p>
+              <p className="text-sm text-text-secondary">{t('totalEntries')}</p>
               <p className="text-2xl font-bold text-text-primary">{totalEntries}</p>
             </div>
           </CardContent>
@@ -389,7 +391,7 @@ export default function FinancialAuditPage({
               <ShieldCheck className="w-6 h-6 text-status-success" />
             </div>
             <div>
-              <p className="text-sm text-text-secondary">Payment Actions</p>
+              <p className="text-sm text-text-secondary">{t('paymentActions')}</p>
               <p className="text-2xl font-bold text-text-primary">{paymentCount}</p>
             </div>
           </CardContent>
@@ -401,7 +403,7 @@ export default function FinancialAuditPage({
               <CircleAlert className="w-6 h-6 text-status-warning" />
             </div>
             <div>
-              <p className="text-sm text-text-secondary">Fine Actions</p>
+              <p className="text-sm text-text-secondary">{t('fineActions')}</p>
               <p className="text-2xl font-bold text-text-primary">{fineCount}</p>
             </div>
           </CardContent>
@@ -413,7 +415,7 @@ export default function FinancialAuditPage({
               <Receipt className="w-6 h-6 text-status-error" />
             </div>
             <div>
-              <p className="text-sm text-text-secondary">Expense Actions</p>
+              <p className="text-sm text-text-secondary">{t('expenseActions')}</p>
               <p className="text-2xl font-bold text-text-primary">{expenseCount}</p>
             </div>
           </CardContent>
@@ -426,7 +428,7 @@ export default function FinancialAuditPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-text-secondary">
-                Activity (Last 6 Months)
+                {t('activityMonths')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -437,7 +439,7 @@ export default function FinancialAuditPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-text-secondary">
-                Entries by Type
+                {t('entriesByType')}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -453,7 +455,7 @@ export default function FinancialAuditPage({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             type="text"
-            placeholder="Search by type, action, entity..."
+            placeholder={t('searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-8 py-2 bg-background-dark/50 border border-border-glass rounded-input text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-gold transition-colors"
@@ -475,17 +477,17 @@ export default function FinancialAuditPage({
         <div className="flex gap-2 items-center w-full sm:w-auto">
           {/* Entity type filter */}
           <div className="flex items-center gap-1 bg-background-dark/50 border border-border-glass rounded-input px-1 py-1">
-            {(["", "payment", "fine", "membership", "lottery", "expense"] as const).map((t) => (
+            {(["", "payment", "fine", "membership", "lottery", "expense"] as const).map((filterType) => (
               <button
-                key={t}
-                onClick={() => onFilterChange({ entityType: t })}
+                key={filterType}
+                onClick={() => onFilterChange({ entityType: filterType })}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  entityTypeFilter === t
+                  entityTypeFilter === filterType
                     ? "bg-gold text-black"
                     : "text-text-secondary hover:text-text-primary"
                 }`}
               >
-                {t === "" ? "All" : t.charAt(0).toUpperCase() + t.slice(1)}
+                {filterType === "" ? t('all') : filterType.charAt(0).toUpperCase() + filterType.slice(1)}
               </button>
             ))}
           </div>
@@ -527,8 +529,8 @@ export default function FinancialAuditPage({
           <CardContent className="p-6 text-center">
             <p className="text-text-secondary">
               {search || entityTypeFilter
-                ? "No audit entries match your search."
-                : "No audit trail entries found."}
+                ? t('noEntriesMatch')
+                : t('noEntriesFound')}
             </p>
             {(search || entityTypeFilter) && (
               <Button
@@ -541,7 +543,7 @@ export default function FinancialAuditPage({
                   setPage(1);
                 }}
               >
-                Clear filters
+                {t('clearFilters')}
               </Button>
             )}
           </CardContent>
@@ -579,14 +581,14 @@ export default function FinancialAuditPage({
                   <div className="rounded-lg border border-border-glass bg-background/50 p-3">
                     <p className="text-text-muted mb-1 flex items-center gap-1.5">
                       <Hash className="w-3.5 h-3.5" />
-                      Entity ID
+                      {t('entityId')}
                     </p>
                     <p className="text-text-primary break-all">{entry.entity_id}</p>
                   </div>
                   <div className="rounded-lg border border-border-glass bg-background/50 p-3">
                     <p className="text-text-muted mb-1 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5" />
-                      Actor ID
+                      {t('actorId')}
                     </p>
                     <p className="text-text-primary break-all">
                       {entry.actor_id ?? "System"}
@@ -603,7 +605,7 @@ export default function FinancialAuditPage({
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 pb-2">
               <p className="text-sm text-text-muted">
-                Page {page} of {totalPages} ({total} entries)
+                {t('pageInfo', { page, totalPages, total })}
               </p>
               <div className="flex items-center gap-1">
                 <Button

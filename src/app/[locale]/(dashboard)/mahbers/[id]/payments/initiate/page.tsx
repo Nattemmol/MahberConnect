@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ export default function ConfirmPaymentPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const t = useTranslations("ConfirmPayment");
 
   const { data: outstanding, isLoading } = useQuery({
     queryKey: ["mahber-outstanding", id],
@@ -32,11 +34,11 @@ export default function ConfirmPaymentPage({
         window.location.href = result.checkoutUrl;
         return;
       }
-      toast.error("Unable to start checkout.");
+      toast.error(t('checkoutFailed'));
     } catch (err: any) {
       toast.error(
         err.response?.data?.message ||
-          "Unable to process payment. Please try again.",
+          t('paymentFailed'),
       );
     }
   };
@@ -45,8 +47,8 @@ export default function ConfirmPaymentPage({
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Confirm Payment"
-          description="Review the system-calculated amount before checkout."
+          title={t('title')}
+          description={t('description')}
         />
         <Card>
           <CardContent className="p-6 space-y-4">
@@ -63,16 +65,16 @@ export default function ConfirmPaymentPage({
     return (
       <div className="space-y-6">
         <PageHeader
-          title="All Paid Up"
-          description="You have no outstanding payments at this time."
+          title={t('allPaidUp')}
+          description={t('allPaidUpDesc')}
         />
         <Card>
           <CardContent className="p-6 flex flex-col items-center text-center gap-4">
             <CheckCircle2 className="h-12 w-12 text-status-success" />
             <p className="text-text-secondary">
-              You have no outstanding payments at this time.
+              {t('allPaidUpDesc')}
             </p>
-            <Button onClick={() => router.back()}>Go Back</Button>
+            <Button onClick={() => router.back()}>{t('goBack')}</Button>
           </CardContent>
         </Card>
       </div>
@@ -89,8 +91,8 @@ export default function ConfirmPaymentPage({
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <PageHeader
-        title="Confirm Payment"
-        description="Review the system-calculated obligations. Amounts are read-only."
+        title={t('title')}
+        description={t('description')}
       />
 
       <Card className="border-gold/30 bg-gold/5">
@@ -99,14 +101,14 @@ export default function ConfirmPaymentPage({
             <CreditCard className="h-10 w-10 text-gold" />
             <div className="flex-1">
               <p className="font-semibold text-text-primary">
-                Secure checkout via Chapa
+                {t('secureCheckout')}
               </p>
               <p className="text-sm text-text-secondary">
-                The system has calculated your total. You only need to confirm.
+                {t('checkoutDesc')}
               </p>
             </div>
             {outstanding.has_pending_payment && (
-              <Badge variant="warning">Payment in progress</Badge>
+              <Badge variant="warning">{t('paymentInProgress')}</Badge>
             )}
           </div>
 
@@ -114,30 +116,29 @@ export default function ConfirmPaymentPage({
             <div className="flex items-start gap-3 p-4 rounded-xl border border-status-warning/30 bg-status-warning/10 text-sm text-text-secondary">
               <CircleAlert className="h-5 w-5 text-status-warning mt-0.5 shrink-0" />
               <p>
-                You have a pending payment that was not completed. Click "Retry
-                Payment" to cancel it and start a new one.
+                {t('pendingPaymentWarning')}
               </p>
             </div>
           )}
 
           <div className="space-y-3">
             <div className="flex items-center justify-between py-3 border-b border-border-glass">
-              <span className="text-text-secondary">Contribution</span>
+              <span className="text-text-secondary">{t('contribution')}</span>
               <span className="font-semibold">
                 {contributionDue.toLocaleString()} ETB
               </span>
             </div>
 
             <div className="flex items-center justify-between py-3 border-b border-border-glass">
-              <span className="text-text-secondary">Late fines</span>
+              <span className="text-text-secondary">{t('lateFines')}</span>
               <span className="font-semibold">
                 {fineTotal.toLocaleString()} ETB{" "}
-                {pendingFineCount > 0 ? `(${pendingFineCount} pending)` : ""}
+                {pendingFineCount > 0 ? t('pendingFineCount', { count: pendingFineCount }) : ""}
               </span>
             </div>
 
             <div className="flex items-center justify-between py-4 text-lg font-bold">
-              <span>Total due</span>
+              <span>{t('totalDue')}</span>
               <span className="text-gold">
                 {outstanding.total_outstanding.toLocaleString()} ETB
               </span>
@@ -146,7 +147,7 @@ export default function ConfirmPaymentPage({
 
           {pendingFineCount > 0 && (
             <div className="space-y-3">
-              <p className="font-medium text-text-primary">Fine line items</p>
+              <p className="font-medium text-text-primary">{t('fineLineItems')}</p>
               <div className="space-y-2">
                 {outstanding.pending_fines.map((fine) => (
                   <div
@@ -158,7 +159,7 @@ export default function ConfirmPaymentPage({
                         {fine.reason}
                       </p>
                       <p className="text-text-secondary">
-                        Issued {new Date(fine.issued_at).toLocaleDateString()}
+                        {t('issued', { date: new Date(fine.issued_at).toLocaleDateString() })}
                       </p>
                     </div>
                     <span className="font-semibold">
@@ -172,7 +173,7 @@ export default function ConfirmPaymentPage({
 
           <div className="flex flex-col sm:flex-row gap-3 justify-end pt-2">
             <Button variant="ghost" onClick={() => router.back()}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleConfirm}
@@ -180,8 +181,8 @@ export default function ConfirmPaymentPage({
               isLoading={false}
             >
               {outstanding.has_pending_payment
-                ? "Retry Payment"
-                : "Pay Now"}
+                ? t('retryPayment')
+                : t('payNow')}
             </Button>
           </div>
         </CardContent>

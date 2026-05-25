@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   User as UserIcon,
@@ -25,6 +26,7 @@ export default function MemberDetailPage({
 }: {
   params: Promise<{ id: string; memberId: string }>;
 }) {
+  const t = useTranslations("MemberDetail");
   const { id, memberId } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -40,9 +42,9 @@ export default function MemberDetailPage({
       queryClient.invalidateQueries({
         queryKey: ["mahber-member", id, memberId],
       });
-      toast.success("Member suspended successfully");
+      toast.success(t('suspendSuccess'));
     },
-    onError: () => toast.error("Failed to suspend member"),
+    onError: () => toast.error(t('suspendFailed')),
   });
 
   const reinstateMutation = useMutation({
@@ -51,9 +53,9 @@ export default function MemberDetailPage({
       queryClient.invalidateQueries({
         queryKey: ["mahber-member", id, memberId],
       });
-      toast.success("Member reinstated successfully");
+      toast.success(t('reinstateSuccess'));
     },
-    onError: () => toast.error("Failed to reinstate member"),
+    onError: () => toast.error(t('reinstateFailed')),
   });
 
   if (isLoading) {
@@ -69,13 +71,13 @@ export default function MemberDetailPage({
     );
   }
 
-  if (!member) return <div>Member not found.</div>;
+  if (!member) return <div>{t('memberNotFound')}</div>;
 
   return (
     <div className="space-y-6">
       <Button variant="ghost" onClick={() => router.back()} className="gap-2">
         <ArrowLeft className="w-4 h-4" />
-        Back to Members
+        {t('backToMembers')}
       </Button>
 
       <PageHeader
@@ -88,14 +90,14 @@ export default function MemberDetailPage({
               variant="destructive"
               onClick={() => suspendMutation.mutate()}
             >
-              Suspend Member
+              {t('suspendMember')}
             </Button>
           ) : (
             <Button
               variant="default"
               onClick={() => reinstateMutation.mutate()}
             >
-              Reinstate Member
+              {t('reinstateMember')}
             </Button>
           )}
         </div>
@@ -133,8 +135,8 @@ export default function MemberDetailPage({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-text-secondary">
-                  Balance
-                </CardTitle>
+                  {t('balance')}
+                        </CardTitle>
                 <Wallet className="h-4 w-4 text-gold" />
               </CardHeader>
               <CardContent>
@@ -147,8 +149,8 @@ export default function MemberDetailPage({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-text-secondary">
-                  Join Date
-                </CardTitle>
+                  {t('joinDate')}
+                        </CardTitle>
                 <Calendar className="h-4 w-4 text-text-secondary" />
               </CardHeader>
               <CardContent>
@@ -161,15 +163,15 @@ export default function MemberDetailPage({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-text-secondary">
-                  Equb Status
-                </CardTitle>
+                  {t('equbStatus')}
+                        </CardTitle>
                 <Shield className="h-4 w-4 text-text-secondary" />
               </CardHeader>
               <CardContent>
                 <Badge
                   variant={member.has_won_current_cycle ? "success" : "outline"}
                 >
-                  {member.has_won_current_cycle ? "Already Won" : "Eligible"}
+                  {member.has_won_current_cycle ? t('alreadyWon') : t('eligible')}
                 </Badge>
               </CardContent>
             </Card>
@@ -177,13 +179,13 @@ export default function MemberDetailPage({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-text-secondary">
-                  Last Action
-                </CardTitle>
+                  {t('lastAction')}
+                        </CardTitle>
                 <AlertCircle className="h-4 w-4 text-text-secondary" />
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-text-secondary">
-                  Updated: {new Date(member.updated_at).toLocaleDateString()}
+                    {t('updated', { date: new Date(member.updated_at).toLocaleDateString() })}
                 </div>
               </CardContent>
             </Card>

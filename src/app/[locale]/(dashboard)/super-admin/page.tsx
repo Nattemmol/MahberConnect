@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -26,6 +27,7 @@ type TabKey = "users" | "mahbers" | "payments" | "audit";
 const PAGE_SIZE = 10;
 
 export default function SuperAdminPage() {
+  const t = useTranslations("SuperAdmin");
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
@@ -137,10 +139,10 @@ export default function SuperAdminPage() {
       if (context?.previous) {
         queryClient.setQueryData(["super-admin", "users", usersPage, trimmedSearch], context.previous);
       }
-      toast.error(error?.response?.data?.message || "Failed to update user status");
+      toast.error(error?.response?.data?.message || t('userStatusFailed'));
     },
     onSuccess: () => {
-      toast.success("User status updated");
+      toast.success(t('userStatusUpdated'));
     },
     onSettled: invalidateMainLists,
   });
@@ -171,10 +173,10 @@ export default function SuperAdminPage() {
       if (context?.previous) {
         queryClient.setQueryData(["super-admin", "users", usersPage, trimmedSearch], context.previous);
       }
-      toast.error(error?.response?.data?.message || "Failed to update super admin role");
+      toast.error(error?.response?.data?.message || t('superAdminFailed'));
     },
     onSuccess: () => {
-      toast.success("Super admin role updated");
+      toast.success(t('superAdminUpdated'));
     },
     onSettled: invalidateMainLists,
   });
@@ -205,10 +207,10 @@ export default function SuperAdminPage() {
       if (context?.previous) {
         queryClient.setQueryData(["super-admin", "mahbers", mahbersPage, trimmedSearch], context.previous);
       }
-      toast.error(error?.response?.data?.message || "Failed to update organization status");
+      toast.error(error?.response?.data?.message || t('orgStatusFailed'));
     },
     onSuccess: () => {
-      toast.success("Organization status updated");
+      toast.success(t('orgStatusUpdated'));
     },
     onSettled: invalidateMainLists,
   });
@@ -234,14 +236,14 @@ export default function SuperAdminPage() {
   ) => (
     <div className="flex items-center justify-between pt-4">
       <p className="text-xs text-text-secondary">
-        {meta ? `Total ${meta.total} items` : "No pagination metadata"}
+        {meta ? t('totalItems', { total: meta.total }) : t('noPaginationMeta')}
       </p>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-          Previous
+          {t('previous')}
         </Button>
         <span className="text-xs text-text-secondary px-2">
-          Page {meta?.page ?? page} / {meta?.totalPages ?? 1}
+          {t('pageInfo', { page: meta?.page ?? page, totalPages: meta?.totalPages ?? 1 })}
         </span>
         <Button
           variant="outline"
@@ -249,7 +251,7 @@ export default function SuperAdminPage() {
           disabled={!meta || page >= meta.totalPages}
           onClick={() => setPage(page + 1)}
         >
-          Next
+          {t('next')}
         </Button>
       </div>
     </div>
@@ -259,7 +261,7 @@ export default function SuperAdminPage() {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
         <p className="text-sm text-text-secondary">
-          {isRedirectingAway ? "Redirecting to dashboard..." : "Loading..."}
+          {isRedirectingAway ? t('redirecting') : t('loading')}
         </p>
       </div>
     );
@@ -269,9 +271,9 @@ export default function SuperAdminPage() {
     return (
       <Card>
         <CardContent className="p-8 text-center space-y-3">
-          <h2 className="text-xl font-semibold">Access denied (403)</h2>
+          <h2 className="text-xl font-semibold">{t('accessDenied')}</h2>
           <p className="text-text-secondary">
-            Backend rejected this session for super-admin endpoints. Please re-login with a super admin account.
+            {t('accessDeniedDesc')}
           </p>
         </CardContent>
       </Card>
@@ -281,29 +283,29 @@ export default function SuperAdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Super Admin"
-        description="Platform-wide controls for users, organizations, payments, and audit logs."
+        title={t('title')}
+        description={t('description')}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase text-text-secondary">Users</p>
+            <p className="text-xs uppercase text-text-secondary">{t('users')}</p>
             <p className="text-2xl font-bold">{statsQuery.data?.users.total ?? "-"}</p>
             <p className="text-xs text-text-secondary">
-              Active {statsQuery.data?.users.active ?? 0} / Suspended {statsQuery.data?.users.suspended ?? 0}
+              {t('active')} {statsQuery.data?.users.active ?? 0} / {t('suspended')} {statsQuery.data?.users.suspended ?? 0}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase text-text-secondary">Super Admins</p>
+            <p className="text-xs uppercase text-text-secondary">{t('superAdmins')}</p>
             <p className="text-2xl font-bold">{statsQuery.data?.users.super_admins ?? "-"}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase text-text-secondary">Organizations</p>
+            <p className="text-xs uppercase text-text-secondary">{t('organizations')}</p>
             <p className="text-2xl font-bold">{statsQuery.data?.mahbers.total ?? "-"}</p>
             <p className="text-xs text-text-secondary">
               EQUB {statsQuery.data?.mahbers.breakdown?.EQUB ?? 0} | MAHBER{" "}
@@ -314,12 +316,12 @@ export default function SuperAdminPage() {
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase text-text-secondary">Payment Volume (ETB)</p>
+            <p className="text-xs uppercase text-text-secondary">{t('paymentVolume')}</p>
             <p className="text-2xl font-bold">
               {(statsQuery.data?.payments.total_volume_etb ?? 0).toLocaleString()}
             </p>
             <p className="text-xs text-text-secondary">
-              Completed {statsQuery.data?.payments.completed ?? 0} / Failed {statsQuery.data?.payments.failed ?? 0}
+              {t('completed')} {statsQuery.data?.payments.completed ?? 0} / {t('failed')} {statsQuery.data?.payments.failed ?? 0}
             </p>
           </CardContent>
         </Card>
@@ -336,7 +338,7 @@ export default function SuperAdminPage() {
                   variant={activeTab === tab ? "default" : "outline"}
                   onClick={() => setActiveTab(tab)}
                 >
-                  {tab === "audit" ? "Audit Logs" : tab[0].toUpperCase() + tab.slice(1)}
+                  {tab === "audit" ? t('auditLogs') : tab === "mahbers" ? t('organizations') : tab[0].toUpperCase() + tab.slice(1)}
                 </Button>
               ))}
             </div>
@@ -344,10 +346,10 @@ export default function SuperAdminPage() {
               <Input
                 placeholder={
                   activeTab === "users"
-                    ? "Search users (name/phone/email)"
+                    ? t('searchUsers')
                     : activeTab === "mahbers"
-                      ? "Search organizations by name"
-                      : "Search payments by tx_ref"
+                      ? t('searchOrganizations')
+                      : t('searchPayments')
                 }
                 value={search}
                 onChange={(e) => {
@@ -366,12 +368,12 @@ export default function SuperAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Super Admin</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('name')}</TableHead>
+                    <TableHead>{t('phone')}</TableHead>
+                    <TableHead>{t('email')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead>{t('superAdmin')}</TableHead>
+                    <TableHead className="text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -382,7 +384,7 @@ export default function SuperAdminPage() {
                       <TableCell>{entry.email || "-"}</TableCell>
                       <TableCell>
                         <Badge variant={entry.is_suspended ? "destructive" : "success"}>
-                          {entry.is_suspended ? "Suspended" : "Active"}
+                          {entry.is_suspended ? t('suspended') : t('active')}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -399,7 +401,7 @@ export default function SuperAdminPage() {
                           variant="outline"
                           onClick={() => setSelectedUserId(entry.id)}
                         >
-                          View
+                          {t('view')}
                         </Button>
                         <Button
                           size="sm"
@@ -411,7 +413,7 @@ export default function SuperAdminPage() {
                             })
                           }
                         >
-                          {entry.is_suspended ? "Unsuspend" : "Suspend"}
+                          {entry.is_suspended ? t('unsuspend') : t('suspendBtn')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -427,11 +429,11 @@ export default function SuperAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('name')}</TableHead>
+                    <TableHead>{t('type')}</TableHead>
+                    <TableHead>{t('members')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead className="text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -442,12 +444,12 @@ export default function SuperAdminPage() {
                       <TableCell>{entry.member_count}</TableCell>
                       <TableCell>
                         <Badge variant={entry.is_suspended ? "destructive" : "success"}>
-                          {entry.is_suspended ? "Suspended" : "Active"}
+                          {entry.is_suspended ? t('suspended') : t('active')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button size="sm" variant="outline" onClick={() => setSelectedMahberId(entry.id)}>
-                          View
+                          {t('view')}
                         </Button>
                         <Button
                           size="sm"
@@ -459,7 +461,7 @@ export default function SuperAdminPage() {
                             })
                           }
                         >
-                          {entry.is_suspended ? "Unsuspend" : "Suspend"}
+                          {entry.is_suspended ? t('unsuspend') : t('suspendBtn')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -475,11 +477,11 @@ export default function SuperAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>TX Ref</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead>{t('txRef')}</TableHead>
+                    <TableHead>{t('type')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead>{t('amount')}</TableHead>
+                    <TableHead>{t('created')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -515,10 +517,10 @@ export default function SuperAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Actor</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead>{t('action')}</TableHead>
+                    <TableHead>{t('entity')}</TableHead>
+                    <TableHead>{t('actor')}</TableHead>
+                    <TableHead>{t('created')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -543,19 +545,19 @@ export default function SuperAdminPage() {
       <Dialog
         isOpen={!!selectedUserId}
         onClose={() => setSelectedUserId(null)}
-        title="User details"
-        description="Full profile and memberships."
+        title={t('userDetails')}
+        description={t('userDetailsDesc')}
       >
         {userDetailsQuery.isLoading ? (
-          <p className="text-sm text-text-secondary">Loading...</p>
+          <p className="text-sm text-text-secondary">{t('loading')}</p>
         ) : userDetailsQuery.data ? (
           <div className="space-y-3 text-sm">
-            <p><span className="text-text-secondary">Name:</span> {userDetailsQuery.data.name}</p>
-            <p><span className="text-text-secondary">Phone:</span> {userDetailsQuery.data.phone}</p>
-            <p><span className="text-text-secondary">Email:</span> {userDetailsQuery.data.email || "-"}</p>
-            <p><span className="text-text-secondary">Bio:</span> {userDetailsQuery.data.bio || "-"}</p>
+            <p><span className="text-text-secondary">{t('name')}:</span> {userDetailsQuery.data.name}</p>
+            <p><span className="text-text-secondary">{t('phone')}:</span> {userDetailsQuery.data.phone}</p>
+            <p><span className="text-text-secondary">{t('email')}:</span> {userDetailsQuery.data.email || "-"}</p>
+            <p><span className="text-text-secondary">{t('bio')}:</span> {userDetailsQuery.data.bio || "-"}</p>
             <div className="pt-2">
-              <p className="font-semibold mb-1">Memberships</p>
+              <p className="font-semibold mb-1">{t('memberships')}</p>
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {(userDetailsQuery.data.memberships ?? []).map((membership) => (
                   <div key={membership.id} className="text-xs p-2 rounded border border-border-glass">
@@ -566,25 +568,25 @@ export default function SuperAdminPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-status-error">No user details found.</p>
+          <p className="text-sm text-status-error">{t('noDetailsFound')}</p>
         )}
       </Dialog>
 
       <Dialog
         isOpen={!!selectedMahberId}
         onClose={() => setSelectedMahberId(null)}
-        title="Organization details"
-        description="Configuration, members, and recent payments."
+        title={t('orgDetails')}
+        description={t('orgDetailsDesc')}
       >
         {mahberDetailsQuery.isLoading ? (
-          <p className="text-sm text-text-secondary">Loading...</p>
+          <p className="text-sm text-text-secondary">{t('loading')}</p>
         ) : mahberDetailsQuery.data ? (
           <div className="space-y-3 text-sm">
-            <p><span className="text-text-secondary">Name:</span> {mahberDetailsQuery.data.name}</p>
-            <p><span className="text-text-secondary">Type:</span> {mahberDetailsQuery.data.type}</p>
-            <p><span className="text-text-secondary">Members:</span> {mahberDetailsQuery.data.members.length}</p>
+            <p><span className="text-text-secondary">{t('name')}:</span> {mahberDetailsQuery.data.name}</p>
+            <p><span className="text-text-secondary">{t('type')}:</span> {mahberDetailsQuery.data.type}</p>
+            <p><span className="text-text-secondary">{t('members')}:</span> {mahberDetailsQuery.data.members.length}</p>
             <div className="pt-2">
-              <p className="font-semibold mb-1">Recent payments</p>
+              <p className="font-semibold mb-1">{t('recentPayments')}</p>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {(mahberDetailsQuery.data.recent_payments ?? []).map((payment) => (
                   <div key={payment.id} className="text-xs p-2 rounded border border-border-glass">
@@ -595,7 +597,7 @@ export default function SuperAdminPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-status-error">No organization details found.</p>
+          <p className="text-sm text-status-error">{t('noDetailsFound')}</p>
         )}
       </Dialog>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import { useRouter } from "next/navigation";
@@ -33,6 +34,7 @@ export default function EventAttendancePage({
   const { id, eventId } = use(params);
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const t = useTranslations("EventAttendance");
 
   const { data: event } = useQuery({
     queryKey: ["mahber-event", id, eventId],
@@ -101,7 +103,7 @@ export default function EventAttendancePage({
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch {
-      toast.error("Failed to export report");
+      toast.error(t('exportFailed'));
     }
   };
 
@@ -132,16 +134,16 @@ export default function EventAttendancePage({
     <div className="space-y-6">
       <Button variant="ghost" onClick={() => router.back()} className="gap-2">
         <ArrowLeft className="w-4 h-4" />
-        Back to Event
+        {t('backToEvent')}
       </Button>
 
       <PageHeader
-        title="Attendance"
-        description={`Track member check-ins for ${event?.title || "this event"}.`}
+        title={t('title')}
+        description={t('description', { event: event?.title || '' })}
       >
         <Button variant="outline" className="gap-2" onClick={handleExportReport}>
           <Download className="w-4 h-4" />
-          Export Report
+          {t('exportReport')}
         </Button>
       </PageHeader>
 
@@ -152,17 +154,16 @@ export default function EventAttendancePage({
             <div className="text-center">
               <Clock className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-semibold text-text-primary mb-2">
-                Event Not Yet Started
+                {t('eventNotStarted')}
               </h3>
               <p className="text-text-secondary max-w-md mx-auto">
-                This event hasn&apos;t started yet. Attendance tracking will be
-                available once the event begins on{" "}
-                {new Date(event.start_time).toLocaleDateString()} at{" "}
-                {new Date(event.start_time).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
+                {t('eventNotStartedDesc', {
+                  date: new Date(event.start_time).toLocaleDateString(),
+                  time: new Date(event.start_time).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
                 })}
-                .
               </p>
             </div>
           </CardContent>
@@ -179,7 +180,7 @@ export default function EventAttendancePage({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-gold" />
-                <h3 className="font-semibold text-text-primary">Attendance Rate</h3>
+                <h3 className="font-semibold text-text-primary">{t('attendanceRate')}</h3>
               </div>
               <span className={`text-2xl font-bold ${analytics.attendance_percentage >= 75 ? 'text-status-success' : analytics.attendance_percentage >= 50 ? 'text-amber-400' : 'text-status-error'}`}>
                 {analytics.attendance_percentage}%
@@ -194,9 +195,9 @@ export default function EventAttendancePage({
               />
             </div>
             <div className="flex justify-between mt-3 text-sm text-text-secondary">
-              <span>{analytics.attended} attended</span>
-              <span>{analytics.absent} absent</span>
-              <span>{analytics.total_members} total</span>
+              <span>{t('attended', { count: analytics.attended })}</span>
+              <span>{t('absent', { count: analytics.absent })}</span>
+              <span>{t('total', { count: analytics.total_members })}</span>
             </div>
           </CardContent>
         </Card>
@@ -208,7 +209,7 @@ export default function EventAttendancePage({
           <CardHeader>
             <CardTitle className="text-sm font-medium text-text-primary flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-gold" />
-              Monthly Attendance Trends
+              {t('monthlyTrends')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -238,7 +239,13 @@ export default function EventAttendancePage({
             </div>
             <div className="flex items-center gap-4 mt-4 text-xs text-text-secondary">
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-status-success inline-block" /> Good (≥75%)
+                <span className="w-2 h-2 rounded-full bg-status-success inline-block" /> {t('good')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> {t('fair')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-status-error inline-block" /> {t('low')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Fair (50-74%)
@@ -257,7 +264,7 @@ export default function EventAttendancePage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-text-secondary">Total Check-ins</p>
+                <p className="text-sm text-text-secondary">{t('totalCheckins')}</p>
                 <p className="text-2xl font-bold text-text-primary">
                   {isLoading ? "--" : totalAttendees}
                 </p>
@@ -273,7 +280,7 @@ export default function EventAttendancePage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-text-secondary">Morning</p>
+                <p className="text-sm text-text-secondary">{t('morning')}</p>
                 <p className="text-2xl font-bold text-text-primary">
                   {isLoading ? "--" : morningCount}
                 </p>
@@ -289,7 +296,7 @@ export default function EventAttendancePage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-text-secondary">Afternoon</p>
+                <p className="text-sm text-text-secondary">{t('afternoon')}</p>
                 <p className="text-2xl font-bold text-text-primary">
                   {isLoading ? "--" : afternoonCount}
                 </p>
@@ -305,7 +312,7 @@ export default function EventAttendancePage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-text-secondary">Evening</p>
+                <p className="text-sm text-text-secondary">{t('evening')}</p>
                 <p className="text-2xl font-bold text-text-primary">
                   {isLoading ? "--" : eveningCount}
                 </p>
@@ -322,7 +329,7 @@ export default function EventAttendancePage({
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-text-secondary">Absent</p>
+                  <p className="text-sm text-text-secondary">{t('absentTitle')}</p>
                   <p className="text-2xl font-bold text-text-primary">
                     {isAbsenteesLoading ? "--" : absentMembers.length}
                   </p>
@@ -341,7 +348,7 @@ export default function EventAttendancePage({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <Input
-            placeholder="Search by name or phone..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -349,7 +356,7 @@ export default function EventAttendancePage({
         </div>
         <Button variant="outline" className="gap-2">
           <Filter className="w-4 h-4" />
-          Filter
+          {t('filter')}
         </Button>
       </div>
 
@@ -357,10 +364,10 @@ export default function EventAttendancePage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            Check-in List
+            {t('checkinList')}
             {totalAttendees > 0 && !isAttendanceError && (
               <Badge variant="secondary" className="ml-2">
-                {totalAttendees} members
+                {t('members', { count: totalAttendees })}
               </Badge>
             )}
           </CardTitle>
@@ -370,7 +377,7 @@ export default function EventAttendancePage({
             <div className="text-center py-12">
               <AlertCircle className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
               <p className="text-text-secondary">
-                Attendance list is not available for this event.
+                {t('listUnavailable')}
               </p>
             </div>
           ) : isLoading ? (
@@ -391,8 +398,8 @@ export default function EventAttendancePage({
               <User className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
               <p className="text-text-secondary">
                 {searchQuery
-                  ? "No members found matching your search."
-                  : "No check-ins recorded yet."}
+                  ? t('noSearchResults')
+                  : t('noCheckins')}
               </p>
               {searchQuery && (
                 <Button
@@ -400,7 +407,7 @@ export default function EventAttendancePage({
                   onClick={() => setSearchQuery("")}
                   className="mt-2 text-gold"
                 >
-                  Clear search
+                  {t('clearSearch')}
                 </Button>
               )}
             </div>
@@ -423,17 +430,17 @@ export default function EventAttendancePage({
                     </div>
                     <div>
                       <p className="font-medium text-text-primary">
-                        {record.user?.name || "Unknown Member"}
+                        {record.user?.name || t('unknownMember')}
                       </p>
                       <p className="text-sm text-text-muted">
-                        {record.user?.phone || "No phone"}
+                        {record.user?.phone || t('noPhone')}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <Badge variant="success" className="gap-1">
                       <CheckCircle className="w-3 h-3" />
-                      Checked In
+                      {t('checkedIn')}
                     </Badge>
                     <p className="text-xs text-text-muted mt-1">
                       {new Date(record.checked_in_at).toLocaleTimeString([], {
@@ -454,10 +461,10 @@ export default function EventAttendancePage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              Absent Members
+              {t('absentMembers')}
               {absentMembers.length > 0 && (
                 <Badge variant="destructive" className="ml-2">
-                  {absentMembers.length} members
+                  {t('members', { count: absentMembers.length })}
                 </Badge>
               )}
             </CardTitle>
@@ -481,8 +488,8 @@ export default function EventAttendancePage({
                 <AlertCircle className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
                 <p className="text-text-secondary">
                   {searchQuery
-                    ? "No absent members found matching your search."
-                    : "No absences recorded for this event."}
+                    ? t('noAbsentSearch')
+                    : t('noAbsences')}
                 </p>
               </div>
             ) : (
@@ -504,17 +511,17 @@ export default function EventAttendancePage({
                       </div>
                       <div>
                         <p className="font-medium text-text-primary">
-                          {member.user?.name || "Unknown Member"}
+                          {member.user?.name || t('unknownMember')}
                         </p>
                         <p className="text-sm text-text-muted">
-                          {member.user?.phone || "No phone"}
+                          {member.user?.phone || t('noPhone')}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <Badge variant="destructive" className="gap-1">
                         <AlertCircle className="w-3 h-3" />
-                        Absent
+                        {t('absentLabel')}
                       </Badge>
                     </div>
                   </div>

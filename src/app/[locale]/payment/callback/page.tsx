@@ -2,11 +2,13 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { CheckCircle, XCircle, Loader2, ArrowRight, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 function PaymentCallbackContent() {
+  const t = useTranslations("PaymentCallback");
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -53,10 +55,10 @@ function PaymentCallbackContent() {
             <>
               <Loader2 className="w-16 h-16 text-gold animate-spin mb-6" />
               <h2 className="text-2xl font-bold text-text-primary mb-2">
-                Verifying Payment
+                {t('verifying')}
               </h2>
               <p className="text-text-secondary">
-                Please wait while we confirm your transaction with Chapa...
+                {t('verifyingDesc')}
               </p>
             </>
           )}
@@ -67,14 +69,14 @@ function PaymentCallbackContent() {
                 <CheckCircle className="w-12 h-12 text-status-success" />
               </div>
               <h2 className="text-2xl font-bold text-text-primary mb-2">
-                Payment Successful!
+                {t('success')}
               </h2>
               <p className="text-text-secondary mb-1">
-                Your payment has been confirmed and recorded.
+                {t('successDesc')}
               </p>
               {tx_ref && (
                 <p className="text-xs text-text-muted font-mono mt-2">
-                  Ref: {tx_ref.slice(0, 20)}...
+                  {t('ref', { ref: tx_ref.slice(0, 20) })}
                 </p>
               )}
             </>
@@ -86,11 +88,10 @@ function PaymentCallbackContent() {
                 <XCircle className="w-12 h-12 text-status-error" />
               </div>
               <h2 className="text-2xl font-bold text-text-primary mb-2">
-                Payment Failed
+                {t('failed')}
               </h2>
               <p className="text-text-secondary">
-                We couldn&apos;t confirm your transaction. Please try again or
-                contact support if the issue persists.
+                {t('failedDesc')}
               </p>
             </>
           )}
@@ -109,7 +110,7 @@ function PaymentCallbackContent() {
                 }
                 className="w-full"
               >
-                Go to Finances
+                {t('goToFinances')}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <Button
@@ -117,7 +118,7 @@ function PaymentCallbackContent() {
                 onClick={() => router.push("/dashboard")}
                 className="w-full"
               >
-                Return to Dashboard
+                {t('returnToDashboard')}
               </Button>
             </>
           )}
@@ -135,7 +136,7 @@ function PaymentCallbackContent() {
                 className="w-full"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Try Again
+                {t('tryAgain')}
               </Button>
               <Button
                 variant="outline"

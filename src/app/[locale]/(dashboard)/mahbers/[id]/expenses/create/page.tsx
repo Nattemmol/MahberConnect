@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -14,36 +15,37 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ExpenseCategory } from "@/lib/types";
 
-const expenseSchema = z.object({
-  amount: z
-    .number({ error: "Amount is required" })
-    .positive("Amount must be greater than 0"),
-  reason: z
-    .string()
-    .min(3, "Reason must be at least 3 characters")
-    .max(500, "Reason is too long"),
-  category: z.enum(["Operational", "Maintenance", "Event", "Other"], {
-    error: "Category is required",
-  }),
-});
-
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
-
-const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
-  { value: "Operational", label: "Operational" },
-  { value: "Maintenance", label: "Maintenance" },
-  { value: "Event", label: "Event" },
-  { value: "Other", label: "Other" },
-];
-
 export default function CreateExpensePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations("CreateExpense");
   const { id } = use(params);
   const router = useRouter();
   const { user } = useAuthStore();
+
+  const expenseSchema = z.object({
+    amount: z
+      .number({ error: t('amountRequired') })
+      .positive(t('amountPositive')),
+    reason: z
+      .string()
+      .min(3, t('reasonTooShort'))
+      .max(500, t('reasonTooLong')),
+    category: z.enum(["Operational", "Maintenance", "Event", "Other"], {
+      error: t('categoryRequired'),
+    }),
+  });
+
+  type ExpenseFormValues = z.infer<typeof expenseSchema>;
+
+  const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
+    { value: "Operational", label: t('operational') },
+    { value: "Maintenance", label: t('maintenance') },
+    { value: "Event", label: t('event') },
+    { value: "Other", label: t('other') },
+  ];
 
   const { data: membersResponse } = useQuery({
     queryKey: ["mahber-members-check", id],
@@ -86,12 +88,12 @@ export default function CreateExpensePage({
         reason: data.reason,
         category: data.category,
       });
-      toast.success("Expense recorded successfully!");
+      toast.success(t('recordSuccess'));
       router.push(`/mahbers/${id}/payments`);
     } catch (err) {
       const error = err as any;
       const data = error.response?.data;
-      let serverMsg = "Failed to record expense";
+      let serverMsg = t('recordFailed');
       if (typeof data === "string") {
         serverMsg = data;
       } else if (data?.message) {
@@ -109,14 +111,13 @@ export default function CreateExpensePage({
     return (
       <div className="max-w-2xl mx-auto">
         <PageHeader
-          title="Record Expense"
-          description="Record a new expense or debit for this community."
+          title={t('title')}
+          description={t('description')}
         />
         <Card>
           <CardContent className="pt-6 text-center py-12">
             <p className="text-text-secondary text-lg">
-              You do not have permission to record expenses. Only admins and
-              finance managers can create expenses.
+              {t('noPermission')}
             </p>
           </CardContent>
         </Card>
@@ -127,8 +128,8 @@ export default function CreateExpensePage({
   return (
     <div className="max-w-2xl mx-auto">
       <PageHeader
-        title="Record Expense"
-        description="Record a new expense or debit for this community."
+        title={t('title')}
+        description={t('description')}
       />
 
       <Card>
@@ -136,13 +137,13 @@ export default function CreateExpensePage({
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Amount (ETB)
+                {t('amount')}
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0.01"
-                placeholder="e.g. 1500"
+                placeholder={t('amountPlaceholder')}
                 {...register("amount", { valueAsNumber: true })}
                 className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.amount ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors`}
               />
@@ -155,10 +156,10 @@ export default function CreateExpensePage({
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Reason
+                {t('reason')}
               </label>
               <textarea
-                placeholder="Describe the reason for this expense..."
+                placeholder={t('reasonPlaceholder')}
                 rows={4}
                 {...register("reason")}
                 className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.reason ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors resize-none`}
@@ -172,7 +173,7 @@ export default function CreateExpensePage({
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Category
+                {t('category')}
               </label>
               <select
                 value={categoryValue}
@@ -183,7 +184,7 @@ export default function CreateExpensePage({
                 }}
                 className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.category ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none`}
               >
-                <option value="">Select a category...</option>
+                <option value="">{t('selectCategory')}</option>
                 {CATEGORIES.map((cat) => (
                   <option key={cat.value} value={cat.value}>
                     {cat.label}
@@ -204,14 +205,14 @@ export default function CreateExpensePage({
                 className="flex-1 border-border-glass text-text-secondary hover:text-text-primary"
                 onClick={() => router.back()}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 type="submit"
                 className="flex-1 bg-gold hover:bg-gold-dark text-black font-medium"
                 isLoading={isSubmitting}
               >
-                Record Expense
+                {t('recordExpense')}
               </Button>
             </div>
           </form>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -32,6 +33,7 @@ export default function EventPhotosPage({
   const { id, eventId } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("EventPhotos");
   const [showUpload, setShowUpload] = useState(false);
   const [caption, setCaption] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -95,16 +97,14 @@ export default function EventPhotosPage({
           (res as UploadResponse<EventPhoto>).data.length;
       else uploadedCount = 1;
 
-      toast.success(
-        `${uploadedCount} photo${uploadedCount !== 1 ? "s" : ""} uploaded successfully!`,
-      );
+      toast.success(t('uploadSuccess', { count: uploadedCount }));
       setShowUpload(false);
       setCaption("");
       setSelectedFiles([]);
       setPreviewUrls([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    onError: () => toast.error("Failed to upload photo"),
+    onError: () => toast.error(t('uploadFailed')),
   });
 
   const deleteMutation = useMutation({
@@ -114,11 +114,11 @@ export default function EventPhotosPage({
       queryClient.invalidateQueries({
         queryKey: ["event-photos", id, eventId],
       });
-      toast.success("Photo deleted successfully!");
+      toast.success(t('deleteSuccess'));
       setShowDeleteDialog(false);
       setPhotoToDelete(null);
     },
-    onError: () => toast.error("Failed to delete photo"),
+    onError: () => toast.error(t('deleteFailed')),
   });
 
   const canDeletePhoto = (photo: EventPhoto) => {
@@ -200,9 +200,7 @@ export default function EventPhotosPage({
 
       if (accepted.length > MAX_FILES) {
         accepted.splice(MAX_FILES);
-        toast.error(
-          `Only the first ${MAX_FILES} files will be uploaded (max ${MAX_FILES}).`,
-        );
+        toast.error(t('maxFiles', { max: MAX_FILES }));
       }
 
       if (rejected.length > 0) {
@@ -210,8 +208,9 @@ export default function EventPhotosPage({
           .slice(0, 5)
           .map((r) => `${r.name} (${r.reason})`)
           .join(", ");
+        const moreCount = rejected.length - 5;
         toast.error(
-          `Some files were rejected: ${msg}${rejected.length > 5 ? ` (+${rejected.length - 5} more)` : ""}`,
+          t('filesRejected', { details: msg }) + (moreCount > 0 ? t('moreRejected', { count: moreCount }) : ""),
         );
       }
 
@@ -241,12 +240,12 @@ export default function EventPhotosPage({
     <div className="space-y-6">
       <Button variant="ghost" onClick={() => router.back()} className="gap-2">
         <ArrowLeft className="w-4 h-4" />
-        Back to Event
+        {t('backToEvent')}
       </Button>
 
       <PageHeader
-        title={`${event?.title || "Event"} Photos`}
-        description="View and share memories from this event."
+        title={t('title', { event: event?.title || '' })}
+        description={t('description')}
       >
         <Button
           onClick={() => setShowUpload(true)}
@@ -254,7 +253,7 @@ export default function EventPhotosPage({
           disabled={!isEventOngoing}
         >
           <Upload className="w-4 h-4" />
-          Upload Photo
+          {t('uploadPhoto')}
         </Button>
       </PageHeader>
 
@@ -268,7 +267,7 @@ export default function EventPhotosPage({
         <div className="text-center py-16 glass rounded-card">
           <ImageIcon className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
           <p className="text-text-secondary text-lg">
-            No photos have been uploaded yet.
+            {t('noPhotos')}
           </p>
           <Button
             variant="link"
@@ -276,7 +275,7 @@ export default function EventPhotosPage({
             className="mt-2 text-gold"
             disabled={!isEventOngoing}
           >
-            Be the first to share a memory!
+            {t('beFirst')}
           </Button>
         </div>
       ) : (
@@ -312,7 +311,7 @@ export default function EventPhotosPage({
                         {photo.caption}
                       </p>
                       <p className="text-white/70 text-xs mt-1">
-                        By {photo.user?.name || "Unknown"}
+                        {t('by', { name: photo.user?.name || t('unknown') })}
                       </p>
                     </div>
                   </div>
@@ -325,9 +324,11 @@ export default function EventPhotosPage({
           {photosResponse.meta && photosResponse.meta.totalPages > 1 && (
             <div className="flex items-center justify-between py-4 border-t border-border-glass">
               <div className="text-sm text-text-muted">
-                Showing {(currentPage - 1) * pageSize + 1} to{" "}
-                {Math.min(currentPage * pageSize, photosResponse.meta.total)} of{" "}
-                {photosResponse.meta.total} photos
+                {t('showingEntries', {
+                  start: (currentPage - 1) * pageSize + 1,
+                  end: Math.min(currentPage * pageSize, photosResponse.meta.total),
+                  total: photosResponse.meta.total
+                })}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -337,7 +338,7 @@ export default function EventPhotosPage({
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Prev
+                  {t('prev')}
                 </Button>
                 <div className="flex items-center gap-1">
                   {Array.from(
@@ -365,7 +366,7 @@ export default function EventPhotosPage({
                   }
                   disabled={currentPage === photosResponse.meta.totalPages}
                 >
-                  Next
+                  {t('next')}
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -377,7 +378,7 @@ export default function EventPhotosPage({
       <Dialog
         isOpen={showUpload}
         onClose={() => setShowUpload(false)}
-        title="Upload Photo"
+        title={t('uploadTitle')}
       >
         <div className="space-y-6">
           <div
@@ -410,7 +411,7 @@ export default function EventPhotosPage({
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-text-primary">
-                    {selectedFiles.length} photo(s) selected
+                    {t('photosSelected', { count: selectedFiles.length })}
                   </p>
                   <Button
                     variant="ghost"
@@ -420,7 +421,7 @@ export default function EventPhotosPage({
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                   >
-                    Clear
+                    {t('clear')}
                   </Button>
                 </div>
               </div>
@@ -428,10 +429,10 @@ export default function EventPhotosPage({
               <div className="flex flex-col items-center">
                 <Upload className="w-8 h-8 text-text-muted mb-2" />
                 <p className="text-sm font-medium text-text-primary">
-                  Click to select photos
+                  {t('clickToSelect')}
                 </p>
                 <p className="text-xs text-text-muted mt-1">
-                  JPG, PNG, up to 10MB each
+                  {t('fileTypes')}
                 </p>
               </div>
             )}
@@ -439,10 +440,10 @@ export default function EventPhotosPage({
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">
-              Caption (Optional)
+              {t('caption')}
             </label>
             <Input
-              placeholder="Write a short description..."
+              placeholder={t('captionPlaceholder')}
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
             />
@@ -450,14 +451,14 @@ export default function EventPhotosPage({
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border-glass">
             <Button variant="ghost" onClick={() => setShowUpload(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleUploadClick}
               isLoading={uploadMutation.isPending}
               disabled={uploadMutation.isPending || selectedFiles.length === 0}
             >
-              Upload
+              {t('upload')}
             </Button>
           </div>
         </div>
@@ -470,8 +471,8 @@ export default function EventPhotosPage({
           setShowDeleteDialog(false);
           setPhotoToDelete(null);
         }}
-        title="Delete Photo"
-        description="Are you sure you want to delete this photo? This action cannot be undone."
+        title={t('deleteTitle')}
+        description={t('deleteDesc')}
       >
         <div className="flex flex-col gap-4 py-4">
           {photoToDelete && (
@@ -496,7 +497,7 @@ export default function EventPhotosPage({
                 setPhotoToDelete(null);
               }}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -505,7 +506,7 @@ export default function EventPhotosPage({
               }
               isLoading={deleteMutation.isPending}
             >
-              Delete
+              {t('delete')}
             </Button>
           </div>
         </div>
