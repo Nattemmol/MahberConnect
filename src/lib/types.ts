@@ -422,6 +422,7 @@ export type CreatePollDto = {
 
 // ── Expenses ────────────────────────────────────────────────────────────────
 export type ExpenseCategory = "Operational" | "Maintenance" | "Event" | "Other";
+export type ExpenseStatus = "Pending" | "Rejected" | "Paid" | "Failed";
 
 export type Expense = {
   id: string;
@@ -429,16 +430,31 @@ export type Expense = {
   amount: number;
   reason: string;
   category: ExpenseCategory;
+  status: ExpenseStatus;
   created_by: string;
+  approved_by?: string;
+  approved_at?: string;
+  rejection_reason?: string;
+  recipient_name: string;
+  recipient_account_type: string;
+  recipient_account: string;
+  recipient_bank_code?: string;
+  chapa_transfer_ref?: string;
+  chapa_transfer_status?: string;
   created_at: string;
   updated_at: string;
   creator?: User;
+  approver?: User;
 };
 
 export type CreateExpenseDto = {
   amount: number;
   reason: string;
   category: ExpenseCategory;
+  recipient_name: string;
+  recipient_account_type: "bank" | "telebirr";
+  recipient_account: string;
+  recipient_bank_code?: string;
 };
 
 // ── Payouts ─────────────────────────────────────────────────────────────────
@@ -470,6 +486,16 @@ export type PayoutSummary = {
   total_count: number;
   category_breakdown: { category: PayoutCategory; amount: number; count: number }[];
   recent: Payout[];
+};
+
+// ── Chapa Banks ──────────────────────────────────────────────────────────────
+export type Bank = {
+  id: number;
+  code: string | number;
+  name: string;
+  swift?: string;
+  acc_no_length?: number;
+  is_mobile_money?: boolean;
 };
 
 // ── Fines & Lottery ──────────────────────────────────────────────────────────

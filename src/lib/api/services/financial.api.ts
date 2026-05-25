@@ -1,5 +1,5 @@
 import { apiClient } from '../client';
-import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations, PaymentQueryParams, Expense, CreateExpenseDto, Payout, CreatePayoutDto, PayoutSummary } from '@/lib/types';
+import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations, PaymentQueryParams, Expense, CreateExpenseDto, Payout, CreatePayoutDto, PayoutSummary, Bank } from '@/lib/types';
 import { auditApi } from './audit.api';
 
 export const financialApi = {
@@ -127,6 +127,21 @@ export const financialApi = {
     return response.data;
   },
 
+  getPendingExpenses: async (mahberId: string): Promise<PaginatedResponse<Expense>> => {
+    const response = await apiClient.get<PaginatedResponse<Expense>>(`/mahbers/${mahberId}/expenses/pending`);
+    return response.data;
+  },
+
+  approveExpense: async (mahberId: string, expenseId: string): Promise<Expense> => {
+    const response = await apiClient.post<Expense>(`/mahbers/${mahberId}/expenses/${expenseId}/approve`);
+    return response.data;
+  },
+
+  rejectExpense: async (mahberId: string, expenseId: string, reason: string): Promise<Expense> => {
+    const response = await apiClient.post<Expense>(`/mahbers/${mahberId}/expenses/${expenseId}/reject`, { reason });
+    return response.data;
+  },
+
   // ── Payouts ─────────────────────────────────────────────────────────────────
   getPayouts: async (mahberId: string): Promise<PaginatedResponse<Payout>> => {
     const response = await apiClient.get<PaginatedResponse<Payout>>(`/mahbers/${mahberId}/payouts`);
@@ -184,6 +199,12 @@ export const financialApi = {
       },
     );
     return response.data as Blob;
+  },
+
+  // ── Chapa Banks ──────────────────────────────────────────────────────────────
+  getBanks: async (): Promise<Bank[]> => {
+    const response = await apiClient.get<Bank[]>('/chapa/banks');
+    return response.data;
   },
 
   // ── Audit ───────────────────────────────────────────────────────────────────
