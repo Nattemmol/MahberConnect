@@ -9,6 +9,7 @@ import { mahberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import type { PaymentFrequency } from "@/lib/types";
 
 const createMahberSchema = z.object({
   name: z
@@ -22,6 +23,7 @@ const createMahberSchema = z.object({
       .min(1, "Contribution amount must be greater than 0"),
     cycle: z.string().min(1, "Contribution cycle is required"),
     payment_frequency: z.string().optional(),
+    payment_day: z.number().optional(),
     join_fee_required: z.boolean(),
     join_fee_amount: z.number().min(0),
     penalty_rate: z.number().min(0),
@@ -41,6 +43,7 @@ export default function CreateMahberPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateMahberValues>({
     resolver: zodResolver(createMahberSchema),
@@ -51,6 +54,7 @@ export default function CreateMahberPage() {
         contribution_amount: 500,
         cycle: "Monthly",
         payment_frequency: "Monthly",
+        payment_day: 1,
         join_fee_required: false,
         join_fee_amount: 0,
         penalty_rate: 0,
@@ -62,6 +66,8 @@ export default function CreateMahberPage() {
     },
   });
 
+  const watchConfigurationCycle = watch("configuration.cycle");
+
   const onSubmit = async (data: CreateMahberValues) => {
     try {
       const payload = {
@@ -70,7 +76,7 @@ export default function CreateMahberPage() {
         configuration: {
           ...data.configuration,
           payment_frequency:
-            data.configuration.payment_frequency ?? data.configuration.cycle,
+            (data.configuration.payment_frequency as PaymentFrequency) ?? (data.configuration.cycle as PaymentFrequency),
         },
       };
       const newMahber = await mahberService.createMahber(payload);
@@ -170,6 +176,44 @@ export default function CreateMahberPage() {
                 )}
               </div>
             </div>
+
+            {watchConfigurationCycle === 'Weekly' ? (
+              <div className="grid gap-4 sm:grid-cols-1">
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">
+                    Payment Day of Week
+                  </label>
+                  <select
+                    {...register("configuration.payment_day", { valueAsNumber: true })}
+                    className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
+                  >
+                    <option value={1}>Monday</option>
+                    <option value={2}>Tuesday</option>
+                    <option value={3}>Wednesday</option>
+                    <option value={4}>Thursday</option>
+                    <option value={5}>Friday</option>
+                    <option value={6}>Saturday</option>
+                    <option value={0}>Sunday</option>
+                  </select>
+                </div>
+              </div>
+            ) : watchConfigurationCycle === 'Monthly' || watchConfigurationCycle === 'Quarterly' ? (
+              <div className="grid gap-4 sm:grid-cols-1">
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">
+                    Payment Day of Month
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    placeholder="e.g. 5"
+                    {...register("configuration.payment_day", { valueAsNumber: true })}
+                    className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors"
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex items-center justify-between p-4 border border-border-glass rounded-input bg-background-dark/30">

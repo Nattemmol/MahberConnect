@@ -19,6 +19,7 @@ export type MahberConfiguration = {
   cycle: string;
   contribution_amount: number;
   payment_frequency?: PaymentFrequency;
+  payment_day?: number;
   join_fee_required?: boolean;
   join_fee_amount?: number;
   penalty_rate?: number;
