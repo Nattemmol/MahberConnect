@@ -114,10 +114,11 @@ export default function CreateEventPage({
 
   const onSubmit = async (data: EventFormValues) => {
     try {
-      await eventService.createEvent(id, {
-        ...data,
-        host_id: selectedHostId || undefined,
-      });
+      const payload = { ...data, host_id: selectedHostId || undefined };
+      if (payload.recurrence_pattern === "None") {
+        delete payload.recurrence_end_date;
+      }
+      await eventService.createEvent(id, payload);
       toast.success("Event created successfully!");
       router.push(`/mahbers/${id}/events`);
     } catch (error: unknown) {
