@@ -18,6 +18,9 @@ import {
   List,
   Zap,
   QrCode,
+  Mail,
+  CheckSquare,
+  XSquare,
 } from "lucide-react";
 import { QRScanner } from "@/components/ui/qr-scanner";
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -31,9 +34,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QRCode } from "@/components/ui/qrcode";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { use, useState } from "react";
+
+import { use, useState, useMemo } from "react";
 import toast from "react-hot-toast";
 import { canManageEvents } from "@/lib/utils";
+import type { EventInvitation } from "@/lib/types";
 
 export default function EventDetailPage({
   params,
@@ -50,6 +55,8 @@ export default function EventDetailPage({
   const [showScanner, setShowScanner] = useState(false);
   const [showManualDialog, setShowManualDialog] = useState(false);
   const [manualToken, setManualToken] = useState("");
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const { user } = useAuthStore();
 
   const { data: currentMember } = useQuery({
@@ -63,6 +70,54 @@ export default function EventDetailPage({
     queryKey: ["mahber-event", id, eventId],
     queryFn: () => eventService.getEventById(id, eventId),
   });
+
+  const { data: members } = useQuery({
+    queryKey: ["mahber-members", id],
+    queryFn: () => memberService.getMembers(id),
+    enabled: canManageEventsValue,
+  });
+
+  const { data: invitations, refetch: refetchInvitations } = useQuery({
+    queryKey: ["event-invitations", id, eventId],
+    queryFn: () => eventService.getInvitations(id, eventId),
+    enabled: canManageEventsValue && !!event,
+  });
+
+  const { data: myInvitations, refetch: refetchMyInvitations } = useQuery({
+    queryKey: ["my-event-invitations", id, eventId, user?.id],
+    queryFn: async () => {
+      const all = await eventService.getMyInvitations(id);
+      return all.filter((inv) => inv.event_id === eventId);
+    },
+    enabled: !!user?.id && !!event && !canManageEventsValue,
+  });
+
+  const myRegistration = useMemo(() => {
+    if (!myInvitations) return null;
+    const accepted = myInvitations.find((inv) => inv.status === "Accepted");
+    const pending = myInvitations.find((inv) => inv.status === "Pending");
+    const declined = myInvitations.find((inv) => inv.status === "Declined");
+    if (accepted) return { status: "registered" as const, invitation: accepted };
+    if (pending) return { status: "invited" as const, invitation: pending };
+    if (declined) return { status: "declined" as const, invitation: declined };
+    return null;
+  }, [myInvitations]);
+
+  const invitationSummary = useMemo(() => {
+    if (!invitations) return null;
+    const total = invitations.length;
+    const accepted = invitations.filter((i) => i.status === "Accepted").length;
+    const declined = invitations.filter((i) => i.status === "Declined").length;
+    const pending = invitations.filter((i) => i.status === "Pending").length;
+    return { total, accepted, declined, pending };
+  }, [invitations]);
+
+  const activeMembers = useMemo(() => {
+    if (!members?.data) return [];
+    return members.data.filter(
+      (m: any) => m.status === "Active" || m.status === "Active",
+    );
+  }, [members]);
 
   const { data: qrCode, isLoading: isQRLoading } = useQuery({
     queryKey: ["event-qr", id, eventId],
@@ -140,6 +195,84 @@ export default function EventDetailPage({
     onError: () => toast.error("Failed to process attendance"),
   });
 
+  const sendInvitationsMutation = useMutation({
+    mutationFn: (memberIds: string[]) =>
+      eventService.sendInvitations(id, eventId, memberIds),
+    onSuccess: (data) => {
+      toast.success(
+        `Invitations sent to ${data.invited} member(s). ${data.already_invited} already invited.`,
+      );
+      setShowInviteDialog(false);
+      setSelectedMemberIds([]);
+      refetchInvitations();
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to send invitations");
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: () => eventService.registerForEvent(id, eventId),
+    onSuccess: () => {
+      toast.success("You have registered for this event!");
+      refetchMyInvitations();
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to register for event");
+    },
+  });
+
+  const cancelRegistrationMutation = useMutation({
+    mutationFn: () => eventService.cancelRegistration(id, eventId),
+    onSuccess: () => {
+      toast.success("Registration cancelled");
+      refetchMyInvitations();
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to cancel registration");
+    },
+  });
+
+  const respondInvitationMutation = useMutation({
+    mutationFn: ({
+      invitationId,
+      action,
+    }: {
+      invitationId: string;
+      action: "accept" | "decline";
+    }) => eventService.respondToInvitation(id, eventId, invitationId, action),
+    onSuccess: () => {
+      toast.success("Response recorded");
+      refetchMyInvitations();
+      queryClient.invalidateQueries({
+        queryKey: ["event-invitations", id, eventId],
+      });
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error);
+      toast.error(message ?? "Failed to respond to invitation");
+    },
+  });
+
+  const handleSendInvitations = () => {
+    if (selectedMemberIds.length === 0) {
+      toast.error("Please select at least one member");
+      return;
+    }
+    sendInvitationsMutation.mutate(selectedMemberIds);
+  };
+
+  const toggleMember = (memberId: string) => {
+    setSelectedMemberIds((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId],
+    );
+  };
+
   if (isEventLoading) {
     return (
       <div className="space-y-6">
@@ -194,6 +327,17 @@ export default function EventDetailPage({
                 </Button>
               )}
             </>
+          )}
+          {/* Admin: Send Invitations */}
+          {canManageEventsValue && !event.is_cancelled && !isPastEvent && (
+            <Button
+              variant="outline"
+              onClick={() => setShowInviteDialog(true)}
+              className="gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              Send Invitations
+            </Button>
           )}
           {/* Admin: Event QR Code */}
           {canManageEventsValue && !isPastEvent && !event.is_cancelled && (
@@ -308,9 +452,76 @@ export default function EventDetailPage({
             <CardContent>
               {!isPastEvent && !event.is_cancelled ? (
                 <div className="space-y-4">
-                  {/* User Check-in: Generate Personal QR */}
                   {!canManageEventsValue ? (
                     <>
+                      {/* RSVP / Registration */}
+                      {myRegistration?.status === "registered" ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-status-success text-sm font-medium">
+                            <CheckCircle className="w-4 h-4" />
+                            You are registered for this event
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="w-full gap-2"
+                            onClick={() => cancelRegistrationMutation.mutate()}
+                            isLoading={cancelRegistrationMutation.isPending}
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Cancel Registration
+                          </Button>
+                        </div>
+                      ) : myRegistration?.status === "invited" ? (
+                        <div className="space-y-3">
+                          <p className="text-sm text-text-muted">
+                            You have been invited. Let us know if you can attend.
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              className="flex-1 gap-1"
+                              size="sm"
+                              onClick={() => {
+                                const inv = myRegistration.invitation;
+                                eventService.respondToInvitation(id, eventId, inv.id, "accept")
+                                  .then(() => { toast.success("Invitation accepted!"); refetchMyInvitations(); })
+                                  .catch((e) => toast.error(getErrorMessage(e) ?? "Failed to respond"));
+                              }}
+                            >
+                              <CheckSquare className="w-3 h-3" />
+                              Accept
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-1"
+                              onClick={() => {
+                                const inv = myRegistration.invitation;
+                                eventService.respondToInvitation(id, eventId, inv.id, "decline")
+                                  .then(() => { toast.success("Invitation declined"); refetchMyInvitations(); })
+                                  .catch((e) => toast.error(getErrorMessage(e) ?? "Failed to respond"));
+                              }}
+                            >
+                              <XSquare className="w-3 h-3" />
+                              Decline
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-sm text-text-muted">
+                            Register to let the organizer know you will attend.
+                          </p>
+                          <Button
+                            className="w-full gap-2"
+                            onClick={() => registerMutation.mutate()}
+                            isLoading={registerMutation.isPending}
+                          >
+                            <CheckSquare className="w-4 h-4" />
+                            Register for Event
+                          </Button>
+                        </div>
+                      )}
+                      <hr className="border-border-glass" />
                       <p className="text-sm text-text-muted">
                         Generate your personal QR code to check in at the event.
                       </p>
@@ -323,7 +534,6 @@ export default function EventDetailPage({
                       </Button>
                     </>
                   ) : (
-                    /* Admin Check-in: Scanner & Manual */
                     <>
                       <p className="text-sm text-text-muted">
                         Scan member QR codes or use manual check-in below.
@@ -357,6 +567,38 @@ export default function EventDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {/* Invitations Card — Admin */}
+          {canManageEventsValue && invitationSummary && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-text-secondary">
+                  Invitations
+                </CardTitle>
+                <Mail className="h-4 w-4 text-gold" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-secondary">Sent</span>
+                    <span className="font-semibold">{invitationSummary.total}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-status-success">Accepted</span>
+                    <span className="font-semibold">{invitationSummary.accepted}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-status-error">Declined</span>
+                    <span className="font-semibold">{invitationSummary.declined}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-status-warning">Pending</span>
+                    <span className="font-semibold">{invitationSummary.pending}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="bg-gradient-to-br from-gold/10 to-background-dark">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -439,6 +681,86 @@ export default function EventDetailPage({
               isLoading={processAttendanceMutation.isPending}
             >
               Process Fines
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Send Invitations Dialog */}
+      <Dialog
+        isOpen={showInviteDialog}
+        onClose={() => {
+          setShowInviteDialog(false);
+          setSelectedMemberIds([]);
+        }}
+        title="Send Event Invitations"
+        description="Select members to invite to this event. Invitations will be sent via in-app, push, email, and SMS."
+      >
+        <div className="flex flex-col gap-4 py-4 max-h-80 overflow-y-auto">
+          {activeMembers.length === 0 ? (
+            <p className="text-sm text-text-secondary text-center py-8">
+              No active members to invite.
+            </p>
+          ) : (
+            activeMembers.map((member: any) => (
+              <label
+                key={member.member_id}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-active cursor-pointer"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleMember(member.member_id)}
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    selectedMemberIds.includes(member.member_id)
+                      ? "bg-gold border-gold text-white"
+                      : "border-border-glass hover:border-gold/50"
+                  }`}
+                >
+                  {selectedMemberIds.includes(member.member_id) && (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-text-primary">
+                    {member.user?.name ?? "Unknown Member"}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {member.user?.phone ?? ""}
+                  </p>
+                </div>
+                {member.role_name && (
+                  <Badge variant="outline" className="text-xs">
+                    {member.role_name}
+                  </Badge>
+                )}
+              </label>
+            ))
+          )}
+        </div>
+        <div className="flex justify-between items-center pt-2 border-t border-border-glass">
+          <p className="text-xs text-text-muted">
+            {selectedMemberIds.length} selected
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowInviteDialog(false);
+                setSelectedMemberIds([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendInvitations}
+              isLoading={sendInvitationsMutation.isPending}
+              disabled={selectedMemberIds.length === 0}
+              className="gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              Send Invitations
             </Button>
           </div>
         </div>

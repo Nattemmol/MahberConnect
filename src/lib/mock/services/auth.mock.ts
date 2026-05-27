@@ -37,6 +37,19 @@ export const authMock = {
     return mockUsers[0];
   },
 
+  forgotPassword: async (phone: string) => {
+    await delay(800);
+    randomError(0.1);
+    return { message: 'If the account exists, a reset code has been sent.' };
+  },
+
+  resetPassword: async (phone: string, code: string, newPassword: string) => {
+    await delay(800);
+    randomError(0.1);
+    if (code.length !== 6) throw new Error('Invalid or expired reset code');
+    return { message: 'Password reset successfully.' };
+  },
+
   searchUserByPhone: async (phone: string) => {
     await delay(600);
     const user = mockUsers.find(u => u.phone === phone);

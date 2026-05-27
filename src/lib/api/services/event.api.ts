@@ -7,6 +7,9 @@ import {
   Attendance,
   EventPhoto,
   UploadResponse,
+  EventInvitation,
+  EventInvitationStatus,
+  SendInvitationsResponse,
 } from "@/lib/types";
 
 export const eventApi = {
@@ -125,6 +128,73 @@ export const eventApi = {
           "Content-Type": "multipart/form-data",
         },
       },
+    );
+    return response.data;
+  },
+
+  // Invitations
+  sendInvitations: async (
+    mahberId: string,
+    eventId: string,
+    memberIds: string[],
+  ): Promise<SendInvitationsResponse> => {
+    const response = await apiClient.post<SendInvitationsResponse>(
+      `/mahbers/${mahberId}/events/${eventId}/invitations`,
+      { member_ids: memberIds },
+    );
+    return response.data;
+  },
+
+  getInvitations: async (
+    mahberId: string,
+    eventId: string,
+  ): Promise<EventInvitation[]> => {
+    const response = await apiClient.get<EventInvitation[]>(
+      `/mahbers/${mahberId}/events/${eventId}/invitations`,
+    );
+    return response.data;
+  },
+
+  respondToInvitation: async (
+    mahberId: string,
+    eventId: string,
+    invitationId: string,
+    action: "accept" | "decline",
+  ): Promise<EventInvitation> => {
+    const response = await apiClient.put<EventInvitation>(
+      `/mahbers/${mahberId}/events/${eventId}/invitations/${invitationId}/respond`,
+      { action },
+    );
+    return response.data;
+  },
+
+  getMyInvitations: async (
+    mahberId: string,
+  ): Promise<EventInvitation[]> => {
+    const response = await apiClient.get<EventInvitation[]>(
+      `/mahbers/${mahberId}/my-invitations`,
+    );
+    return response.data;
+  },
+
+  // Registration / RSVP
+  registerForEvent: async (mahberId: string, eventId: string): Promise<EventInvitation> => {
+    const response = await apiClient.post<EventInvitation>(
+      `/mahbers/${mahberId}/events/${eventId}/register`,
+    );
+    return response.data;
+  },
+
+  cancelRegistration: async (mahberId: string, eventId: string): Promise<{ message: string }> => {
+    const response = await apiClient.delete<{ message: string }>(
+      `/mahbers/${mahberId}/events/${eventId}/register`,
+    );
+    return response.data;
+  },
+
+  getRegistrations: async (mahberId: string, eventId: string): Promise<any> => {
+    const response = await apiClient.get<any>(
+      `/mahbers/${mahberId}/events/${eventId}/registrations`,
     );
     return response.data;
   },

@@ -1,6 +1,6 @@
 import { delay, randomError, paginate } from '../utils';
 import { mockPayments, mockTransactions, mockExpenses } from '../data/financial';
-import { InitiatePaymentDto, PaymentQueryParams, CreateExpenseDto } from '@/lib/types';
+import { InitiatePaymentDto, PaymentQueryParams, CreateExpenseDto, CreatePayoutDto, Payout, PayoutCategory, PayoutSummary } from '@/lib/types';
 import { mockFines } from '../data/fines';
 import { mockLotteryDraws } from '../data/lottery';
 import { mockUsers } from '../data/users';
@@ -10,6 +10,35 @@ import { mockMemberDetails } from '../data/memberships';
 let fines = [...mockFines];
 let lotteryDraws = [...mockLotteryDraws];
 let expenses = [...mockExpenses];
+
+const mockPayouts: Payout[] = [
+  {
+    id: 'pout_1',
+    mahber_id: 'mahber_1',
+    member_id: 'usr_2',
+    amount: 3000,
+    category: 'Iddir_Benefit',
+    reason: 'Bereavement support for member family',
+    approved_by: 'usr_1',
+    paid_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+    created_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+    member: mockUsers[1] ?? { id: 'usr_2', name: 'Sara Tadesse', phone: '+251922345678', created_at: '', updated_at: '' },
+  },
+  {
+    id: 'pout_2',
+    mahber_id: 'mahber_1',
+    member_id: 'usr_3',
+    amount: 1500,
+    category: 'Event_Reimbursement',
+    reason: 'Reimbursement for event supplies',
+    approved_by: 'usr_1',
+    paid_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    member: mockUsers[2] ?? { id: 'usr_3', name: 'Yonas Alemu', phone: '+251933456789', created_at: '', updated_at: '' },
+  },
+];
 
 export const financialMock = {
   getOutstanding: async (mahberId: string) => {
@@ -414,5 +443,87 @@ export const financialMock = {
     });
 
     return newExpense;
+  },
+
+  // ── Payouts (Mock) ─────────────────────────────────────────────────────────
+  getPayouts: async (mahberId: string) => {
+    await delay(500);
+    randomError(0.05);
+    const data = mockPayouts.filter((p) => p.mahber_id === mahberId);
+    return {
+      data,
+      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 },
+    };
+  },
+
+  getPayoutSummary: async (mahberId: string) => {
+    await delay(400);
+    const payouts = mockPayouts.filter((p) => p.mahber_id === mahberId);
+    const totalAmount = payouts.reduce((s, p) => s + p.amount, 0);
+    const categories: Record<string, { amount: number; count: number }> = {};
+    for (const p of payouts) {
+      if (!categories[p.category]) categories[p.category] = { amount: 0, count: 0 };
+      categories[p.category].amount += p.amount;
+      categories[p.category].count += 1;
+    }
+    return {
+      total_amount: totalAmount,
+      total_count: payouts.length,
+      category_breakdown: Object.entries(categories).map(([cat, val]) => ({
+        category: cat as PayoutCategory,
+        amount: val.amount,
+        count: val.count,
+      })),
+      recent: payouts.slice(0, 5),
+    } satisfies PayoutSummary;
+  },
+
+  getPayout: async (mahberId: string, payoutId: string) => {
+    await delay(300);
+    const payout = mockPayouts.find((p) => p.id === payoutId && p.mahber_id === mahberId);
+    if (!payout) throw new Error('Payout not found');
+    return payout;
+  },
+
+  createPayout: async (mahberId: string, data: CreatePayoutDto) => {
+    await delay(700);
+    randomError(0.1);
+    const member = mockUsers.find((u) => u.id === data.member_id);
+    const newPayout: Payout = {
+      id: `pout_${Date.now()}`,
+      mahber_id: mahberId,
+      member_id: data.member_id,
+      amount: data.amount,
+      category: data.category,
+      reason: data.reason,
+      approved_by: mockUsers[0].id,
+      paid_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      member,
+    };
+    mockPayouts.unshift(newPayout);
+    return newPayout;
+  },
+
+  // ── Reports & Export (Mock) ─────────────────────────────────────────────────
+  exportLedgerCsv: async (_mahberId: string, _params?: any) => {
+    await delay(600);
+    const header = 'Date,Transaction Type,Member ID,Amount,Running Balance,Description';
+    const rows = [
+      '2026-01-15,Contribution,usr_1,500.00,500.00,Monthly contribution',
+      '2026-01-20,Contribution,usr_2,500.00,1000.00,Monthly contribution',
+      '2026-01-25,Fine,usr_3,50.00,950.00,Missed attendance',
+      '2026-02-01,Expense,usr_1,200.00,750.00,Event supplies',
+      '2026-02-10,Equb_Payout,usr_2,4500.00,5250.00,Equb lottery payout',
+    ];
+    const csv = [header, ...rows].join('\n');
+    return new Blob([csv], { type: 'text/csv' });
+  },
+
+  exportFinancialReportPdf: async (_mahberId: string, _params?: any) => {
+    await delay(800);
+    const dummyPdf = new Uint8Array(100);
+    return new Blob([dummyPdf], { type: 'application/pdf' });
   }
 };

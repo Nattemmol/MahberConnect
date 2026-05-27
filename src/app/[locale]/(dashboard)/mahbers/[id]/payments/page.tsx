@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import toast from 'react-hot-toast';
 import type { PaymentType, Expense } from "@/lib/types";
 
 type SortField = "date" | "amount" | "status";
@@ -71,22 +72,52 @@ export default function PaymentsDashboard({
     [],
   );
 
+  const downloadBlob = useCallback((blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, []);
+
   const downloadReceipt = useCallback(async (paymentId: string) => {
     try {
       const res = await apiClient.get(`/mahbers/${id}/payments/${paymentId}/receipt`, { responseType: 'blob' });
       const blob = res.data as Blob;
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `receipt-${paymentId.slice(0, 8)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      downloadBlob(blob, `receipt-${paymentId.slice(0, 8)}.pdf`);
     } catch {
       // Silently handle — receipt endpoint will throw if payment not completed
     }
-  }, [id]);
+  }, [id, downloadBlob]);
+
+  const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null);
+
+  const handleExportCsv = useCallback(async () => {
+    setExporting('csv');
+    try {
+      const blob = await financialService.exportLedgerCsv(id);
+      downloadBlob(blob, `financial-report-${id}-${Date.now()}.csv`);
+    } catch {
+      toast.error('Failed to export CSV');
+    } finally {
+      setExporting(null);
+    }
+  }, [id, downloadBlob]);
+
+  const handleExportPdf = useCallback(async () => {
+    setExporting('pdf');
+    try {
+      const blob = await financialService.exportFinancialReportPdf(id);
+      downloadBlob(blob, `financial-report-${id}-${Date.now()}.pdf`);
+    } catch {
+      toast.error('Failed to export PDF');
+    } finally {
+      setExporting(null);
+    }
+  }, [id, downloadBlob]);
 
   // ── Queries ──
   const { data: mahber } = useQuery({
@@ -259,6 +290,28 @@ export default function PaymentsDashboard({
               Wallet Ledger
             </Link>
           </Button>
+          {isAdmin && (
+            <>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleExportCsv}
+                isLoading={exporting === 'csv'}
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleExportPdf}
+                isLoading={exporting === 'pdf'}
+              >
+                <Download className="w-4 h-4" />
+                Export PDF
+              </Button>
+            </>
+          )}
           {hasOutstanding && !isPaymentInProgress ? (
             <Button asChild className="gap-2">
               <Link href={`/mahbers/${id}/payments/initiate`}>

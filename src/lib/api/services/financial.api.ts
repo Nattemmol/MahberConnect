@@ -1,5 +1,5 @@
 import { apiClient } from '../client';
-import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations, PaymentQueryParams, Expense, CreateExpenseDto } from '@/lib/types';
+import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations, PaymentQueryParams, Expense, CreateExpenseDto, Payout, CreatePayoutDto, PayoutSummary } from '@/lib/types';
 import { auditApi } from './audit.api';
 
 export const financialApi = {
@@ -127,11 +127,61 @@ export const financialApi = {
     return response.data;
   },
 
+  // ── Payouts ─────────────────────────────────────────────────────────────────
+  getPayouts: async (mahberId: string): Promise<PaginatedResponse<Payout>> => {
+    const response = await apiClient.get<PaginatedResponse<Payout>>(`/mahbers/${mahberId}/payouts`);
+    return response.data;
+  },
+
+  getPayoutSummary: async (mahberId: string): Promise<PayoutSummary> => {
+    const response = await apiClient.get<PayoutSummary>(`/mahbers/${mahberId}/payouts/summary`);
+    return response.data;
+  },
+
+  getPayout: async (mahberId: string, payoutId: string): Promise<Payout> => {
+    const response = await apiClient.get<Payout>(`/mahbers/${mahberId}/payouts/${payoutId}`);
+    return response.data;
+  },
+
+  createPayout: async (mahberId: string, data: CreatePayoutDto): Promise<Payout> => {
+    const response = await apiClient.post<Payout>(`/mahbers/${mahberId}/payouts`, data);
+    return response.data;
+  },
+
   // ── Receipt ─────────────────────────────────────────────────────────────────
   downloadReceipt: async (mahberId: string, paymentId: string): Promise<Blob> => {
     const response = await apiClient.get(
       `/mahbers/${mahberId}/payments/${paymentId}/receipt`,
       { responseType: 'blob' },
+    );
+    return response.data as Blob;
+  },
+
+  // ── Reports & Export ────────────────────────────────────────────────────────
+  exportLedgerCsv: async (
+    mahberId: string,
+    params?: { startDate?: string; endDate?: string; type?: string },
+  ): Promise<Blob> => {
+    const response = await apiClient.get(
+      `/mahbers/${mahberId}/reports/export`,
+      {
+        params: { ...params, format: 'csv' },
+        responseType: 'blob',
+      },
+    );
+    return response.data as Blob;
+  },
+
+  exportFinancialReportPdf: async (
+    mahberId: string,
+    params?: { startDate?: string; endDate?: string },
+  ): Promise<Blob> => {
+    const response = await apiClient.get(
+      `/mahbers/${mahberId}/reports/export`,
+      {
+        params: { ...params, format: 'pdf' },
+        responseType: 'blob',
+      },
     );
     return response.data as Blob;
   },

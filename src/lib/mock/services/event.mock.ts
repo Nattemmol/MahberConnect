@@ -3,7 +3,8 @@ import { mockEvents } from "../data/events";
 import { mockAttendance } from "../data/attendance";
 import { mockPhotos } from "../data/photos";
 import { mockUsers } from "../data/users";
-import { CreateEventDto, EventPhoto, UploadResponse } from "@/lib/types";
+import { mockMemberDetails } from "../data/memberships";
+import { CreateEventDto, EventPhoto, UploadResponse, SendInvitationsResponse, EventInvitation, EventInvitationStatus } from "@/lib/types";
 
 let events = [...mockEvents];
 let attendance = [...mockAttendance];
@@ -194,6 +195,155 @@ export const eventMock = {
     );
     if (index === -1) throw new Error("Photo not found");
     photos.splice(index, 1);
+  },
+
+  // ── Invitations ─────────────────────────────────────────────────────────
+  mockInvitations: [] as EventInvitation[],
+
+  sendInvitations: async (
+    mahberId: string,
+    eventId: string,
+    memberIds: string[],
+  ): Promise<SendInvitationsResponse> => {
+    await delay(800);
+    randomError(0.05);
+
+    const existing = eventMock.mockInvitations.filter(
+      (inv) => inv.event_id === eventId,
+    );
+    const alreadyInvitedIds = new Set(existing.map((inv) => inv.member_id));
+    const newMemberIds = memberIds.filter((id) => !alreadyInvitedIds.has(id));
+
+    const newInvitations: EventInvitation[] = newMemberIds.map((memberId) => {
+      const member = mockMemberDetails.find((m) => m.member_id === memberId);
+      return {
+        id: `inv_${Date.now()}_${memberId}`,
+        event_id: eventId,
+        mahber_id: mahberId,
+        member_id: memberId,
+        status: "Pending" as EventInvitationStatus,
+        sent_at: new Date().toISOString(),
+        channels_used: ["in_app", "fcm", "email", "sms"],
+        member: member?.user,
+      };
+    });
+
+    eventMock.mockInvitations = [
+      ...eventMock.mockInvitations,
+      ...newInvitations,
+    ];
+
+    return {
+      invited: newInvitations.length,
+      already_invited: memberIds.length - newInvitations.length,
+      invalid_members: 0,
+      invitations: newInvitations,
+    };
+  },
+
+  getInvitations: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    return eventMock.mockInvitations.filter((inv) => inv.event_id === eventId);
+  },
+
+  respondToInvitation: async (
+    mahberId: string,
+    eventId: string,
+    invitationId: string,
+    action: "accept" | "decline",
+  ) => {
+    await delay(600);
+    const idx = eventMock.mockInvitations.findIndex(
+      (inv) => inv.id === invitationId,
+    );
+    if (idx === -1) throw new Error("Invitation not found");
+    eventMock.mockInvitations[idx].status =
+      action === "accept" ? ("Accepted" as EventInvitationStatus) : ("Declined" as EventInvitationStatus);
+    eventMock.mockInvitations[idx].responded_at = new Date().toISOString();
+    return eventMock.mockInvitations[idx];
+  },
+
+  getMyInvitations: async (mahberId: string) => {
+    await delay(500);
+    return eventMock.mockInvitations.filter(
+      (inv) =>
+        inv.mahber_id === mahberId &&
+        inv.member_id === mockUsers[2].id &&
+        inv.status === "Pending",
+    );
+  },
+
+  // ── Registration / RSVP ──────────────────────────────────────────────────
+  registerForEvent: async (mahberId: string, eventId: string) => {
+    await delay(600);
+    randomError(0.05);
+
+    const existing = eventMock.mockInvitations.find(
+      (inv) => inv.event_id === eventId && inv.member_id === mockUsers[2].id,
+    );
+    if (existing?.status === "Accepted") {
+      throw new Error("Already registered");
+    }
+
+    const newReg: EventInvitation = {
+      id: `reg_${Date.now()}`,
+      event_id: eventId,
+      mahber_id: mahberId,
+      member_id: mockUsers[2].id,
+      status: "Accepted",
+      sent_at: new Date().toISOString(),
+      responded_at: new Date().toISOString(),
+      source: "self_register",
+      channels_used: ["in_app"],
+      member: mockUsers[2],
+    };
+
+    if (existing) {
+      const idx = eventMock.mockInvitations.findIndex(
+        (inv) => inv.id === existing.id,
+      );
+      eventMock.mockInvitations[idx] = newReg;
+    } else {
+      eventMock.mockInvitations = [...eventMock.mockInvitations, newReg];
+    }
+
+    return newReg;
+  },
+
+  cancelRegistration: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    const idx = eventMock.mockInvitations.findIndex(
+      (inv) =>
+        inv.event_id === eventId &&
+        inv.member_id === mockUsers[2].id &&
+        inv.status === "Accepted",
+    );
+    if (idx === -1) throw new Error("No active registration found");
+    eventMock.mockInvitations.splice(idx, 1);
+    return { message: "Registration cancelled successfully" };
+  },
+
+  getRegistrations: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    const all = eventMock.mockInvitations.filter(
+      (inv) => inv.event_id === eventId && inv.mahber_id === mahberId,
+    );
+    const accepted = all.filter((inv) => inv.status === "Accepted");
+    const declined = all.filter((inv) => inv.status === "Declined");
+    const pending = all.filter((inv) => inv.status === "Pending");
+    return {
+      total_active_members: mockMemberDetails.filter(
+        (m) => m.mahber_id === mahberId && m.status === "Active",
+      ).length,
+      summary: {
+        registered: accepted.length,
+        declined: declined.length,
+        pending: pending.length,
+        no_response: 0,
+      },
+      registrations: accepted,
+      invitations: { declined, pending },
+    };
   },
 
   processAttendance: async (mahberId: string, eventId: string) => {

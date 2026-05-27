@@ -220,6 +220,30 @@ export type UploadResponse<T> = {
   };
 };
 
+// ── Event Invitations ──────────────────────────────────────────────────────────
+export type EventInvitationStatus = "Pending" | "Accepted" | "Declined";
+
+export type EventInvitation = {
+  id: string;
+  event_id: string;
+  mahber_id: string;
+  member_id: string;
+  status: EventInvitationStatus;
+  source?: "admin_invite" | "self_register";
+  sent_at: string;
+  responded_at?: string;
+  channels_used?: string[];
+  member?: User;
+  event?: Event;
+};
+
+export type SendInvitationsResponse = {
+  invited: number;
+  already_invited: number;
+  invalid_members: number;
+  invitations: EventInvitation[];
+};
+
 // ── Events & Attendance ───────────────────────────────────────────────────────
 export type EventType =
   | "Meeting"
@@ -378,6 +402,37 @@ export type CreateExpenseDto = {
   amount: number;
   reason: string;
   category: ExpenseCategory;
+};
+
+// ── Payouts ─────────────────────────────────────────────────────────────────
+export type PayoutCategory = "Iddir_Benefit" | "Event_Reimbursement" | "Recurring" | "General";
+
+export type Payout = {
+  id: string;
+  mahber_id: string;
+  member_id: string;
+  amount: number;
+  category: PayoutCategory;
+  reason: string;
+  approved_by: string;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+  member?: User;
+};
+
+export type CreatePayoutDto = {
+  member_id: string;
+  amount: number;
+  category: PayoutCategory;
+  reason: string;
+};
+
+export type PayoutSummary = {
+  total_amount: number;
+  total_count: number;
+  category_breakdown: { category: PayoutCategory; amount: number; count: number }[];
+  recent: Payout[];
 };
 
 // ── Fines & Lottery ──────────────────────────────────────────────────────────
