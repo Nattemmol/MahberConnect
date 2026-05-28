@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 
 interface DropdownMenuProps {
@@ -10,27 +11,62 @@ interface DropdownMenuProps {
 
 const DropdownMenu = ({ trigger, children }: DropdownMenuProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = React.useState(false);
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative" ref={triggerRef}>
       <div onClick={() => setIsOpen(!isOpen)} className="cursor-pointer">
         {trigger}
       </div>
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 z-50 glass rounded-md shadow-xl border border-border-glass py-1 animate-in fade-in slide-in-from-top-2 duration-200">
-          {children}
-        </div>
+      {isOpen && mounted && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            zIndex: 9999,
+            minWidth: "12rem",
+            background: "var(--glass-bg, #1a1a2e)",
+            border: "1px solid var(--glass-border, rgba(255,255,255,0.15))",
+            backdropFilter: "var(--glass-blur, blur(12px))",
+            WebkitBackdropFilter: "var(--glass-blur, blur(12px))",
+            boxShadow: "var(--glass-shadow, 0 8px 32px 0 rgba(0,0,0,0.3))",
+            borderRadius: "12px",
+            padding: "0.25rem 0",
+          }}
+          ref={(el) => {
+            if (el && triggerRef.current) {
+              const rect = triggerRef.current.getBoundingClientRect();
+              el.style.left = Math.min(rect.right - el.offsetWidth, window.innerWidth - 16) + "px";
+              el.style.top = (rect.bottom + 4) + "px";
+            }
+          }}
+        >
+          {React.Children.map(children, (child) =>
+            React.isValidElement(child)
+              ? React.cloneElement(child as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>, {
+                  onClick: (e: React.MouseEvent) => {
+                    child.props.onClick?.(e);
+                    setIsOpen(false);
+                  },
+                })
+              : child,
+          )}
+        </div>,
+        document.body,
       )}
     </div>
   );
