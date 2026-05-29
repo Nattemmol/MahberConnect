@@ -83,6 +83,15 @@ export default function EventDetailPage({
 
   const totalAttendees = attendanceResponse?.data?.length || 0;
 
+  const downloadQRCode = (dataUrl: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getErrorMessage = (error: unknown) => {
     if (!error || typeof error !== "object") return undefined;
     if ("response" in error) {
@@ -510,7 +519,15 @@ export default function EventDetailPage({
           {isQRLoading ? (
             <Skeleton className="w-[232px] h-[232px] rounded-xl" />
           ) : qrCode?.qr_code ? (
-            <QRCode dataUrl={qrCode.qr_code} size={200} />
+            <>
+              <QRCode dataUrl={qrCode.qr_code} size={200} />
+              <Button
+                variant="outline"
+                onClick={() => downloadQRCode(qrCode.qr_code, `${event?.title ?? "event"}-qr.png`)}
+              >
+                Download QR
+              </Button>
+            </>
           ) : (
             <div className="text-status-error">Failed to load QR Code</div>
           )}
@@ -532,7 +549,15 @@ export default function EventDetailPage({
           {isUserQRLoading ? (
             <Skeleton className="w-[232px] h-[232px] rounded-xl" />
           ) : userQRCode?.qr_code ? (
-            <QRCode dataUrl={userQRCode.qr_code} size={200} />
+            <>
+              <QRCode dataUrl={userQRCode.qr_code} size={200} />
+              <Button
+                variant="outline"
+                onClick={() => downloadQRCode(userQRCode.qr_code, `${event?.title ?? "checkin"}-qr.png`)}
+              >
+                Download QR
+              </Button>
+            </>
           ) : (
             <div className="text-status-error">Failed to generate QR Code</div>
           )}
