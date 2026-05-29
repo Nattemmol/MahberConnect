@@ -48,8 +48,18 @@ export default function ApproveExpensesPage({
   );
 
   const canApprove = membersResponse
-    ? (myMembership?.role as any)?.permissions?.includes("approve_expense")
+    ? (myMembership?.role as any)?.permissions?.includes("approve_expense") ??
+      myMembership?.permissions?.includes("approve_expense")
     : false;
+
+  console.log("[ApproveExpenses] membership data:", {
+    myMembershipId: myMembership?.id,
+    role: myMembership?.role,
+    role_name: myMembership?.role_name,
+    permissions: myMembership?.permissions,
+    rolePermissions: (myMembership?.role as any)?.permissions,
+    canApprove,
+  });
 
   const { data: pendingData, isLoading } = useQuery({
     queryKey: ["pending-expenses", id],

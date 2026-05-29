@@ -74,8 +74,18 @@ export default function CreateExpensePage({
   );
 
   const isTreasurer = membersResponse
-    ? (myMembership?.role as any)?.permissions?.includes("create_expense")
+    ? (myMembership?.role as any)?.permissions?.includes("create_expense") ??
+      myMembership?.permissions?.includes("create_expense")
     : false;
+
+  console.log("[CreateExpense] membership data:", {
+    myMembershipId: myMembership?.id,
+    role: myMembership?.role,
+    role_name: myMembership?.role_name,
+    permissions: myMembership?.permissions,
+    rolePermissions: (myMembership?.role as any)?.permissions,
+    isTreasurer,
+  });
 
   const {
     register,
@@ -120,6 +130,13 @@ export default function CreateExpensePage({
 
   const onSubmit = async (data: ExpenseFormValues) => {
     try {
+      let bankCode = data.recipient_bank_code;
+      if (!bankCode && data.recipient_account_type === 'telebirr') {
+        const telebirrBank = banks.find((b) =>
+          b.name.toLowerCase().includes('telebirr'),
+        );
+        bankCode = telebirrBank ? String(telebirrBank.id) : undefined;
+      }
       await financialService.createExpense(id, {
         amount: Number(data.amount),
         reason: data.reason,
@@ -127,7 +144,7 @@ export default function CreateExpensePage({
         recipient_name: data.recipient_name,
         recipient_account_type: data.recipient_account_type,
         recipient_account: data.recipient_account,
-        recipient_bank_code: data.recipient_account_type === "bank" ? data.recipient_bank_code : undefined,
+        recipient_bank_code: bankCode || undefined,
       });
       toast.success("Expense submitted for approval!");
       router.push(`/mahbers/${id}/payments`);
@@ -278,7 +295,16 @@ export default function CreateExpensePage({
                   const val = e.target.value as "bank" | "telebirr" | "";
                   setAccountType(val);
                   if (val) setValue("recipient_account_type", val);
-                  if (val !== "bank") {
+                  if (val === "telebirr") {
+                    const telebirrBank = banks.find((b) =>
+                      b.name.toLowerCase().includes("telebirr"),
+                    );
+                    setValue(
+                      "recipient_bank_code",
+                      telebirrBank ? String(telebirrBank.id) : "",
+                    );
+                    setBankSearch("");
+                  } else {
                     setValue("recipient_bank_code", "");
                     setBankSearch("");
                   }
@@ -337,7 +363,7 @@ export default function CreateExpensePage({
                     <option value="" disabled>No banks found</option>
                   ) : (
                     filteredBanks.map((bank) => (
-                      <option key={bank.id} value={bank.code}>
+                      <option key={bank.id} value={String(bank.id)}>
                         {bank.name} ({bank.code})
                       </option>
                     ))
