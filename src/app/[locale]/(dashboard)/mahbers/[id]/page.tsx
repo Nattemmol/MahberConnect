@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { use } from "react";
 import Link from "next/link";
 import {
@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Clock, Trophy, CircleAlert } from "lucide-react";
+import { AlertCircle, Clock, Trophy, CircleAlert, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { useAuthStore } from "@/lib/stores/auth-store";
 
@@ -86,6 +87,23 @@ export default function MahberOverviewPage({
   const hasPendingPayment = outstanding?.has_pending_payment ?? false;
   const hasOutstandingPayment = outstandingTotal > 0 || hasPendingPayment;
 
+  const retryMutation = useMutation({
+    mutationFn: () => financialService.initiatePayment({ mahber_id: id }),
+    onSuccess: (result) => {
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+      } else {
+        toast.error("Unable to start checkout.");
+      }
+    },
+    onError: (err: any) => {
+      toast.error(
+        err.response?.data?.message ||
+          "Unable to process payment. Please try again.",
+      );
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -144,17 +162,22 @@ export default function MahberOverviewPage({
               </p>
               <p className="text-sm text-text-secondary">
                 {hasPendingPayment
-                  ? `You already have a pending payment of ${outstanding?.pending_payment_amount ?? 0} ETB.`
+                  ? `You have a pending payment of ${outstanding?.pending_payment_amount ?? 0} ETB that was not completed. Click "Retry Payment" to start a new one.`
                   : `You owe ${outstandingTotal.toLocaleString()} ETB. ${pendingFineCount > 0 ? `${pendingFineCount} pending fine(s) are included.` : ""}`}
               </p>
             </div>
           </div>
           {hasPendingPayment ? (
             <Button
-              disabled
-              className="bg-gold hover:bg-gold/80 text-black flex-shrink-0 font-medium"
+              onClick={() => retryMutation.mutate()}
+              disabled={retryMutation.isPending}
+              variant="outline"
+              className="flex-shrink-0 font-medium"
             >
-              Payment in Progress
+              {retryMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Retry Payment
             </Button>
           ) : (
             <Button

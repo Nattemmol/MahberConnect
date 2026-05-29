@@ -164,11 +164,19 @@ export function Sidebar() {
         <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
           {links.map((link) => {
             const Icon = link.icon;
+            const hasMoreSpecificMatch = links.some(
+              (l) =>
+                l.href !== link.href &&
+                l.href.startsWith(link.href) &&
+                pathname.startsWith(l.href),
+            );
+
             const isActive =
               pathname === link.href ||
               (link.href !== "/dashboard" &&
                 pathname.startsWith(link.href) &&
-                isGlobalRoute);
+                isGlobalRoute &&
+                !hasMoreSpecificMatch);
 
             return (
               <Link

@@ -112,10 +112,10 @@ export default function ConfirmPaymentPage({
 
           {outstanding.has_pending_payment && (
             <div className="flex items-start gap-3 p-4 rounded-xl border border-status-warning/30 bg-status-warning/10 text-sm text-text-secondary">
-              <CircleAlert className="h-5 w-5 text-status-warning mt-0.5" />
+              <CircleAlert className="h-5 w-5 text-status-warning mt-0.5 shrink-0" />
               <p>
-                You already have a pending payment in progress. Please wait for
-                it to complete before starting another one.
+                You have a pending payment that was not completed. Click "Retry
+                Payment" to cancel it and start a new one.
               </p>
             </div>
           )}
@@ -176,10 +176,12 @@ export default function ConfirmPaymentPage({
             </Button>
             <Button
               onClick={handleConfirm}
-              disabled={outstanding.has_pending_payment}
+              variant={outstanding.has_pending_payment ? "outline" : "default"}
               isLoading={false}
             >
-              Pay Now
+              {outstanding.has_pending_payment
+                ? "Retry Payment"
+                : "Pay Now"}
             </Button>
           </div>
         </CardContent>

@@ -15,12 +15,14 @@ import {
   X,
   Receipt,
   PlusCircle,
+  Download,
 } from "lucide-react";
 import {
   financialService,
   memberService,
   mahberService,
 } from "@/lib/api/service-factory";
+import { apiClient } from "@/lib/api/client";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,6 +70,23 @@ export default function PaymentsDashboard({
     },
     [],
   );
+
+  const downloadReceipt = useCallback(async (paymentId: string) => {
+    try {
+      const res = await apiClient.get(`/mahbers/${id}/payments/${paymentId}/receipt`, { responseType: 'blob' });
+      const blob = res.data as Blob;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receipt-${paymentId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      // Silently handle — receipt endpoint will throw if payment not completed
+    }
+  }, [id]);
 
   // ── Queries ──
   const { data: mahber } = useQuery({
@@ -561,6 +580,15 @@ export default function PaymentsDashboard({
                     >
                       {payment.status}
                     </Badge>
+                    {payment.status === "Completed" && (
+                      <button
+                        onClick={() => downloadReceipt(payment.id)}
+                        className="p-2 rounded-lg hover:bg-gold/10 text-text-muted hover:text-gold transition-colors"
+                        title="Download Receipt"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </Card>
