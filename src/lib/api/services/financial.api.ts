@@ -127,6 +127,15 @@ export const financialApi = {
     return response.data;
   },
 
+  // ── Receipt ─────────────────────────────────────────────────────────────────
+  downloadReceipt: async (mahberId: string, paymentId: string): Promise<Blob> => {
+    const response = await apiClient.get(
+      `/mahbers/${mahberId}/payments/${paymentId}/receipt`,
+      { responseType: 'blob' },
+    );
+    return response.data as Blob;
+  },
+
   // ── Audit ───────────────────────────────────────────────────────────────────
   getFinancialAudit: async (mahberId: string): Promise<any> => {
     return auditApi.getAuditTrail(mahberId, { limit: 100 });

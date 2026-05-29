@@ -296,6 +296,12 @@ export const financialMock = {
     return newDraw;
   },
 
+  downloadReceipt: async (_mahberId: string, _paymentId: string): Promise<Blob> => {
+    await delay(300);
+    const text = `MahberConnect - Digital Receipt\nPayment ID: ${_paymentId}\nThis is a simulated receipt.`;
+    return new Blob([text], { type: 'application/pdf' });
+  },
+
   // ── Expenses ──────────────────────────────────────────────────────────────
   getExpenses: async (mahberId: string) => {
     await delay(400);
