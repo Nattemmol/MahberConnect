@@ -32,6 +32,15 @@ export const financialApi = {
     };
   },
 
+  initiatePaymentRound: async (mahberId: string, dueDate?: string): Promise<{ updatedCount: number; dueDate: string }> => {
+    // Backend route: POST /mahbers/:id/payments/initiate-round
+    const response = await apiClient.post<{ updatedCount: number; dueDate: string }>(
+      `/mahbers/${mahberId}/payments/initiate-round`,
+      { due_date: dueDate }
+    );
+    return response.data;
+  },
+
   verifyPayment: async (tx_ref: string): Promise<Payment> => {
     // Backend route: GET /webhooks/chapa/verify/:tx_ref
     const response = await apiClient.get<Payment>(`/webhooks/chapa/verify/${tx_ref}`);

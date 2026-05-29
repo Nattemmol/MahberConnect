@@ -676,7 +676,16 @@
     "pageInfo": "ገጽ {page} ከ {totalPages} ({total} ክፍያዎች)",
     "exportCsvFailed": "CSV ማውረድ አልተሳካም",
     "exportPdfFailed": "PDF ማውረድ አልተሳካም",
-    "expenseBy": " {name}"
+    "expenseBy": " {name}",
+    "initiateRound": "የክፍያ ዙር ጀምር",
+    "roundInitiated": "የክፍያ ዙር ተጀምሯል! {count} አባላት የክፍያ ግዴታ አለባቸው።",
+    "roundFailed": "የክፍያ ዙር ማስጀመር አልተሳካም።",
+    "roundDialogTitle": "የክፍያ ዙር ጀምር",
+    "roundDialogDesc": "የሁሉም ንቁ አባላት መዋጮ የሚከፈልበትን ቀን ያዘጋጁ።",
+    "roundDialogWarning": "ይህ የሁሉም ንቁ አባላት መዋጮ ወዲያውኑ (ወይም በሚመርጡት ቀን) የሚከፈልበት እንደሆነ ያመላክታል። እያንዳንዱ አባል በግል የክፍያ ገፃቸው በኩል መክፈል ይችላሉ።",
+    "roundDueDate": "የክፍያ ቀን (አማራጭ)",
+    "roundDueDateDesc": "ባዶ ከሆነ ክፍያዎች ወዲያውኑ የሚከፈልባቸው ይሆናሉ።",
+    "confirmRound": "አረጋግጥ"
   },
   "ConfirmPayment": {
     "title": "ክፍያን ያረጋግጡ",

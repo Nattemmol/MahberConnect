@@ -113,6 +113,13 @@ export const financialMock = {
     };
   },
 
+  initiatePaymentRound: async (_mahberId: string, _dueDate?: string) => {
+    await delay(800);
+    randomError(0.05);
+    const count = 5;
+    return { updatedCount: count, dueDate: _dueDate ?? new Date().toISOString() };
+  },
+
   initiatePayment: async (data: InitiatePaymentDto) => {
     await delay(1200);
     randomError(0.05);
