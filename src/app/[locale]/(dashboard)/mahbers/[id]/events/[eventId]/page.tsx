@@ -10,6 +10,7 @@ import {
   Clock,
   Camera,
   CheckCircle,
+  CheckSquare,
   AlertCircle,
   Users,
   Pencil,
@@ -18,7 +19,6 @@ import {
   ScanLine,
   List,
   Zap,
-  QrCode,
   Mail,
   XSquare,
   Repeat,
@@ -49,7 +49,6 @@ export default function EventDetailPage({
   const { id, eventId } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [showQR, setShowQR] = useState(false);
   const [showUserQR, setShowUserQR] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
@@ -132,12 +131,6 @@ export default function EventDetailPage({
         m.user?.phone?.includes(q),
     );
   }, [activeMembers, searchQuery]);
-
-  const { data: qrCode, isLoading: isQRLoading } = useQuery({
-    queryKey: ["event-qr", id, eventId],
-    queryFn: () => eventService.getQRCode(id, eventId),
-    enabled: showQR && canManageEventsValue,
-  });
 
   const { data: userQRCode, isLoading: isUserQRLoading } = useQuery({
     queryKey: ["user-event-qr", id, eventId, user?.id],
@@ -371,16 +364,6 @@ export default function EventDetailPage({
               {t('sendInvitations')}
             </Button>
           )}
-          {/* Host / Admin: Event QR Code */}
-          {(canManageEventsValue || isEventHost) && !isPastEvent && !event.is_cancelled && (
-            <Button
-              onClick={() => setShowQR(true)}
-              className="gap-2 bg-gold hover:bg-gold/90"
-            >
-              <QrCode className="w-4 h-4" />
-              {t('eventQRCode')}
-            </Button>
-          )}
           {/* Admin: Process Attendance */}
           {canManageEventsValue &&
             isPastEvent &&
@@ -494,7 +477,7 @@ export default function EventDetailPage({
               <CheckCircle className="h-4 w-4 text-status-success" />
             </CardHeader>
             <CardContent>
-              {isEventOngoing && !event.is_cancelled ? (
+              {!isPastEvent && !event.is_cancelled ? (
                 <div className="space-y-4">
                   {!canManageEventsValue && !isEventHost ? (
                     <>
@@ -577,7 +560,7 @@ export default function EventDetailPage({
                         {t('myCheckinQR')}
                       </Button>
                     </>
-                  ) : (
+                  ) : isEventOngoing ? (
                     <>
                       <p className="text-sm text-text-muted">
                         Scan member QR codes or use manual check-in below.
@@ -601,15 +584,17 @@ export default function EventDetailPage({
                         </Button>
                       </div>
                     </>
+                  ) : (
+                    <p className="text-sm text-text-muted">
+                      {t('checkinOpens')}
+                    </p>
                   )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-sm">
                   <AlertCircle className="w-4 h-4 text-status-warning" />
                   <span className="text-text-muted">
-                    {!isPastEvent
-                      ? t('checkinOpens')
-                      : t('checkinClosed')}
+                    {isPastEvent ? t('checkinClosed') : t('checkinOpens')}
                   </span>
                 </div>
               )}
@@ -874,35 +859,6 @@ export default function EventDetailPage({
               </button>
             ))
           )}
-        </div>
-      </Dialog>
-
-      {/* Event QR Code Modal for Admins */}
-      <Dialog
-        isOpen={showQR}
-        onClose={() => setShowQR(false)}
-        title={t('eventQRTitle')}
-        description={t('eventQRDesc')}
-      >
-        <div className="flex flex-col items-center justify-center py-6 space-y-6">
-          {isQRLoading ? (
-            <Skeleton className="w-[232px] h-[232px] rounded-xl" />
-          ) : qrCode?.qr_code ? (
-            <>
-              <QRCode dataUrl={qrCode.qr_code} size={200} />
-              <Button
-                variant="outline"
-                onClick={() => downloadQRCode(qrCode.qr_code, `${event?.title ?? "event"}-qr.png`)}
-              >
-                {t('downloadQR')}
-              </Button>
-            </>
-          ) : (
-            <div className="text-status-error">{t('qrLoadFailed')}</div>
-          )}
-          <p className="text-sm text-center text-text-secondary max-w-[250px]">
-            {t('qrDisplayDesc')}
-          </p>
         </div>
       </Dialog>
 
