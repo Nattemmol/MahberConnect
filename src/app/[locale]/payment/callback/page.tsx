@@ -37,9 +37,9 @@ function PaymentCallbackContent() {
 
     // The backend browser callback already reconciled with Chapa before redirecting here.
     // The status param reflects the actual reconciliation result.
+    if (mahberIdParam) setMahberId(mahberIdParam);
     if (statusParam === "success") {
       setStatus("success");
-      if (mahberIdParam) setMahberId(mahberIdParam);
     } else {
       setStatus("failed");
     }
