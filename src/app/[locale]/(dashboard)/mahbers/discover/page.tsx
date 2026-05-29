@@ -53,22 +53,12 @@ export default function DiscoverMahbersPage() {
 
     try {
       setJoiningId(joinTarget.id);
-      const response = await mahberService.joinMahberSubsystem(joinTarget.id);
-      
-      if (response.paymentRequired) {
-        if (response.token) {
-          localStorage.setItem("pending_join_token", response.token);
-        }
-        if (response.paymentUrl) {
-          window.location.href = response.paymentUrl;
-        } else {
-          toast.error("Payment URL not found.");
-        }
-      } else {
-        toast.success("Welcome! You have successfully joined the Mahber.");
-        router.push(`/mahbers/${joinTarget.id}`);
-      }
-      
+      await mahberService.joinMahber(joinTarget.id, {
+        invitation_code: invitationCode || undefined,
+      });
+
+      setRequestedIds((prev) => new Set(prev).add(joinTarget.id));
+      toast.success("Join request sent. Waiting for admin approval.");
       setJoinTarget(null);
       setInvitationCode("");
     } catch (err) {

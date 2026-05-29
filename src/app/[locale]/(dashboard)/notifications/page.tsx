@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { notificationService } from '@/lib/api/service-factory';
 import { Notification } from '@/lib/api/services/notification.api';
+import { useNotificationStore } from '@/lib/stores/notification-store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,12 +44,15 @@ export default function NotificationsPage() {
     }
   };
 
+  const { decrementUnreadCount, clearUnreadCount } = useNotificationStore();
+
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationService.markAsRead(id);
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
+      decrementUnreadCount();
     } catch (error) {
       console.error('Failed to mark as read', error);
     }
@@ -58,6 +62,7 @@ export default function NotificationsPage() {
     try {
       await notificationService.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      clearUnreadCount();
     } catch (error) {
       console.error('Failed to mark all as read', error);
     }
