@@ -21,9 +21,18 @@ export function BottomNav() {
       <div className="flex">
         {links.map((link) => {
           const Icon = link.icon;
+          const hasMoreSpecificMatch = links.some(
+            (l) =>
+              l.href !== link.href &&
+              l.href.startsWith(link.href) &&
+              pathname.startsWith(l.href),
+          );
+
           const isActive =
             pathname === link.href ||
-            (link.href !== '/dashboard' && pathname.startsWith(link.href));
+            (link.href !== '/dashboard' &&
+              pathname.startsWith(link.href) &&
+              !hasMoreSpecificMatch);
 
           return (
             <Link
