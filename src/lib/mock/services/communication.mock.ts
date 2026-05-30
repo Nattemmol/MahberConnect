@@ -34,9 +34,63 @@ export const communicationMock = {
       is_deleted: false,
       created_at: new Date().toISOString(),
       sender: mockUsers[2],
+      read_by_count: 0,
+      is_read_by_me: true,
     };
     chatMessages = [...chatMessages, newMessage];
     return newMessage;
+  },
+
+  markMessagesAsRead: async (mahberId: string, messageIds: string[]) => {
+    await delay(300);
+    let marked = 0;
+    chatMessages = chatMessages.map(m => {
+      if (m.mahber_id === mahberId && messageIds.includes(m.id)) {
+        if (!m.is_read_by_me && m.sender_id !== mockUsers[2].id) {
+          marked++;
+          return {
+            ...m,
+            is_read_by_me: true,
+            read_by_count: m.read_by_count + 1,
+          };
+        }
+      }
+      return m;
+    });
+    return { marked };
+  },
+
+  getUnreadCount: async (mahberId: string) => {
+    await delay(200);
+    const unread = chatMessages.filter(
+      m => m.mahber_id === mahberId && !m.is_deleted && m.sender_id !== mockUsers[2].id && !m.is_read_by_me
+    );
+    return { unread_count: unread.length };
+  },
+
+  getReadReceipts: async (mahberId: string, messageId: string) => {
+    await delay(300);
+    const msg = chatMessages.find(m => m.id === messageId);
+    if (!msg || msg.read_by_count === 0) {
+      return [];
+    }
+    
+    const receipts = [];
+    if (msg.read_by_count >= 1) {
+      receipts.push({
+        member_id: mockUsers[0].id,
+        member_name: mockUsers[0].name,
+        read_at: new Date(new Date(msg.created_at).getTime() + 60000).toISOString(),
+      });
+    }
+    if (msg.read_by_count >= 2) {
+      receipts.push({
+        member_id: mockUsers[1].id,
+        member_name: mockUsers[1].name,
+        read_at: new Date(new Date(msg.created_at).getTime() + 120000).toISOString(),
+      });
+    }
+    return receipts;
   },
 
   // Announcements
@@ -144,5 +198,85 @@ export const communicationMock = {
     poll.votes.push(newVote);
     
     return newVote;
+  },
+
+  voteUpsert: async (mahberId: string, pollId: string, choices: string[]) => {
+    await delay(600);
+    const poll = polls.find(p => p.id === pollId && p.mahber_id === mahberId);
+    if (!poll) throw new Error('Poll not found');
+    if (poll.is_closed) throw new Error('Poll is closed');
+
+    const deadline = poll.voting_deadline ? new Date(poll.voting_deadline) : null;
+    if (deadline && deadline.getTime() <= Date.now()) throw new Error('Poll is closed');
+
+    if (!poll.votes) poll.votes = [];
+    const existingVote = poll.votes.find(v => v.member_id === mockUsers[2].id);
+    if (existingVote) {
+      existingVote.choices = choices;
+      return existingVote;
+    }
+
+    const newVote = {
+      id: `vot_${Date.now()}`,
+      poll_id: pollId,
+      member_id: mockUsers[2].id,
+      choices,
+      created_at: new Date().toISOString(),
+    };
+    votes = [...votes, newVote];
+    poll.votes.push(newVote);
+    return newVote;
+  },
+
+  getPollResults: async (mahberId: string, pollId: string) => {
+    await delay(500);
+    const poll = polls.find(p => p.id === pollId && p.mahber_id === mahberId);
+    if (!poll) throw new Error('Poll not found');
+
+    const totalVotes = poll.votes?.length || 0;
+    
+    // Basic counting for first round
+    const counts: Record<string, number> = {};
+    poll.options.forEach(opt => counts[opt.id] = 0);
+    poll.votes?.forEach(vote => {
+      if (vote.choices && vote.choices.length > 0) {
+        counts[vote.choices[0]] = (counts[vote.choices[0]] || 0) + 1;
+      }
+    });
+
+    const baseResults = poll.options.map(opt => ({
+      option_id: opt.id,
+      option_text: opt.text,
+      vote_count: counts[opt.id] || 0,
+    }));
+
+    const response: any = {
+      poll_id: poll.id,
+      poll_type: poll.poll_type,
+      total_votes: totalVotes,
+      results: baseResults,
+    };
+
+    if (poll.poll_type === 'RANKED_CHOICE') {
+      // Fake IRV logic for the mock
+      response.irv_rounds = [
+        {
+          round: 1,
+          counts: { ...counts },
+          eliminated: [poll.options[1]?.id || 'opt_2'], // Mock eliminated
+        },
+        {
+          round: 2,
+          counts: { 
+            [poll.options[0]?.id || 'opt_1']: (counts[poll.options[0]?.id || 'opt_1'] || 0) + (counts[poll.options[1]?.id || 'opt_2'] || 0),
+            [poll.options[2]?.id || 'opt_3']: counts[poll.options[2]?.id || 'opt_3'] || 0
+          },
+          eliminated: [poll.options[0]?.id || 'opt_1'],
+          winner: poll.options[2]?.id || 'opt_3'
+        }
+      ];
+    }
+
+    return response;
   },
 };

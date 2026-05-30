@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { use } from "react";
+import { use, useEffect } from "react";
+import { useRouter } from "@/i18n/routing";
+import { useMahberMembership } from "@/lib/hooks/use-mahber-membership";
+import { AdvisorReadOnlyBanner } from "@/components/reports/advisor-read-only-banner";
 import {
   UserPlus,
   Settings,
@@ -24,9 +27,20 @@ export default function AuditTrailPage({
 }) {
   const t = useTranslations("AuditTrail");
   const { id } = use(params);
+  const router = useRouter();
+  const { canViewReports, isReadOnly, isSuccess, isLoading: membershipLoading } =
+    useMahberMembership(id);
+
+  useEffect(() => {
+    if (isSuccess && !canViewReports) {
+      router.replace(`/mahbers/${id}`);
+    }
+  }, [isSuccess, canViewReports, id, router]);
+
   const { data: auditResponse, isLoading } = useQuery({
     queryKey: ["mahber-audit", id],
     queryFn: () => auditService.getAuditTrail(id),
+    enabled: canViewReports,
   });
 
   const logs = auditResponse?.data || [];
@@ -85,12 +99,17 @@ export default function AuditTrailPage({
     }
   };
 
+  if (membershipLoading || !canViewReports) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={t('title')}
         description={t('description')}
       />
+      {isReadOnly && <AdvisorReadOnlyBanner />}
 
       {isLoading ? (
         <div className="space-y-4">

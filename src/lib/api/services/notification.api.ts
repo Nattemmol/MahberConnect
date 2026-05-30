@@ -15,7 +15,7 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'payment' | 'event';
+  type: 'info' | 'success' | 'warning' | 'error' | 'payment' | 'event' | 'membership_reinstated';
   is_read: boolean;
   created_at: string;
   link?: string;

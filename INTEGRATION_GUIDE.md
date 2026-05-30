@@ -389,3 +389,7 @@ All located in `frontend/src/lib/api/services/` and `frontend/src/lib/mock/servi
 
 ### Mock Data (15 files)
 All located in `frontend/src/lib/mock/data/`
+
+
+cd "C:\Users\kalki\Desktop\3rd year\Flutter\frontend\MahberConnect"
+git pull origin main

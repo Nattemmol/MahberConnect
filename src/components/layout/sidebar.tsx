@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui-store";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
-import { mahberService } from "@/lib/api/service-factory";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { mahberService, communicationService } from "@/lib/api/service-factory";
 import { useNotificationStore } from "@/lib/stores/notification-store";
+import { socketService } from "@/lib/socket";
 import {
   LayoutDashboard,
   Users,
@@ -24,7 +25,9 @@ import {
   PlusCircle,
   ChevronLeft,
   ShieldCheck,
+  FileBarChart,
 } from "lucide-react";
+import { useMahberMembership } from "@/lib/hooks/use-mahber-membership";
 import { Button } from "@/components/ui/button";
 
 export function Sidebar() {
@@ -34,20 +37,51 @@ export function Sidebar() {
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
   const [mounted, setMounted] = React.useState(false);
+  const queryClient = useQueryClient();
 
   const { data: myMahbers } = useQuery({
     queryKey: ["mahbers"],
     queryFn: () => mahberService.getMahbers(),
   });
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const isGlobalRoute =
     !pathname.includes("/mahbers/") ||
     pathname === "/mahbers/create" ||
     pathname === "/mahbers/discover";
+
+  const { data: chatUnreadResponse } = useQuery({
+    queryKey: ["chat-unread", activeMahberId],
+    queryFn: () => communicationService.getUnreadCount(activeMahberId!),
+    enabled: !!activeMahberId && !isGlobalRoute,
+    refetchInterval: 30000,
+  });
+
+  const chatUnreadCount = chatUnreadResponse?.unread_count || 0;
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    const socket = socketService.connect();
+    if (socket && activeMahberId) {
+      const handleNewMessage = () => {
+        queryClient.invalidateQueries({ queryKey: ["chat-unread", activeMahberId] });
+      };
+      
+      const handleMessagesRead = () => {
+        queryClient.invalidateQueries({ queryKey: ["chat-unread", activeMahberId] });
+      };
+      
+      socket.on('new_message', handleNewMessage);
+      socket.on('messages_read', handleMessagesRead);
+      
+      return () => {
+        socket.off('new_message', handleNewMessage);
+        socket.off('messages_read', handleMessagesRead);
+      };
+    }
+  }, [activeMahberId, queryClient]);
 
   const globalLinks = [
     { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
@@ -62,48 +96,89 @@ export function Sidebar() {
   const isFullyJoined =
     Array.isArray(myMahbers) && myMahbers.some((m) => m.id === activeMahberId);
 
+  const {
+    isReadOnly,
+    canViewReports,
+    canManageFinances,
+    canManageMembers,
+  } = useMahberMembership(activeMahberId ?? "");
+
   const mahberLinks = activeMahberId
-    ? [
-        {
-          href: `/mahbers/${activeMahberId}`,
-          label: t("overview"),
-          icon: LayoutDashboard,
-        },
-        ...(isFullyJoined
-          ? [
-              {
-                href: `/mahbers/${activeMahberId}/members`,
-                label: t("members"),
-                icon: Users,
-              },
-              {
-                href: `/mahbers/${activeMahberId}/events`,
-                label: t("events"),
-                icon: Calendar,
-              },
-              {
-                href: `/mahbers/${activeMahberId}/payments`,
-                label: t("finances"),
-                icon: Wallet,
-              },
-              {
-                href: `/mahbers/${activeMahberId}/chat`,
-                label: t("chat"),
-                icon: MessageSquare,
-              },
-              {
-                href: `/mahbers/${activeMahberId}/audit`,
-                label: t("auditTrail"),
-                icon: Activity,
-              },
-              {
-                href: `/mahbers/${activeMahberId}/settings`,
-                label: t("settings"),
-                icon: Settings,
-              },
-            ]
-          : []),
-      ]
+    ? isReadOnly && isFullyJoined
+      ? [
+          {
+            href: `/mahbers/${activeMahberId}/reports`,
+            label: t("reports"),
+            icon: FileBarChart,
+          },
+          {
+            href: `/mahbers/${activeMahberId}/audit`,
+            label: t("auditTrail"),
+            icon: Activity,
+          },
+        ]
+      : [
+          {
+            href: `/mahbers/${activeMahberId}`,
+            label: t("overview"),
+            icon: LayoutDashboard,
+          },
+          ...(isFullyJoined
+            ? [
+                {
+                  href: `/mahbers/${activeMahberId}/members`,
+                  label: t("members"),
+                  icon: Users,
+                },
+                {
+                  href: `/mahbers/${activeMahberId}/events`,
+                  label: t("events"),
+                  icon: Calendar,
+                },
+                ...(canManageFinances
+                  ? [
+                      {
+                        href: `/mahbers/${activeMahberId}/payments`,
+                        label: t("finances"),
+                        icon: Wallet,
+                      },
+                    ]
+                  : []),
+                ...(canViewReports
+                  ? [
+                      {
+                        href: `/mahbers/${activeMahberId}/reports`,
+                        label: t("reports"),
+                        icon: FileBarChart,
+                      },
+                    ]
+                  : []),
+                {
+                  href: `/mahbers/${activeMahberId}/chat`,
+                  label: t("chat"),
+                  icon: MessageSquare,
+                },
+                ...(canViewReports
+                  ? [
+                      {
+                        href: `/mahbers/${activeMahberId}/audit`,
+                        label: t("auditTrail"),
+                        icon: Activity,
+                      },
+                    ]
+                  : []),
+                ...(canManageMembers
+                  ? [
+                      {
+                        href: `/mahbers/${activeMahberId}/settings`,
+                        label: t("settings"),
+                        icon: Settings,
+                      },
+                    ]
+                  : []),
+              ]
+            : []),
+        ]
     : [];
 
   const links = isGlobalRoute ? globalLinks : mahberLinks;
@@ -208,6 +283,11 @@ export function Sidebar() {
                 {link.href === "/notifications" && unreadCount > 0 && (
                   <span className="flex h-5 items-center justify-center rounded-full bg-status-error px-2 text-[10px] font-bold text-white shadow-sm">
                     {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+                {link.href.endsWith("/chat") && chatUnreadCount > 0 && (
+                  <span className="flex h-5 items-center justify-center rounded-full bg-status-error px-2 text-[10px] font-bold text-white shadow-sm">
+                    {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
                   </span>
                 )}
               </Link>

@@ -44,6 +44,8 @@ export const mockMemberDetails: MemberDetail[] = [
     permissions: [],
     balance: '1000.00',
     has_won_current_cycle: false,
+    suspended_until: new Date(Date.now() + 86400000 * 5).toISOString(),
+    suspension_reason: 'Missed 3 consecutive payments',
     approval_date: new Date(Date.now() - 86400000 * 60).toISOString(),
     created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
     updated_at: new Date(Date.now() - 86400000 * 5).toISOString(),

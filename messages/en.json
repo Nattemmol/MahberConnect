@@ -40,7 +40,8 @@
     "events": "Events",
     "finances": "Finances",
     "chat": "Chat",
-    "auditTrail": "Audit Trail"
+    "auditTrail": "Audit Trail",
+    "reports": "Reports"
   },
   "HomePage": {
     "title": "MahberConnect",

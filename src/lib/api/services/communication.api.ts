@@ -7,7 +7,9 @@ import {
   CreateAnnouncementDto,
   Poll,
   Vote,
-  CreatePollDto
+  CreatePollDto,
+  PollResults,
+  ReadReceipt
 } from '@/lib/types';
 
 export const communicationApi = {
@@ -21,6 +23,28 @@ export const communicationApi = {
 
   sendChatMessage: async (mahberId: string, content: string): Promise<ChatMessage> => {
     const response = await apiClient.post<ChatMessage>(`/mahbers/${mahberId}/chat/messages`, { content });
+    return response.data;
+  },
+
+  markMessagesAsRead: async (mahberId: string, messageIds: string[]): Promise<{ marked: number }> => {
+    const response = await apiClient.post<{ marked: number }>(
+      `/mahbers/${mahberId}/chat/messages/read`,
+      { message_ids: messageIds }
+    );
+    return response.data;
+  },
+
+  getUnreadCount: async (mahberId: string): Promise<{ unread_count: number }> => {
+    const response = await apiClient.get<{ unread_count: number }>(
+      `/mahbers/${mahberId}/chat/messages/unread-count`
+    );
+    return response.data;
+  },
+
+  getReadReceipts: async (mahberId: string, messageId: string): Promise<ReadReceipt[]> => {
+    const response = await apiClient.get<ReadReceipt[]>(
+      `/mahbers/${mahberId}/chat/messages/${messageId}/read-receipts`
+    );
     return response.data;
   },
 
@@ -60,8 +84,13 @@ export const communicationApi = {
     return response.data;
   },
 
-  getPollResults: async (mahberId: string, pollId: string): Promise<any> => {
-    const response = await apiClient.get<any>(`/mahbers/${mahberId}/polls/${pollId}/results`);
+  voteUpsert: async (mahberId: string, pollId: string, choices: string[]): Promise<Vote> => {
+    const response = await apiClient.put<Vote>(`/mahbers/${mahberId}/polls/${pollId}/vote`, { choices });
+    return response.data;
+  },
+
+  getPollResults: async (mahberId: string, pollId: string): Promise<PollResults> => {
+    const response = await apiClient.get<PollResults>(`/mahbers/${mahberId}/polls/${pollId}/results`);
     return response.data;
   },
 };

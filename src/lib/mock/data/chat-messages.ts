@@ -10,6 +10,8 @@ export const mockChatMessages: ChatMessage[] = [
     is_deleted: false,
     created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
     sender: mockUsers[0],
+    read_by_count: 2,
+    is_read_by_me: true,
   },
   {
     id: 'msg_2',
@@ -19,6 +21,8 @@ export const mockChatMessages: ChatMessage[] = [
     is_deleted: false,
     created_at: new Date(Date.now() - 86400000 * 5 + 300000).toISOString(),
     sender: mockUsers[1],
+    read_by_count: 2,
+    is_read_by_me: true,
   },
   {
     id: 'msg_3',
@@ -28,5 +32,7 @@ export const mockChatMessages: ChatMessage[] = [
     is_deleted: false,
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     sender: mockUsers[0],
+    read_by_count: 0,
+    is_read_by_me: false,
   },
 ];

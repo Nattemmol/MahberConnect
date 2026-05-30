@@ -44,24 +44,54 @@ export const eventMock = {
     const hostUser = data.host_id
       ? mockUsers.find((u: User) => u.id === data.host_id)
       : undefined;
-    const newEvent = {
-      id: `evt_${Date.now()}`,
-      mahber_id: mahberId,
-      title: data.title,
-      description: data.description,
-      event_type: data.event_type,
-      start_time: data.start_time,
-      end_time: data.end_time,
-      location: data.location,
-      is_mandatory: data.is_mandatory || false,
-      is_cancelled: false,
-      created_by: mockUsers[2].id,
-      host_id: data.host_id || null,
-      host_user: hostUser || null,
-      created_at: new Date().toISOString(),
-    };
-    events = [newEvent, ...events];
-    return newEvent;
+    const isRecurring = data.recurrence_pattern && data.recurrence_pattern !== "None";
+    const seriesId = isRecurring ? `series_${Date.now()}` : undefined;
+    
+    let currentStart = new Date(data.start_time);
+    let currentEnd = new Date(data.end_time);
+    const limitDate = isRecurring && data.recurrence_end_date ? new Date(data.recurrence_end_date) : currentStart;
+    
+    const newEvents: Event[] = [];
+    
+    while (currentStart <= limitDate) {
+      const newEvent: Event = {
+        id: `evt_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        mahber_id: mahberId,
+        title: data.title,
+        description: data.description,
+        event_type: data.event_type,
+        start_time: currentStart.toISOString(),
+        end_time: currentEnd.toISOString(),
+        location: data.location,
+        is_mandatory: data.is_mandatory || false,
+        is_cancelled: false,
+        created_by: mockUsers[2].id,
+        host_id: data.host_id || null,
+        host_user: hostUser || null,
+        recurrence_pattern: data.recurrence_pattern,
+        recurrence_end_date: data.recurrence_end_date,
+        series_id: seriesId,
+        created_at: new Date().toISOString(),
+      };
+      newEvents.push(newEvent);
+      
+      if (!isRecurring) break;
+      
+      if (data.recurrence_pattern === "Weekly") {
+        currentStart.setDate(currentStart.getDate() + 7);
+        currentEnd.setDate(currentEnd.getDate() + 7);
+      } else if (data.recurrence_pattern === "Monthly") {
+        currentStart.setMonth(currentStart.getMonth() + 1);
+        currentEnd.setMonth(currentEnd.getMonth() + 1);
+      } else {
+        break;
+      }
+      
+      if (newEvents.length >= 52) break;
+    }
+
+    events = [...newEvents, ...events];
+    return newEvents[0];
   },
 
   updateEvent: async (

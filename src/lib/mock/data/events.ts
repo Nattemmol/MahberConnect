@@ -15,6 +15,9 @@ export const mockEvents: Event[] = [
     is_cancelled: false,
     created_by: "usr_1",
     host_id: "usr_3",
+    recurrence_pattern: "Monthly",
+    recurrence_end_date: new Date(Date.now() + 86400000 * 95).toISOString(),
+    series_id: "series_1",
     host_user: {
       id: "usr_3",
       name: "Mekdes Worku",

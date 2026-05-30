@@ -11,6 +11,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  Repeat,
 } from "lucide-react";
 import { eventService, memberService } from "@/lib/api/service-factory";
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -86,6 +87,12 @@ export default function EventsPage({
                   )}
                   {event.is_cancelled && (
                     <Badge variant="secondary">{t('cancelled')}</Badge>
+                  )}
+                  {(event.recurrence_pattern && event.recurrence_pattern !== "None" || event.series_id) && (
+                    <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5 flex items-center gap-1">
+                      <Repeat className="w-3 h-3" />
+                      Recurring
+                    </Badge>
                   )}
                 </div>
                 <h3 className="text-xl font-bold text-text-primary group-hover:text-gold transition-colors">

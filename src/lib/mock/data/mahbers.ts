@@ -20,6 +20,11 @@ export const mockMahbers: Mahber[] = [
       penalty_interval: "30d",
       max_fine_total: 5000,
       operation_cost_rate: 5,
+      role_limits: {
+        Treasurer: 2,
+        Secretary: 3,
+        Advisor: 1,
+      },
     },
     created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
     updated_at: new Date().toISOString(),

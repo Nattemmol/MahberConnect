@@ -12,6 +12,8 @@ import { communicationMock } from '../mock/services/communication.mock';
 import { communicationApi } from './services/communication.api';
 import { auditMock } from '../mock/services/audit.mock';
 import { auditApi } from './services/audit.api';
+import { reportsMock } from '../mock/services/reports.mock';
+import { reportsApi } from './services/reports.api';
 import { notificationMock } from '../mock/services/notification.mock';
 import { notificationApi } from './services/notification.api';
 
@@ -24,4 +26,5 @@ export const memberService = useMock ? memberMock : memberApi;
 export const eventService = useMock ? eventMock : eventApi;
 export const communicationService = useMock ? communicationMock : communicationApi;
 export const auditService = useMock ? auditMock : auditApi;
+export const reportsService = useMock ? reportsMock : reportsApi;
 export const notificationService = useMock ? notificationMock : notificationApi;

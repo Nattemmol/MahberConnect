@@ -1,7 +1,14 @@
 import { apiClient } from '../client';
-import { MemberDetail, PaginatedResponse, UpdateRoleDto, JoinRequest, JoinRequestActionDto, BatchProcessItem, BatchProcessResult } from '@/lib/types';
+import { MemberDetail, PaginatedResponse, UpdateRoleDto, SuspendMemberParams, JoinRequest, JoinRequestActionDto, BatchProcessItem, BatchProcessResult, MahberRoleDefinition } from '@/lib/types';
 
 export const memberApi = {
+  getMahberRoles: async (mahberId: string): Promise<MahberRoleDefinition[]> => {
+    const response = await apiClient.get<MahberRoleDefinition[]>(
+      `/mahbers/${mahberId}/roles`,
+    );
+    return response.data;
+  },
+
   getMembers: async (mahberId: string, page = 1, limit = 20): Promise<PaginatedResponse<MemberDetail>> => {
     const response = await apiClient.get<PaginatedResponse<MemberDetail>>(
       `/mahbers/${mahberId}/members?page=${page}&limit=${limit}`
@@ -14,8 +21,8 @@ export const memberApi = {
     return response.data;
   },
 
-  suspendMember: async (mahberId: string, memberId: string): Promise<MemberDetail> => {
-    const response = await apiClient.post<MemberDetail>(`/mahbers/${mahberId}/members/${memberId}/suspend`);
+  suspendMember: async (mahberId: string, memberId: string, params?: SuspendMemberParams): Promise<MemberDetail> => {
+    const response = await apiClient.post<MemberDetail>(`/mahbers/${mahberId}/members/${memberId}/suspend`, params ?? {});
     return response.data;
   },
 

@@ -20,8 +20,8 @@ import {
   Zap,
   QrCode,
   Mail,
-  CheckSquare,
   XSquare,
+  Repeat,
 } from "lucide-react";
 import { QRScanner } from "@/components/ui/qr-scanner";
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -423,6 +423,13 @@ export default function EventDetailPage({
               {event.host_user && (
                 <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5">
                   {t('host', { name: event.host_user.name })}
+                </Badge>
+              )}
+              {(event.recurrence_pattern && event.recurrence_pattern !== "None" || event.series_id) && (
+                <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5 flex items-center gap-1">
+                  <Repeat className="w-3 h-3" />
+                  Repeats: {event.recurrence_pattern || "Yes"}
+                  {event.recurrence_end_date && ` until ${new Date(event.recurrence_end_date).toLocaleDateString()}`}
                 </Badge>
               )}
             </div>

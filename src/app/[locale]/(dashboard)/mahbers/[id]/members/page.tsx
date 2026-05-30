@@ -10,6 +10,8 @@ import {
   ShieldAlert,
   User as UserIcon,
   UserPlus,
+  Clock,
+  Infinity,
 } from "lucide-react";
 import { memberService, mahberService, authService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
@@ -28,11 +30,31 @@ import {
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog } from "@/components/ui/dialog";
-import { MemberDetail, RoleName, User } from "@/lib/types";
+import { MemberDetail, RoleName, User, MahberRoleDefinition, SuspendMemberParams } from "@/lib/types";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useTranslations } from "next-intl";
+import { useMahberMembership } from "@/lib/hooks/use-mahber-membership";
+import { DEFAULT_MAHBER_ROLES } from "@/lib/utils/permissions";
+
+const SUSPEND_DURATION_PRESETS = [
+  { label: "1 day", days: 1 },
+  { label: "3 days", days: 3 },
+  { label: "7 days", days: 7 },
+  { label: "14 days", days: 14 },
+  { label: "30 days", days: 30 },
+];
+
+function getSuspensionBadgeText(member: MemberDetail): { text: string; variant: "destructive" | "warning" } {
+  if (member.status !== "Suspended") return { text: member.status, variant: "destructive" };
+  if (!member.suspended_until) return { text: "Suspended (Permanent)", variant: "destructive" };
+  const remaining = new Date(member.suspended_until).getTime() - Date.now();
+  if (remaining <= 0) return { text: "Suspended (expiring...)", variant: "warning" };
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  return { text: `Suspended (${days}d ${hours}h)`, variant: "destructive" };
+}
 
 export default function MembersPage({
   params,
@@ -52,6 +74,13 @@ export default function MembersPage({
   const [searchedUser, setSearchedUser] = useState<User | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
 
+  // Suspend dialog states
+  const [suspendTarget, setSuspendTarget] = useState<MemberDetail | null>(null);
+  const [suspendDuration, setSuspendDuration] = useState<number | null>(7);
+  const [suspendReason, setSuspendReason] = useState("");
+  const [isPermanentSuspension, setIsPermanentSuspension] = useState(false);
+  const [customDuration, setCustomDuration] = useState("");
+
   const { data: mahber } = useQuery({
     queryKey: ["mahber-details", id],
     queryFn: () => mahberService.getMahberById(id),
@@ -67,22 +96,44 @@ export default function MembersPage({
     queryFn: () => memberService.getJoinRequests(id),
   });
 
-  const myMembership = membersResponse?.data?.find((m) => m.user?.id === user?.id);
-  const isAdmin =
-    (myMembership?.role as any) === "ADMIN" ||
-    (myMembership?.role as any) === "Admin" ||
-    (myMembership?.role as any)?.name === "Admin" ||
-    (myMembership?.role as any)?.name === "ADMIN" ||
-    (myMembership?.role as any)?.permissions?.includes("manage_members") ||
-    (myMembership?.role as any)?.permissions?.includes("manage_finances");
+  const { canManageMembers, canManageRoles } = useMahberMembership(id);
+  const isAdmin = canManageMembers;
+
+  const { data: mahberRoles } = useQuery<MahberRoleDefinition[]>({
+    queryKey: ["mahber-roles", id],
+    queryFn: () => memberService.getMahberRoles(id),
+    enabled: canManageRoles,
+  });
+
+  const assignableRoles: MahberRoleDefinition[] =
+    mahberRoles && mahberRoles.length > 0 ? mahberRoles : DEFAULT_MAHBER_ROLES;
+
+  const roleLimits: Record<string, number> = (mahber?.configuration as any)?.role_limits ?? {};
+  const activeMembers = membersResponse?.data ?? [];
+
+  function getRoleCount(roleName: string): number {
+    return activeMembers.filter(
+      (m) => m.status === "Active" && m.role_name === roleName,
+    ).length;
+  }
 
   const suspendMutation = useMutation({
-    mutationFn: (memberId: string) => memberService.suspendMember(id, memberId),
+    mutationFn: ({ memberId, params }: { memberId: string; params?: SuspendMemberParams }) =>
+      memberService.suspendMember(id, memberId, params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-members", id] });
+      queryClient.invalidateQueries({ queryKey: ["mahber-details", id] });
       toast.success("Member suspended successfully");
+      setSuspendTarget(null);
+      setSuspendReason("");
+      setSuspendDuration(7);
+      setIsPermanentSuspension(false);
+      setCustomDuration("");
     },
-    onError: () => toast.error("Failed to suspend member"),
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || "Failed to suspend member";
+      toast.error(msg);
+    },
   });
 
   const reinstateMutation = useMutation({
@@ -90,9 +141,13 @@ export default function MembersPage({
       memberService.reinstateMember(id, memberId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-members", id] });
+      queryClient.invalidateQueries({ queryKey: ["mahber-details", id] });
       toast.success("Member reinstated successfully");
     },
-    onError: () => toast.error("Failed to reinstate member"),
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || "Failed to reinstate member";
+      toast.error(msg);
+    },
   });
 
   const unbanMutation = useMutation({
@@ -118,7 +173,10 @@ export default function MembersPage({
       toast.success("Role updated successfully");
       setIsRoleDialogOpen(false);
     },
-    onError: () => toast.error("Failed to update role"),
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || "Failed to update role";
+      toast.error(msg);
+    },
   });
 
   const handleSearchUser = async () => {
@@ -289,17 +347,30 @@ export default function MembersPage({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={
-                      member.status === "Active"
-                        ? "success"
-                        : member.status === "Suspended" || member.status === "Banned"
-                          ? "destructive"
-                          : "warning"
+                  {(() => {
+                    if (member.status === "Suspended") {
+                      const badge = getSuspensionBadgeText(member);
+                      return (
+                        <Badge variant={badge.variant} className="whitespace-nowrap">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {badge.text}
+                        </Badge>
+                      );
                     }
-                  >
-                    {member.status}
-                  </Badge>
+                    return (
+                      <Badge
+                        variant={
+                          member.status === "Active"
+                            ? "success"
+                            : member.status === "Banned"
+                              ? "destructive"
+                              : "warning"
+                        }
+                      >
+                        {member.status}
+                      </Badge>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell className="text-text-secondary">
                   {new Date(member.created_at).toLocaleDateString()}
@@ -323,16 +394,24 @@ export default function MembersPage({
                         </Button>
                       }
                     >
-                      <DropdownMenuItem onClick={() => {
-                        setSelectedMember(member);
-                        setIsRoleDialogOpen(true);
-                      }}>
-                        <ShieldAlert className="w-4 h-4 mr-2" />
-                        Change Role
-                      </DropdownMenuItem>
+                      {isAdmin && (
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedMember(member);
+                          setIsRoleDialogOpen(true);
+                        }}>
+                          <ShieldAlert className="w-4 h-4 mr-2" />
+                          Change Role
+                        </DropdownMenuItem>
+                      )}
                       {member.status === "Active" ? (
                         <DropdownMenuItem
-                          onClick={() => suspendMutation.mutate(member.id)}
+                          onClick={() => {
+                            setSuspendTarget(member);
+                            setSuspendDuration(7);
+                            setSuspendReason("");
+                            setIsPermanentSuspension(false);
+                            setCustomDuration("");
+                          }}
                         >
                           <UserMinus className="w-4 h-4 mr-2" />
                           Suspend
@@ -387,6 +466,128 @@ export default function MembersPage({
         </div>
       )}
 
+      {/* Suspend Member Dialog */}
+      <Dialog
+        isOpen={!!suspendTarget}
+        onClose={() => {
+          setSuspendTarget(null);
+          setSuspendReason("");
+          setSuspendDuration(7);
+          setIsPermanentSuspension(false);
+          setCustomDuration("");
+        }}
+        title={`Suspend ${suspendTarget?.user?.name}`}
+        description="Set a duration and reason for the suspension."
+      >
+        <div className="space-y-5 py-4">
+          <div>
+            <p className="text-sm font-medium text-text-primary mb-2">Duration</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {SUSPEND_DURATION_PRESETS.map((preset) => (
+                <button
+                  key={preset.days}
+                  type="button"
+                  onClick={() => {
+                    setSuspendDuration(preset.days);
+                    setIsPermanentSuspension(false);
+                    setCustomDuration("");
+                  }}
+                  className={`px-3 py-1.5 text-sm rounded-full border transition-all ${
+                    !isPermanentSuspension && suspendDuration === preset.days && customDuration === ""
+                      ? "border-gold bg-gold/20 text-gold"
+                      : "border-border-glass text-text-secondary hover:border-gold/50"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={1}
+                placeholder="Custom days"
+                value={customDuration}
+                onChange={(e) => {
+                  setCustomDuration(e.target.value);
+                  setIsPermanentSuspension(false);
+                  if (e.target.value) setSuspendDuration(null);
+                }}
+                disabled={isPermanentSuspension}
+                className="w-32"
+              />
+              <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isPermanentSuspension}
+                  onChange={(e) => {
+                    setIsPermanentSuspension(e.target.checked);
+                    if (e.target.checked) {
+                      setSuspendDuration(null);
+                      setCustomDuration("");
+                    }
+                  }}
+                  className="rounded border-border-glass"
+                />
+                <Infinity className="w-4 h-4" />
+                Permanent
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-text-primary mb-2">Reason (optional)</p>
+            <textarea
+              placeholder="e.g. Missed 3 consecutive payments"
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              rows={3}
+              className="w-full rounded-input border border-border-glass bg-background-dark/50 px-3 py-2 text-sm placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 transition-colors resize-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSuspendTarget(null);
+                setSuspendReason("");
+                setSuspendDuration(7);
+                setIsPermanentSuspension(false);
+                setCustomDuration("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!suspendTarget) return;
+                const finalDuration = isPermanentSuspension
+                  ? undefined
+                  : customDuration
+                    ? parseInt(customDuration, 10)
+                    : suspendDuration ?? undefined;
+                if (!isPermanentSuspension && finalDuration !== undefined && finalDuration < 1) {
+                  toast.error("Duration must be at least 1 day");
+                  return;
+                }
+                suspendMutation.mutate({
+                  memberId: suspendTarget.id,
+                  params: {
+                    duration_days: finalDuration,
+                    reason: suspendReason.trim() || undefined,
+                  },
+                });
+              }}
+              isLoading={suspendMutation.isPending}
+              className="bg-gold hover:bg-gold-dark text-black font-semibold"
+            >
+              Confirm Suspension
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
       {/* Role Selection Dialog */}
       <Dialog
         isOpen={isRoleDialogOpen}
@@ -395,29 +596,51 @@ export default function MembersPage({
         description={`Assign a new role to ${selectedMember?.user?.name}. This will update their permissions within the Mahber.`}
       >
         <div className="grid gap-3 py-4">
-          {(["Admin", "Treasurer", "Secretary", "Member"] as RoleName[]).map((role) => (
-            <button
-              key={role}
-              onClick={() => {
-                if (selectedMember) {
-                  roleMutation.mutate({ memberId: selectedMember.id, role_name: role });
-                }
-              }}
-              disabled={roleMutation.isPending}
-              className="flex items-center justify-between p-4 rounded-lg bg-surface-active/50 border border-border-glass hover:border-gold/50 transition-all text-left"
-            >
-              <div>
-                <p className="font-bold">{role}</p>
-                <p className="text-xs text-text-muted">
-                  {role === "Admin" && "Full control over all Mahber features."}
-                  {role === "Treasurer" && "Manage finances and view reports."}
-                  {role === "Secretary" && "Manage events and announcements."}
-                  {role === "Member" && "Standard participation permissions."}
-                </p>
-              </div>
-              {roleMutation.isPending && <div className="animate-spin rounded-full h-4 w-4 border-2 border-gold border-t-transparent" />}
-            </button>
-          ))}
+          {assignableRoles.map((role) => {
+            const limit = roleLimits[role.name];
+            const count = getRoleCount(role.name);
+            const isAtLimit = limit !== undefined && count >= limit;
+            return (
+              <button
+                key={role.name}
+                onClick={() => {
+                  if (selectedMember) {
+                    roleMutation.mutate({
+                      memberId: selectedMember.id,
+                      role_name: role.name as RoleName,
+                    });
+                  }
+                }}
+                disabled={roleMutation.isPending}
+                className="flex items-center justify-between p-4 rounded-lg bg-surface-active/50 border border-border-glass hover:border-gold/50 transition-all text-left"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold">{role.name}</p>
+                    {limit !== undefined && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        isAtLimit
+                          ? "bg-status-error/20 text-status-error"
+                          : "bg-gold/10 text-gold"
+                      }`}>
+                        {count}/{limit}
+                        {isAtLimit ? " — full" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    {role.description ??
+                      (role.name === "Advisor"
+                        ? "Read-only access to financial and attendance reports and audit trail."
+                        : "Standard role permissions apply.")}
+                  </p>
+                </div>
+                {roleMutation.isPending && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gold border-t-transparent shrink-0" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </Dialog>
 

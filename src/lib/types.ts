@@ -30,6 +30,7 @@ export type MahberConfiguration = {
   max_fine_total?: number;
   operation_cost_rate?: number;
   fine_threshold?: number;
+  role_limits?: Record<string, number>;
 };
 
 export type Mahber = {
@@ -145,8 +146,25 @@ export type RoleName =
   | "Admin"
   | "Treasurer"
   | "Secretary"
+  | "Advisor"
   | "Member"
   | "custom";
+
+export type MahberRoleDefinition = {
+  name: RoleName;
+  permissions: Permission[];
+  description?: string;
+};
+
+export type FinancialReportSummary = {
+  totalContributions: number;
+  totalFines: number;
+  totalExpenses: number;
+  totalPayouts: number;
+  netBalance: number;
+  startDate?: string;
+  endDate?: string;
+};
 
 export type MembershipStatus =
   | "Pending"
@@ -169,6 +187,8 @@ export type MemberDetail = {
   balance: string;
   has_won_current_cycle: boolean;
   next_payment_due?: string | null;
+  suspended_until?: string | null;
+  suspension_reason?: string | null;
   approval_date?: string;
   activation_date?: string;
   created_at: string;
@@ -195,6 +215,11 @@ export type JoinRequest = {
 export type UpdateRoleDto = {
   role_name: RoleName;
   custom_permissions?: Permission[];
+};
+
+export type SuspendMemberParams = {
+  duration_days?: number;
+  reason?: string;
 };
 
 export type JoinRequestActionDto = {
@@ -274,6 +299,9 @@ export type Event = {
   location: string;
   is_mandatory: boolean;
   is_cancelled: boolean;
+  recurrence_pattern?: "None" | "Weekly" | "Monthly";
+  recurrence_end_date?: string;
+  series_id?: string;
   created_by?: string;
   host_id?: string | null;
   host_user?: User;
@@ -336,6 +364,8 @@ export type CreateEventDto = {
   location: string;
   is_mandatory?: boolean;
   host_id?: string;
+  recurrence_pattern?: "None" | "Weekly" | "Monthly";
+  recurrence_end_date?: string;
 };
 
 // ── Communication & Engagement ────────────────────────────────────────────────
@@ -348,6 +378,14 @@ export type ChatMessage = {
   is_deleted: boolean;
   created_at: string;
   sender?: User;
+  read_by_count: number;
+  is_read_by_me: boolean;
+};
+
+export type ReadReceipt = {
+  member_id: string;
+  member_name: string;
+  read_at: string;
 };
 
 export type AnnouncementPriority = "Normal" | "Important" | "Urgent";
@@ -374,7 +412,7 @@ export type Announcement = {
   creator?: User;
 };
 
-export type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE";
+export type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "RANKED_CHOICE";
 
 export type PollOption = {
   id: string;
@@ -404,6 +442,23 @@ export type Poll = {
   creator?: User;
 };
 
+export type PollResults = {
+  poll_id: string;
+  poll_type: PollType;
+  total_votes: number;
+  results: {
+    option_id: string;
+    option_text: string;
+    vote_count: number;
+  }[];
+  irv_rounds?: {
+    round: number;
+    counts: Record<string, number>;
+    eliminated: string[];
+    winner?: string;
+  }[];
+};
+
 export type CreateAnnouncementDto = {
   title: string;
   content: string;
@@ -414,7 +469,7 @@ export type CreateAnnouncementDto = {
 
 export type CreatePollDto = {
   question: string;
-  options: string[]; // List of option texts
+  options: string[];
   poll_type: PollType;
   voting_deadline: string;
   eligibility_criteria?: string;

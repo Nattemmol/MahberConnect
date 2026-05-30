@@ -5,6 +5,8 @@ import { useUIStore } from "@/lib/stores/ui-store";
 import { useQuery } from "@tanstack/react-query";
 import { mahberService } from "@/lib/api/service-factory";
 import { usePathname, useRouter } from "@/i18n/routing";
+import { useMahberMembership } from "@/lib/hooks/use-mahber-membership";
+import { isReadOnlyBlockedPath } from "@/lib/utils/permissions";
 
 export default function MahberDetailLayout({
   children,
@@ -23,25 +25,49 @@ export default function MahberDetailLayout({
     queryFn: () => mahberService.getMahbers(),
   });
 
+  const {
+    isReadOnly,
+    isSuccess: membershipReady,
+    canViewReports,
+  } = useMahberMembership(id);
+
   const isFullyJoined = Array.isArray(myMahbers) && myMahbers.some((m) => m.id === id);
   const isOverviewPage = pathname === `/mahbers/${id}`;
 
   useEffect(() => {
-    // When this layout mounts (user enters a Mahber's context), tell the store
     setActiveMahber(id);
-
-    // When the user leaves this layout (navigates back to dashboard), clear the context
     return () => {
       setActiveMahber(null);
     };
   }, [id, setActiveMahber]);
 
   useEffect(() => {
-    // Redirect if they try to access internal pages without being a member
     if (isSuccess && !isFullyJoined && !isOverviewPage) {
       router.replace(`/mahbers/${id}`);
     }
   }, [isSuccess, isFullyJoined, isOverviewPage, id, router]);
+
+  useEffect(() => {
+    if (!isFullyJoined || !membershipReady || !isReadOnly) return;
+
+    if (isOverviewPage && canViewReports) {
+      router.replace(`/mahbers/${id}/reports`);
+      return;
+    }
+
+    if (isReadOnlyBlockedPath(pathname, id)) {
+      router.replace(`/mahbers/${id}/reports`);
+    }
+  }, [
+    isFullyJoined,
+    membershipReady,
+    isReadOnly,
+    isOverviewPage,
+    canViewReports,
+    pathname,
+    id,
+    router,
+  ]);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

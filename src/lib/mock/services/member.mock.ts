@@ -2,12 +2,19 @@ import { delay, randomError } from "../utils";
 import { mockMemberDetails } from "../data/memberships";
 import { mockJoinRequests } from "../data/join-requests";
 import { MemberDetail, UpdateRoleDto, JoinRequestActionDto, BatchProcessItem } from "@/lib/types";
+import { DEFAULT_MAHBER_ROLES } from "@/lib/utils/permissions";
+import { SuspendMemberParams } from "@/lib/types";
 
 // In-memory state so actions persist during session
 let members = [...mockMemberDetails];
 let joinRequests = [...mockJoinRequests];
 
 export const memberMock = {
+  getMahberRoles: async (_mahberId: string) => {
+    await delay(300);
+    return DEFAULT_MAHBER_ROLES;
+  },
+
   getMembers: async (mahberId: string, page = 1, limit = 20) => {
     await delay(600);
     const filtered = members.filter((m) => m.mahber_id === mahberId);
@@ -31,14 +38,19 @@ export const memberMock = {
     return member;
   },
 
-  suspendMember: async (mahberId: string, memberId: string) => {
+  suspendMember: async (mahberId: string, memberId: string, params?: SuspendMemberParams) => {
     await delay(800);
     randomError(0.05);
     const member = members.find(
       (m) => m.mahber_id === mahberId && m.id === memberId,
     );
     if (!member) throw new Error("Member not found");
+    if (member.status === "Suspended") throw new Error("Member is already suspended");
     member.status = "Suspended";
+    member.suspended_until = params?.duration_days
+      ? new Date(Date.now() + params.duration_days * 86400000).toISOString()
+      : null;
+    member.suspension_reason = params?.reason ?? null;
     member.updated_at = new Date().toISOString();
     return member;
   },
@@ -51,6 +63,8 @@ export const memberMock = {
     );
     if (!member) throw new Error("Member not found");
     member.status = "Active";
+    member.suspended_until = null;
+    member.suspension_reason = null;
     member.updated_at = new Date().toISOString();
     return member;
   },
@@ -78,8 +92,35 @@ export const memberMock = {
       (m) => m.mahber_id === mahberId && m.id === memberId,
     );
     if (!member) throw new Error("Member not found");
+
+    // Simulate role limit enforcement
+    const { mockMahbers } = require("../data/mahbers");
+    const mahber = mockMahbers.find((m: any) => m.id === mahberId);
+    const roleLimits = mahber?.configuration?.role_limits as Record<string, number> | undefined;
+    if (roleLimits && data.role_name in roleLimits) {
+      const limit = roleLimits[data.role_name];
+      const currentCount = members.filter(
+        (m) => m.mahber_id === mahberId && m.status === "Active" && m.role_name === data.role_name && m.id !== memberId,
+      ).length;
+      if (currentCount >= limit) {
+        throw {
+          response: {
+            data: {
+              statusCode: 400,
+              message: `Role limit exceeded: maximum ${limit} member(s) can have the "${data.role_name}" role`,
+            },
+          },
+        };
+      }
+    }
+
     member.role_name = data.role_name;
-    if (data.custom_permissions) member.permissions = data.custom_permissions;
+    if (data.custom_permissions) {
+      member.permissions = data.custom_permissions;
+    } else {
+      const preset = DEFAULT_MAHBER_ROLES.find((r) => r.name === data.role_name);
+      member.permissions = preset?.permissions ?? [];
+    }
     member.updated_at = new Date().toISOString();
     return member;
   },

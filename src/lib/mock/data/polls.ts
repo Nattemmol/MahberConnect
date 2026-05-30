@@ -36,4 +36,21 @@ export const mockPolls: Poll[] = [
     creator: mockUsers[0],
     votes: mockVotes.filter(v => v.poll_id === 'pol_2'),
   },
+  {
+    id: 'pol_3',
+    mahber_id: 'mah_1',
+    question: 'Where should we host the annual ceremony?',
+    poll_type: 'RANKED_CHOICE',
+    options: [
+      { id: 'opt_1', text: 'Hilton Hotel' },
+      { id: 'opt_2', text: 'Sheraton Addis' },
+      { id: 'opt_3', text: 'Skylight Hotel' },
+    ],
+    voting_deadline: new Date(Date.now() + 86400000 * 3).toISOString(),
+    is_closed: false,
+    created_by: 'usr_1',
+    created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+    creator: mockUsers[0],
+    votes: mockVotes.filter(v => v.poll_id === 'pol_3'),
+  },
 ];
