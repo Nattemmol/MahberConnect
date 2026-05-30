@@ -29,10 +29,10 @@ export function PublicHeader() {
           <Image
             src="/Mahber_Connect_Logo.svg"
             alt="MahberConnect"
-            width={250}
-            height={120}
+            width={150}
+            height={60}
             unoptimized
-            className="h-20 w-auto"
+            className="h-12 w-auto"
           />
         </Link>
 
