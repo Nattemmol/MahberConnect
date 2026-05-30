@@ -207,15 +207,15 @@ export function Sidebar() {
         )}
       >
         {/* Logo — links back to landing page */}
-        <div className="h-16 flex items-center px-5 border-b border-border">
+        <div className="h-20 flex items-center px-5 border-b border-border">
           <Link href="/" className="flex items-center gap-2.5">
             <Image
               src="/Mahber_Connect_Logo.svg"
               alt="MahberConnect"
-              width={220}
-              height={90}
+              width={150}
+              height={60}
               unoptimized
-              className="h-20 w-auto"
+              className="h-14 w-auto"
             />
           </Link>
         </div>
