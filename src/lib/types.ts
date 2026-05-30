@@ -513,7 +513,9 @@ export type CreateExpenseDto = {
 };
 
 // ── Payouts ─────────────────────────────────────────────────────────────────
-export type PayoutCategory = "Iddir_Benefit" | "Event_Reimbursement" | "Recurring" | "General";
+export type PayoutCategory = "Iddir_Benefit" | "Event_Reimbursement" | "Recurring" | "General" | "Equb_Payout";
+
+export type PayoutStatus = "PENDING_APPROVAL" | "APPROVED" | "PAID" | "REJECTED";
 
 export type Payout = {
   id: string;
@@ -522,11 +524,22 @@ export type Payout = {
   amount: number;
   category: PayoutCategory;
   reason: string;
-  approved_by: string;
+  status: PayoutStatus;
+  approved_by: string | null;
+  approved_by_admin: string | null;
+  approved_by_treasurer: string | null;
   paid_at: string | null;
   created_at: string;
   updated_at: string;
   member?: User;
+};
+
+export type ApprovePayoutResponse = {
+  id: string;
+  status: PayoutStatus;
+  approved_by_admin: string | null;
+  approved_by_treasurer: string | null;
+  paid_at: string | null;
 };
 
 export type CreatePayoutDto = {
@@ -568,6 +581,11 @@ export type Fine = {
   member?: User; // Joined via membership for display
 };
 
+export type LotteryExecuteParams = {
+  operationalCostRate?: number;
+  fineThreshold?: number;
+};
+
 export type LotteryDraw = {
   id: string;
   mahber_id: string;
@@ -576,8 +594,9 @@ export type LotteryDraw = {
   eligible_members: string[];
   random_seed: string;
   payout_amount: number;
+  payout_id?: string;
   created_at: string;
-  winner?: User; // Joined for display
+  winner?: User;
 };
 
 // ── Audit Trail ──────────────────────────────────────────────────────────────

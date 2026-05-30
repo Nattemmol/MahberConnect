@@ -745,7 +745,22 @@
     "iddirBenefit": "Iddir Benefit",
     "eventReimbursement": "Event Reimbursement",
     "recurring": "Recurring",
-    "general": "General"
+    "general": "General",
+    "equbPayout": "Equb Payout",
+    "pendingEqubTitle": "Equb Payout Pending Approval",
+    "pendingEqubDesc": "The latest Equb lottery draw has been executed. The payout requires approval from both Admin and Treasurer before it is released.",
+    "winner": "Winner",
+    "amount": "Amount",
+    "approved": "Approved",
+    "pending": "Pending",
+    "approveAsAdmin": "Approve as Admin",
+    "approveAsTreasurer": "Approve as Treasurer",
+    "approveSuccess": "Payout approved successfully!",
+    "approveFailed": "Failed to approve payout",
+    "statusPending": "Pending Approval",
+    "statusApproved": "Approved",
+    "statusPaid": "Paid",
+    "statusRejected": "Rejected"
   },
   "CreatePayout": {
     "title": "New Payout",
@@ -812,7 +827,14 @@
     "totalPayout": "Total Payout",
     "wonderful": "Wonderful!",
     "winnerDialogTitle": "Draw Completed!",
-    "winnerDialogDesc": "The lottery has been executed successfully."
+    "winnerDialogDesc": "The lottery has been executed successfully.",
+    "pendingApproval": "Pending Approval Required",
+    "pendingApprovalDesc": "The Equb payout from the last draw is awaiting approval from Admin and Treasurer.",
+    "viewPayout": "View Payout",
+    "operationalCostRate": "Operational Cost Rate",
+    "operationalCostRateDesc": "Percentage deducted from the pool for operational costs (0-100%).",
+    "fineThreshold": "Fine Threshold",
+    "fineThresholdDesc": "Members with unpaid fines above this amount (ETB) will be excluded from the draw. 0 = no exclusion."
   },
   "Chat": {
     "title": "Group Chat",

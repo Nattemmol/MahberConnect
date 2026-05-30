@@ -1,5 +1,5 @@
 import { apiClient } from '../client';
-import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, PaginatedResponse, OutstandingObligations, PaymentQueryParams, Expense, CreateExpenseDto, Payout, CreatePayoutDto, PayoutSummary, Bank } from '@/lib/types';
+import { Payment, Transaction, InitiatePaymentDto, Fine, LotteryDraw, LotteryExecuteParams, PaginatedResponse, OutstandingObligations, PaymentQueryParams, Expense, CreateExpenseDto, Payout, CreatePayoutDto, PayoutSummary, ApprovePayoutResponse, Bank } from '@/lib/types';
 import { auditApi } from './audit.api';
 
 export const financialApi = {
@@ -110,9 +110,19 @@ export const financialApi = {
     return response.data;
   },
 
-  executeLottery: async (mahberId: string): Promise<LotteryDraw> => {
+  executeLottery: async (mahberId: string, params?: LotteryExecuteParams): Promise<LotteryDraw> => {
     // Backend route: POST /mahbers/:id/lottery/execute
-    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, {});
+    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, params ?? {});
+    return response.data;
+  },
+
+  approvePayoutAsAdmin: async (mahberId: string, payoutId: string): Promise<ApprovePayoutResponse> => {
+    const response = await apiClient.post<ApprovePayoutResponse>(`/mahbers/${mahberId}/payouts/${payoutId}/approve/admin`);
+    return response.data;
+  },
+
+  approvePayoutAsTreasurer: async (mahberId: string, payoutId: string): Promise<ApprovePayoutResponse> => {
+    const response = await apiClient.post<ApprovePayoutResponse>(`/mahbers/${mahberId}/payouts/${payoutId}/approve/treasurer`);
     return response.data;
   },
 

@@ -3,16 +3,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Trophy, Dices, Calendar, Gift, Sparkles } from "lucide-react";
+import { Trophy, Dices, Calendar, Gift, Sparkles, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { financialService, mahberService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog } from "@/components/ui/dialog";
-import { MemberDetail, LotteryDraw } from "@/lib/types";
+import { Input } from "@/components/ui/input";
+import { MemberDetail, LotteryDraw, Payout } from "@/lib/types";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 export default function LotteryPage({
   params,
@@ -25,6 +27,8 @@ export default function LotteryPage({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
   const [drawResult, setDrawResult] = useState<LotteryDraw | null>(null);
+  const [operationalCostRate, setOperationalCostRate] = useState(0);
+  const [fineThreshold, setFineThreshold] = useState(0);
 
   const { data: mahber } = useQuery({
     queryKey: ["mahber", id],
@@ -36,16 +40,24 @@ export default function LotteryPage({
     queryFn: () => financialService.getLotteryHistory(id),
   });
 
+  const { data: payoutsResponse } = useQuery({
+    queryKey: ["mahber-payouts", id],
+    queryFn: () => financialService.getPayouts(id),
+  });
+
+  const pendingEqubPayout = payoutsResponse?.data?.find(
+    (p) => p.category === 'Equb_Payout' && p.status === 'PENDING_APPROVAL'
+  );
+
   const drawMutation = useMutation({
-    mutationFn: () => financialService.executeLottery(id),
+    mutationFn: () => financialService.executeLottery(id, { operationalCostRate, fineThreshold }),
     onMutate: () => {
       setIsDrawing(true);
       setIsDrawDialogOpen(false);
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ["mahber-lottery", id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["mahber-lottery", id] });
+      queryClient.invalidateQueries({ queryKey: ["mahber-payouts", id] });
       setIsDrawing(false);
       setDrawResult(data);
       toast.success(t("drawCompleted"));
@@ -83,7 +95,43 @@ export default function LotteryPage({
         description={t("description")}
       />
 
-      {canDrawLottery && (
+      {/* Pending Approval Banner */}
+      {pendingEqubPayout && (
+        <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-background-dark">
+          <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-text-primary">
+                  {t("pendingApproval")}
+                </h3>
+                <p className="text-sm text-text-secondary mt-1">
+                  {t("pendingApprovalDesc")}
+                </p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-text-secondary">
+                  <span className="flex items-center gap-1">
+                    {pendingEqubPayout.approved_by_admin ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <XCircle className="w-3.5 h-3.5 text-amber-500" />}
+                    Admin
+                  </span>
+                  <span className="flex items-center gap-1">
+                    {pendingEqubPayout.approved_by_treasurer ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <XCircle className="w-3.5 h-3.5 text-amber-500" />}
+                    Treasurer
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Link href={`/mahbers/${id}/payouts`}>
+              <Button variant="outline" size="sm" className="shrink-0">
+                {t("viewPayout")}
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {canDrawLottery && !pendingEqubPayout && (
         <Card className="border-gold/30 bg-gradient-to-br from-background-dark via-background-dark to-gold/10 relative overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.1)]">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Dices className="w-48 h-48 text-gold" />
@@ -210,7 +258,11 @@ export default function LotteryPage({
       {/* Draw Configuration Dialog */}
       <Dialog
         isOpen={isDrawDialogOpen}
-        onClose={() => setIsDrawDialogOpen(false)}
+        onClose={() => {
+          setIsDrawDialogOpen(false);
+          setOperationalCostRate(0);
+          setFineThreshold(0);
+        }}
         title={t("executeTitle")}
         description={t("executeDesc")}
       >
@@ -219,8 +271,45 @@ export default function LotteryPage({
             {t("executeWarning")}
           </p>
 
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary">{t("operationalCostRate")}</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={operationalCostRate}
+                  onChange={(e) => setOperationalCostRate(Number(e.target.value))}
+                  className="w-24"
+                />
+                <span className="text-sm text-text-secondary">%</span>
+              </div>
+              <p className="text-xs text-text-muted">{t("operationalCostRateDesc")}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary">{t("fineThreshold")}</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  value={fineThreshold}
+                  onChange={(e) => setFineThreshold(Number(e.target.value))}
+                  className="w-24"
+                />
+                <span className="text-sm text-text-secondary">ETB</span>
+              </div>
+              <p className="text-xs text-text-muted">{t("fineThresholdDesc")}</p>
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="ghost" onClick={() => setIsDrawDialogOpen(false)}>{t("cancel")}</Button>
+            <Button variant="ghost" onClick={() => {
+              setIsDrawDialogOpen(false);
+              setOperationalCostRate(0);
+              setFineThreshold(0);
+            }}>{t("cancel")}</Button>
             <Button 
               className="bg-gold hover:bg-gold-dark text-black font-bold"
               onClick={() => drawMutation.mutate()}

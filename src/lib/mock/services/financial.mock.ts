@@ -1,6 +1,6 @@
 import { delay, randomError, paginate } from '../utils';
 import { mockPayments, mockTransactions, mockExpenses } from '../data/financial';
-import { InitiatePaymentDto, PaymentQueryParams, CreateExpenseDto, CreatePayoutDto, Bank, Expense, Payout, PayoutCategory, PayoutSummary } from '@/lib/types';
+import { InitiatePaymentDto, PaymentQueryParams, CreateExpenseDto, CreatePayoutDto, Bank, Expense, Payout, PayoutCategory, PayoutSummary, PayoutStatus, ApprovePayoutResponse, LotteryDraw } from '@/lib/types';
 import { mockFines } from '../data/fines';
 import { mockLotteryDraws } from '../data/lottery';
 import { mockUsers } from '../data/users';
@@ -11,7 +11,7 @@ let fines = [...mockFines];
 let lotteryDraws = [...mockLotteryDraws];
 let expenses = [...mockExpenses];
 
-const mockPayouts: Payout[] = [
+let mockPayouts: Payout[] = [
   {
     id: 'pout_1',
     mahber_id: 'mahber_1',
@@ -19,7 +19,10 @@ const mockPayouts: Payout[] = [
     amount: 3000,
     category: 'Iddir_Benefit',
     reason: 'Bereavement support for member family',
+    status: 'PAID',
     approved_by: 'usr_1',
+    approved_by_admin: 'usr_1',
+    approved_by_treasurer: 'usr_1',
     paid_at: new Date(Date.now() - 7 * 86400000).toISOString(),
     created_at: new Date(Date.now() - 7 * 86400000).toISOString(),
     updated_at: new Date(Date.now() - 7 * 86400000).toISOString(),
@@ -32,7 +35,10 @@ const mockPayouts: Payout[] = [
     amount: 1500,
     category: 'Event_Reimbursement',
     reason: 'Reimbursement for event supplies',
+    status: 'PAID',
     approved_by: 'usr_1',
+    approved_by_admin: 'usr_1',
+    approved_by_treasurer: 'usr_1',
     paid_at: new Date(Date.now() - 3 * 86400000).toISOString(),
     created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
     updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
@@ -293,13 +299,21 @@ export const financialMock = {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
 
-  executeLottery: async (mahberId: string) => {
-    await delay(2000); // Simulate suspense of draw
+  executeLottery: async (mahberId: string, params?: { operationalCostRate?: number; fineThreshold?: number }) => {
+    await delay(2000);
     randomError(0.05);
 
     const mahber = mockMahbers.find((m) => m.id === mahberId);
     if (!mahber) {
       throw new Error("Mahber not found");
+    }
+
+    // Check if there's already a pending Equb payout
+    const existingPending = mockPayouts.find(
+      (p) => p.mahber_id === mahberId && p.category === 'Equb_Payout' && p.status === 'PENDING_APPROVAL'
+    );
+    if (existingPending) {
+      throw new Error("An Equb payout is already pending approval. Resolve it before running a new draw.");
     }
 
     const activeMembers = mockMemberDetails.filter(
@@ -310,11 +324,8 @@ export const financialMock = {
       throw new Error("At least two active members are required to execute the lottery");
     }
 
-    // Number of winners already selected in this cycle
     const winnersThisCycleCount = activeMembers.filter((member) => member.has_won_current_cycle).length;
 
-    // Every active member must have completed this round's contribution before draw.
-    // For round N in the current cycle, each member must have at least N+1 completed contributions.
     const unpaidMembers = activeMembers.filter((member) => {
       const completedContributions = mockPayments.filter(
         (payment) =>
@@ -331,10 +342,19 @@ export const financialMock = {
       throw new Error(`Cannot run draw. These members still have unpaid contributions for this round: ${unpaidNames}`);
     }
 
+    // Apply fine threshold exclusion
     let eligibleMembers = activeMembers.filter((member) => !member.has_won_current_cycle);
+    if (params?.fineThreshold && params.fineThreshold > 0) {
+      eligibleMembers = eligibleMembers.filter((member) => {
+        const memberFines = fines.filter(
+          (f) => f.mahber_id === mahberId && f.member_id === member.member_id && f.status === 'pending'
+        );
+        const totalFineAmount = memberFines.reduce((sum, f) => sum + Number(f.amount), 0);
+        return totalFineAmount <= params.fineThreshold!;
+      });
+    }
 
     if (eligibleMembers.length === 0) {
-      // New cycle starts: everyone becomes eligible again.
       activeMembers.forEach((member) => {
         member.has_won_current_cycle = false;
         member.updated_at = new Date().toISOString();
@@ -350,7 +370,7 @@ export const financialMock = {
     }
 
     const contributionAmount = mahber.configuration.contribution_amount ?? 0;
-    const operationCostRate = mahber.configuration.operation_cost_rate ?? 0;
+    const operationCostRate = params?.operationalCostRate ?? mahber.configuration.operation_cost_rate ?? 0;
     const grossPool = activeMembers.length * contributionAmount;
     const operationCost = grossPool * (operationCostRate / 100);
     const payoutAmount = Math.max(0, grossPool - operationCost);
@@ -361,7 +381,27 @@ export const financialMock = {
 
     const cycle_number = lotteryDraws.filter((l) => l.mahber_id === mahberId).length + 1;
 
-    const newDraw = {
+    // Create the pending payout
+    const payoutId = `pout_equb_${Date.now()}`;
+    const pendingPayout: Payout = {
+      id: payoutId,
+      mahber_id: mahberId,
+      member_id: winnerMember.member_id,
+      amount: Number(payoutAmount.toFixed(2)),
+      category: 'Equb_Payout',
+      reason: `Equb lottery payout - Cycle ${cycle_number}`,
+      status: 'PENDING_APPROVAL',
+      approved_by: null,
+      approved_by_admin: null,
+      approved_by_treasurer: null,
+      paid_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      member: winner,
+    };
+    mockPayouts.unshift(pendingPayout);
+
+    const newDraw: LotteryDraw = {
       id: `draw_${Date.now()}`,
       mahber_id: mahberId,
       cycle_number,
@@ -369,11 +409,11 @@ export const financialMock = {
       eligible_members: eligibleMembers.map((member) => member.member_id),
       random_seed: Math.random().toString(36).substring(7),
       payout_amount: Number(payoutAmount.toFixed(2)),
+      payout_id: payoutId,
       created_at: new Date().toISOString(),
       winner,
     };
 
-    // If everyone has won after this draw, reset for next cycle.
     const allMembersWonAfterDraw = activeMembers.every((member) => member.has_won_current_cycle);
     if (allMembersWonAfterDraw) {
       activeMembers.forEach((member) => {
@@ -382,18 +422,59 @@ export const financialMock = {
       });
     }
 
-    mockTransactions.unshift({
-      id: `txn_lottery_${Date.now()}`,
-      mahber_id: mahberId,
-      type: "DEBIT",
-      amount: Number(payoutAmount.toFixed(2)),
-      balance_after: 0,
-      description: `Equb lottery payout to ${winner.name}`,
-      created_at: new Date().toISOString(),
-    });
-
     lotteryDraws = [newDraw, ...lotteryDraws];
     return newDraw;
+  },
+
+  approvePayoutAsAdmin: async (mahberId: string, payoutId: string): Promise<ApprovePayoutResponse> => {
+    await delay(600);
+    const idx = mockPayouts.findIndex((p) => p.id === payoutId && p.mahber_id === mahberId);
+    if (idx === -1) throw new Error('Payout not found');
+    const payout = mockPayouts[idx];
+    if (payout.status !== 'PENDING_APPROVAL') throw new Error('Payout is not pending approval');
+    if (payout.approved_by_admin) throw new Error('Admin already approved this payout');
+
+    payout.approved_by_admin = 'usr_1';
+    payout.approved_by = 'usr_1';
+    if (payout.approved_by_treasurer) {
+      payout.status = 'PAID';
+      payout.paid_at = new Date().toISOString();
+    }
+    payout.updated_at = new Date().toISOString();
+    mockPayouts[idx] = payout;
+
+    return {
+      id: payout.id,
+      status: payout.status,
+      approved_by_admin: payout.approved_by_admin,
+      approved_by_treasurer: payout.approved_by_treasurer,
+      paid_at: payout.paid_at,
+    };
+  },
+
+  approvePayoutAsTreasurer: async (mahberId: string, payoutId: string): Promise<ApprovePayoutResponse> => {
+    await delay(600);
+    const idx = mockPayouts.findIndex((p) => p.id === payoutId && p.mahber_id === mahberId);
+    if (idx === -1) throw new Error('Payout not found');
+    const payout = mockPayouts[idx];
+    if (payout.status !== 'PENDING_APPROVAL') throw new Error('Payout is not pending approval');
+    if (payout.approved_by_treasurer) throw new Error('Treasurer already approved this payout');
+
+    payout.approved_by_treasurer = 'usr_ Songe'; // Mock treasurer user
+    if (payout.approved_by_admin) {
+      payout.status = 'PAID';
+      payout.paid_at = new Date().toISOString();
+    }
+    payout.updated_at = new Date().toISOString();
+    mockPayouts[idx] = payout;
+
+    return {
+      id: payout.id,
+      status: payout.status,
+      approved_by_admin: payout.approved_by_admin,
+      approved_by_treasurer: payout.approved_by_treasurer,
+      paid_at: payout.paid_at,
+    };
   },
 
   downloadReceipt: async (_mahberId: string, _paymentId: string): Promise<Blob> => {
@@ -570,7 +651,10 @@ export const financialMock = {
       amount: data.amount,
       category: data.category,
       reason: data.reason,
+      status: 'PAID',
       approved_by: mockUsers[0].id,
+      approved_by_admin: mockUsers[0].id,
+      approved_by_treasurer: mockUsers[0].id,
       paid_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
