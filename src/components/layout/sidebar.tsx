@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui-store";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { mahberService } from "@/lib/api/service-factory";
@@ -22,6 +23,7 @@ import {
   Activity,
   PlusCircle,
   ChevronLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +31,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations("Sidebar");
   const { activeMahberId, sidebarOpen, setSidebarOpen } = useUIStore();
+  const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
   const [mounted, setMounted] = React.useState(false);
 
@@ -51,6 +54,9 @@ export function Sidebar() {
     { href: "/mahbers", label: t("myMahbers"), icon: Users },
     { href: "/mahbers/discover", label: t("discover"), icon: Compass },
     { href: "/notifications", label: t("notifications"), icon: Bell },
+    ...(user?.is_super_admin
+      ? [{ href: "/super-admin", label: "Super Admin", icon: ShieldCheck }]
+      : []),
   ];
 
   const isFullyJoined =

@@ -55,6 +55,7 @@ export default function MahberSettingsPage({
       penalty_mode: "fixed",
       penalty_interval: "30d",
       max_fine_total: 0,
+      operation_cost_rate: 0,
     },
   });
 
@@ -98,6 +99,7 @@ export default function MahberSettingsPage({
           penalty_mode: mahber.configuration.penalty_mode ?? "fixed",
           penalty_interval: mahber.configuration.penalty_interval ?? "30d",
           max_fine_total: mahber.configuration.max_fine_total ?? 0,
+          operation_cost_rate: mahber.configuration.operation_cost_rate ?? 0,
         },
       });
     }
@@ -140,6 +142,13 @@ export default function MahberSettingsPage({
   });
 
   const handleSave = () => {
+    if (
+      mahber?.type === "EQUB" &&
+      (settings.configuration?.operation_cost_rate ?? 0) <= 0
+    ) {
+      toast.error("Operation cost rate is required for Equb (must be greater than 0)");
+      return;
+    }
     updateMutation.mutate(settings);
   };
 
@@ -450,6 +459,34 @@ export default function MahberSettingsPage({
                   amount.
                 </p>
               </div>
+
+              {mahber?.type === "EQUB" && (
+                <div className="space-y-2 pt-2">
+                  <label className="text-sm font-medium">
+                    Operation Cost Rate (%)
+                  </label>
+                  <Input
+                    type="number"
+                    min={0.01}
+                    max={100}
+                    step={0.01}
+                    value={settings.configuration?.operation_cost_rate ?? 0}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        configuration: {
+                          ...settings.configuration,
+                          operation_cost_rate: Number(e.target.value),
+                        } as any,
+                      })
+                    }
+                    className="bg-surface-active border-border-glass font-mono"
+                  />
+                  <p className="text-xs text-text-muted">
+                    Used when executing lottery draws to deduct organizational costs from the payout pool.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

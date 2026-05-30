@@ -110,9 +110,9 @@ export const financialApi = {
     return response.data;
   },
 
-  executeLottery: async (mahberId: string, data?: { operationalCostRate?: number; fineThreshold?: number }): Promise<LotteryDraw> => {
+  executeLottery: async (mahberId: string): Promise<LotteryDraw> => {
     // Backend route: POST /mahbers/:id/lottery/execute
-    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, data || {});
+    const response = await apiClient.post<LotteryDraw>(`/mahbers/${mahberId}/lottery/execute`, {});
     return response.data;
   },
 

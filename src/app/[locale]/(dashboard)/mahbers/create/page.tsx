@@ -11,29 +11,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { PaymentFrequency } from "@/lib/types";
 
-const createMahberSchema = z.object({
-  name: z
-    .string()
-    .min(3, "Name must be at least 3 characters")
-    .max(50, "Name is too long"),
-  type: z.enum(["MAHBER", "EQUB"]),
-  configuration: z.object({
-    contribution_amount: z
-      .number({ error: "Contribution amount is required" })
-      .min(1, "Contribution amount must be greater than 0"),
-    cycle: z.string().min(1, "Contribution cycle is required"),
-    payment_frequency: z.string().optional(),
-    payment_day: z.number().optional(),
-    join_fee_required: z.boolean(),
-    join_fee_amount: z.number().min(0),
-    penalty_rate: z.number().min(0),
-    penalty_mode: z.enum(["fixed", "percentage"]),
-    penalty_interval: z.string().min(1, "Penalty interval is required"),
-    max_fine_total: z.number().min(0),
-  }),
-  is_public: z.boolean(),
-  invitation_code: z.string().optional(),
-});
+const createMahberSchema = z
+  .object({
+    name: z
+      .string()
+      .min(3, "Name must be at least 3 characters")
+      .max(50, "Name is too long"),
+    type: z.enum(["MAHBER", "EQUB"]),
+    configuration: z.object({
+      contribution_amount: z
+        .number({ error: "Contribution amount is required" })
+        .min(1, "Contribution amount must be greater than 0"),
+      cycle: z.string().min(1, "Contribution cycle is required"),
+      payment_frequency: z.string().optional(),
+      payment_day: z.number().optional(),
+      join_fee_required: z.boolean(),
+      join_fee_amount: z.number().min(0),
+      penalty_rate: z.number().min(0),
+      penalty_mode: z.enum(["fixed", "percentage"]),
+      penalty_interval: z.string().min(1, "Penalty interval is required"),
+      max_fine_total: z.number().min(0),
+      operation_cost_rate: z.number().optional(),
+    }),
+    is_public: z.boolean(),
+    invitation_code: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.type === "EQUB" && (value.configuration.operation_cost_rate ?? 0) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["configuration", "operation_cost_rate"],
+        message: "Operation cost rate is required for Equb and must be greater than 0",
+      });
+    }
+  });
 
 type CreateMahberValues = z.infer<typeof createMahberSchema>;
 
@@ -61,12 +72,14 @@ export default function CreateMahberPage() {
         penalty_mode: "fixed",
         penalty_interval: "30d",
         max_fine_total: 0,
+        operation_cost_rate: 0,
       },
       invitation_code: "",
     },
   });
 
   const watchConfigurationCycle = watch("configuration.cycle");
+  const selectedType = watch("type");
 
   const onSubmit = async (data: CreateMahberValues) => {
     try {
@@ -311,6 +324,33 @@ export default function CreateMahberPage() {
                 automatically banned.
               </p>
             </div>
+
+            {selectedType === "EQUB" && (
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Operation Cost Rate (%)
+                </label>
+                <input
+                  type="number"
+                  min={0.01}
+                  max={100}
+                  step={0.01}
+                  placeholder="e.g. 5"
+                  {...register("configuration.operation_cost_rate", {
+                    valueAsNumber: true,
+                  })}
+                  className={`w-full px-4 py-3 bg-background-dark/50 border ${errors.configuration?.operation_cost_rate ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors`}
+                />
+                <p className="text-xs text-text-muted mt-1">
+                  Percentage deducted from each lottery round pool for organizational costs.
+                </p>
+                {errors.configuration?.operation_cost_rate && (
+                  <p className="text-status-error text-xs mt-1">
+                    {errors.configuration.operation_cost_rate.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">

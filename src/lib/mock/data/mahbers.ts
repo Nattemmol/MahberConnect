@@ -19,6 +19,7 @@ export const mockMahbers: Mahber[] = [
       penalty_mode: "fixed",
       penalty_interval: "30d",
       max_fine_total: 5000,
+      operation_cost_rate: 5,
     },
     created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
     updated_at: new Date().toISOString(),

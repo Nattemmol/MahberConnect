@@ -4,6 +4,8 @@ export type User = {
   name: string;
   email?: string;
   bio?: string;
+  is_super_admin?: boolean;
+  is_suspended?: boolean;
   notification_prefs?: Record<string, boolean>;
   created_at: string;
   updated_at: string;
@@ -26,6 +28,8 @@ export type MahberConfiguration = {
   penalty_mode?: PenaltyMode;
   penalty_interval?: string;
   max_fine_total?: number;
+  operation_cost_rate?: number;
+  fine_threshold?: number;
 };
 
 export type Mahber = {

@@ -264,33 +264,104 @@ export const financialMock = {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
 
-  executeLottery: async (mahberId: string, data?: { operationalCostRate?: number; fineThreshold?: number }) => {
+  executeLottery: async (mahberId: string) => {
     await delay(2000); // Simulate suspense of draw
     randomError(0.05);
 
-    // Get members who haven't won yet
-    const pastWinners = lotteryDraws.filter(l => l.mahber_id === mahberId).map(l => l.winner_id);
-    const eligibleMembers = mockUsers.filter(u => !pastWinners.includes(u.id));
-
-    if (eligibleMembers.length === 0) {
-      throw new Error('All members have won. The Equb cycle is complete!');
+    const mahber = mockMahbers.find((m) => m.id === mahberId);
+    if (!mahber) {
+      throw new Error("Mahber not found");
     }
 
-    // Pick random winner
-    const winner = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
-    const cycle_number = lotteryDraws.filter(l => l.mahber_id === mahberId).length + 1;
+    const activeMembers = mockMemberDetails.filter(
+      (member) => member.mahber_id === mahberId && member.status === "Active"
+    );
 
-    const newDraw: any = {
+    if (activeMembers.length < 2) {
+      throw new Error("At least two active members are required to execute the lottery");
+    }
+
+    // Number of winners already selected in this cycle
+    const winnersThisCycleCount = activeMembers.filter((member) => member.has_won_current_cycle).length;
+
+    // Every active member must have completed this round's contribution before draw.
+    // For round N in the current cycle, each member must have at least N+1 completed contributions.
+    const unpaidMembers = activeMembers.filter((member) => {
+      const completedContributions = mockPayments.filter(
+        (payment) =>
+          payment.mahber_id === mahberId &&
+          payment.member_id === member.member_id &&
+          payment.payment_type === "Contribution" &&
+          payment.status === "Completed"
+      ).length;
+      return completedContributions < winnersThisCycleCount + 1;
+    });
+
+    if (unpaidMembers.length > 0) {
+      const unpaidNames = unpaidMembers.map((member) => member.user?.name ?? member.member_id).join(", ");
+      throw new Error(`Cannot run draw. These members still have unpaid contributions for this round: ${unpaidNames}`);
+    }
+
+    let eligibleMembers = activeMembers.filter((member) => !member.has_won_current_cycle);
+
+    if (eligibleMembers.length === 0) {
+      // New cycle starts: everyone becomes eligible again.
+      activeMembers.forEach((member) => {
+        member.has_won_current_cycle = false;
+        member.updated_at = new Date().toISOString();
+      });
+      eligibleMembers = [...activeMembers];
+    }
+
+    const winnerMember = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
+    const winner = winnerMember.user ?? mockUsers.find((user) => user.id === winnerMember.member_id);
+
+    if (!winner) {
+      throw new Error("Winner profile not found");
+    }
+
+    const contributionAmount = mahber.configuration.contribution_amount ?? 0;
+    const operationCostRate = mahber.configuration.operation_cost_rate ?? 0;
+    const grossPool = activeMembers.length * contributionAmount;
+    const operationCost = grossPool * (operationCostRate / 100);
+    const payoutAmount = Math.max(0, grossPool - operationCost);
+
+    winnerMember.has_won_current_cycle = true;
+    winnerMember.balance = (Number(winnerMember.balance || 0) + payoutAmount).toFixed(2);
+    winnerMember.updated_at = new Date().toISOString();
+
+    const cycle_number = lotteryDraws.filter((l) => l.mahber_id === mahberId).length + 1;
+
+    const newDraw = {
       id: `draw_${Date.now()}`,
       mahber_id: mahberId,
       cycle_number,
-      winner_id: winner.id,
-      eligible_members: eligibleMembers.map(u => u.id),
+      winner_id: winnerMember.member_id,
+      eligible_members: eligibleMembers.map((member) => member.member_id),
       random_seed: Math.random().toString(36).substring(7),
-      payout_amount: 50000, // Mock fixed payout
+      payout_amount: Number(payoutAmount.toFixed(2)),
       created_at: new Date().toISOString(),
-      winner
+      winner,
     };
+
+    // If everyone has won after this draw, reset for next cycle.
+    const allMembersWonAfterDraw = activeMembers.every((member) => member.has_won_current_cycle);
+    if (allMembersWonAfterDraw) {
+      activeMembers.forEach((member) => {
+        member.has_won_current_cycle = false;
+        member.updated_at = new Date().toISOString();
+      });
+    }
+
+    mockTransactions.unshift({
+      id: `txn_lottery_${Date.now()}`,
+      mahber_id: mahberId,
+      type: "DEBIT",
+      amount: Number(payoutAmount.toFixed(2)),
+      balance_after: 0,
+      description: `Equb lottery payout to ${winner.name}`,
+      created_at: new Date().toISOString(),
+    });
 
     lotteryDraws = [newDraw, ...lotteryDraws];
     return newDraw;

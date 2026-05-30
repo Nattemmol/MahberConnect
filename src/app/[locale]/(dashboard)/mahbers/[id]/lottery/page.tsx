@@ -1,14 +1,13 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { Trophy, Dices, Calendar, Gift, Sparkles } from "lucide-react";
 import { financialService, mahberService, memberService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { MemberDetail, LotteryDraw } from "@/lib/types";
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -23,8 +22,6 @@ export default function LotteryPage({
   const queryClient = useQueryClient();
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDrawDialogOpen, setIsDrawDialogOpen] = useState(false);
-  const [operationalCostRate, setOperationalCostRate] = useState(0);
-  const [fineThreshold, setFineThreshold] = useState(0);
   const [drawResult, setDrawResult] = useState<LotteryDraw | null>(null);
 
   const { data: mahber } = useQuery({
@@ -38,7 +35,7 @@ export default function LotteryPage({
   });
 
   const drawMutation = useMutation({
-    mutationFn: () => financialService.executeLottery(id, { operationalCostRate, fineThreshold }),
+    mutationFn: () => financialService.executeLottery(id),
     onMutate: () => {
       setIsDrawing(true);
       setIsDrawDialogOpen(false);
@@ -215,32 +212,12 @@ export default function LotteryPage({
         isOpen={isDrawDialogOpen}
         onClose={() => setIsDrawDialogOpen(false)}
         title="Execute Lottery Draw"
-        description="Configure the draw parameters before initiating the random selection."
+        description="This will execute the draw using the Equb configuration saved at creation."
       >
         <div className="space-y-6 pt-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Operational Cost Rate (%)</label>
-            <Input 
-              type="number" 
-              value={operationalCostRate} 
-              onChange={(e) => setOperationalCostRate(Number(e.target.value))}
-              min={0} max={100}
-              className="bg-surface-active border-border-glass"
-            />
-            <p className="text-[10px] text-text-muted">Percentage deducted from the pot for organizational costs.</p>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Fine Threshold (ETB)</label>
-            <Input 
-              type="number" 
-              value={fineThreshold} 
-              onChange={(e) => setFineThreshold(Number(e.target.value))}
-              min={0}
-              className="bg-surface-active border-border-glass"
-            />
-            <p className="text-[10px] text-text-muted">Members with unpaid fines exceeding this amount are excluded.</p>
-          </div>
+          <p className="text-sm text-text-secondary">
+            The draw will only run when all active members have paid this round&apos;s contribution. The winner will receive the payout automatically.
+          </p>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={() => setIsDrawDialogOpen(false)}>Cancel</Button>
