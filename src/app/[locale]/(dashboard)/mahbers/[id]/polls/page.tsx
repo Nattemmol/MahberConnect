@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Plus, BarChart2, CheckCircle2, Clock } from "lucide-react";
 import { communicationService } from "@/lib/api/service-factory";
@@ -19,6 +20,7 @@ export default function PollsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("Polls");
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const currentUserId = user?.id || "usr_3";
@@ -36,9 +38,9 @@ export default function PollsPage({
       communicationService.vote(id, pollId, choices),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-polls", id] });
-      toast.success("Vote submitted successfully");
+      toast.success(t("voteSubmitted"));
     },
-    onError: (err: any) => toast.error(err.message || "Failed to submit vote"),
+    onError: (err: any) => toast.error(err.message || t("voteFailed")),
   });
 
   const polls = pollsResponse?.data || [];
@@ -52,13 +54,13 @@ export default function PollsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Polls & Voting"
-        description="Participate in community decisions and view results."
+        title={t("title")}
+        description={t("description")}
       >
         <Button asChild className="gap-2">
           <Link href={`/mahbers/${id}/polls/create`}>
             <Plus className="w-4 h-4" />
-            Create Poll
+            {t("createPoll")}
           </Link>
         </Button>
       </PageHeader>
@@ -71,7 +73,7 @@ export default function PollsPage({
       ) : polls.length === 0 ? (
         <div className="text-center py-12 glass rounded-card">
           <BarChart2 className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
-          <p className="text-text-secondary">No polls have been created yet.</p>
+          <p className="text-text-secondary">{t("noPolls")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -97,13 +99,12 @@ export default function PollsPage({
                           !isClosed ? "bg-gold text-background-dark" : ""
                         }
                       >
-                        {isClosed ? "Closed" : "Active"}
+                        {isClosed ? t("closed") : t("active")}
                       </Badge>
                     </div>
 
                     <div className="space-y-3 mb-6 flex-1">
                       {poll.options.map((option) => {
-                        // Calculate percentage if results should be shown
                         const showResults = hasVoted || isClosed;
                         const optionVotes =
                           poll.votes?.filter((v) =>
@@ -147,7 +148,6 @@ export default function PollsPage({
                           );
                         }
 
-                        // Voting view
                         return (
                           <label
                             key={option.id}
@@ -181,10 +181,19 @@ export default function PollsPage({
                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-border-glass">
                       <div className="text-xs text-text-muted flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {isClosed ? "Ended " : "Ends "}
-                        {new Date(poll.voting_deadline).toLocaleDateString()}
+                        {isClosed
+                          ? t("ended", {
+                              date: new Date(
+                                poll.voting_deadline,
+                              ).toLocaleDateString(),
+                            })
+                          : t("ends", {
+                              date: new Date(
+                                poll.voting_deadline,
+                              ).toLocaleDateString(),
+                            })}
                         <span className="mx-2">•</span>
-                        {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
+                        {t("votes", { count: totalVotes })}
                       </div>
 
                       {!hasVoted && !isClosed && (
@@ -199,7 +208,7 @@ export default function PollsPage({
                           }
                           onClick={() => handleVote(poll.id)}
                         >
-                          Submit Vote
+                          {t("submitVote")}
                         </Button>
                       )}
                     </div>

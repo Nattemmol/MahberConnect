@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -15,30 +16,30 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { canManageEvents } from "@/lib/utils";
 
-const eventSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  event_type: z.enum([
-    "Meeting",
-    "Ceremony",
-    "Fundraiser",
-    "Social_Gathering",
-  ]),
-  start_time: z.string().min(1, "Start time is required"),
-  end_time: z.string().min(1, "End time is required"),
-  location: z.string().min(3, "Location must be at least 3 characters"),
-  is_mandatory: z.boolean().optional(),
-});
-
-type EventFormValues = z.infer<typeof eventSchema>;
-
 export default function CreateEventPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations("CreateEvent");
   const { id } = use(params);
   const router = useRouter();
+
+  const getEventSchema = () => z.object({
+    title: z.string().min(3, t('titleTooShort')),
+    description: z.string().min(10, t('descriptionTooShort')),
+    event_type: z.enum([
+      "Meeting",
+      "Ceremony",
+      "Fundraiser",
+      "Social_Gathering",
+    ]),
+    start_time: z.string().min(1, t('startRequired')),
+    end_time: z.string().min(1, t('endRequired')),
+    location: z.string().min(3, t('locationTooShort')),
+    is_mandatory: z.boolean().optional(),
+  });
+  type EventFormValues = z.infer<ReturnType<typeof getEventSchema>>;
   const { user } = useAuthStore();
 
   const { data: currentMember, isLoading: isMemberLoading } = useQuery({
@@ -61,7 +62,7 @@ export default function CreateEventPage({
 
   useEffect(() => {
     if (!isMemberLoading && user && !canManageEventsValue) {
-      toast.error("You don't have permission to create events");
+      toast.error(t('noPermission'));
       router.push(`/mahbers/${id}/events`);
     }
   }, [isMemberLoading, user, canManageEventsValue, router, id]);
@@ -73,7 +74,7 @@ export default function CreateEventPage({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<EventFormValues>({
-    resolver: zodResolver(eventSchema),
+    resolver: zodResolver(getEventSchema()),
     defaultValues: {
       event_type: "Meeting",
       is_mandatory: false,
@@ -95,19 +96,19 @@ export default function CreateEventPage({
         ...data,
         host_id: selectedHostId || undefined,
       });
-      toast.success("Event created successfully!");
+      toast.success(t('eventCreated'));
       router.push(`/mahbers/${id}/events`);
     } catch (error: unknown) {
       const message = getErrorMessage(error);
-      toast.error(message ?? "Failed to create event");
+      toast.error(message ?? t('creationFailed'));
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <PageHeader
-        title="Create Event"
-        description="Schedule a new gathering for your community."
+        title={t('title')}
+        description={t('description')}
       />
 
       <Card>
@@ -115,10 +116,10 @@ export default function CreateEventPage({
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Event Title
+                {t('eventTitle')}
               </label>
               <Input
-                placeholder="e.g., Monthly General Meeting"
+                placeholder={t('eventTitlePlaceholder')}
                 {...register("title")}
                 className={errors.title ? "border-status-error" : ""}
               />
@@ -131,10 +132,10 @@ export default function CreateEventPage({
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Description
+                {t('description')}
               </label>
               <textarea
-                placeholder="Details about the event..."
+                placeholder={t('descriptionPlaceholder')}
                 {...register("description")}
                 className={`w-full min-h-[100px] px-4 py-3 bg-background-dark/50 border ${errors.description ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors resize-y`}
               />
@@ -148,25 +149,25 @@ export default function CreateEventPage({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Event Type
+                  {t('eventType')}
                 </label>
                   <select
                   {...register("event_type")}
                   className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
                 >
-                  <option value="Meeting">Meeting</option>
-                  <option value="Ceremony">Ceremony</option>
-                  <option value="Fundraiser">Fundraiser</option>
-                  <option value="Social_Gathering">Social Gathering</option>
+                  <option value="Meeting">{t('meeting')}</option>
+                  <option value="Ceremony">{t('ceremony')}</option>
+                  <option value="Fundraiser">{t('fundraiser')}</option>
+                  <option value="Social_Gathering">{t('socialGathering')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Location
+                  {t('location')}
                 </label>
                 <Input
-                  placeholder="Venue or Online Link"
+                  placeholder={t('locationPlaceholder')}
                   {...register("location")}
                   className={errors.location ? "border-status-error" : ""}
                 />
@@ -181,7 +182,7 @@ export default function CreateEventPage({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Start Time
+                  {t('startTime')}
                 </label>
                 <Input
                   type="datetime-local"
@@ -197,7 +198,7 @@ export default function CreateEventPage({
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  End Time
+                  {t('endTime')}
                 </label>
                 <Input
                   type="datetime-local"
@@ -224,10 +225,10 @@ export default function CreateEventPage({
                   htmlFor="is_mandatory"
                   className="text-sm font-medium text-text-primary cursor-pointer"
                 >
-                  Mandatory Attendance
+                  {t('mandatoryAttendance')}
                 </label>
                 <p className="text-xs text-text-muted">
-                  Members may be fined for missing this event.
+                  {t('mandatoryAttendanceDesc')}
                 </p>
               </div>
             </div>
@@ -235,22 +236,22 @@ export default function CreateEventPage({
             {/* Assign Host */}
             <div className="p-4 bg-background-dark/30 rounded-input border border-border-glass">
               <label className="block text-sm font-medium text-text-secondary mb-2">
-                Assign Host (Optional)
+                {t('assignHost')}
               </label>
               <select
                 value={selectedHostId}
                 onChange={(e) => setSelectedHostId(e.target.value)}
                 className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
               >
-                <option value="">No host assigned</option>
+                <option value="">{t('noHostAssigned')}</option>
                 {activeMembers.map((member: any) => (
                   <option key={member.member_id} value={member.member_id}>
-                    {member.user?.name ?? "Unknown"} — {member.user?.phone ?? ""}
+                    {member.user?.name ?? t('unknown')} — {member.user?.phone ?? ""}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-text-muted mt-1">
-                The host can manage invitations and record attendance for this event.
+                {t('hostDesc')}
               </p>
             </div>
 
@@ -260,10 +261,10 @@ export default function CreateEventPage({
                 variant="ghost"
                 onClick={() => router.back()}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button type="submit" isLoading={isSubmitting}>
-                Create Event
+                {t('createEvent')}
               </Button>
             </div>
           </form>

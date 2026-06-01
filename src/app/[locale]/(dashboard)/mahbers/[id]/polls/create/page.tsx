@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { use } from "react";
+import { useTranslations } from "next-intl";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,23 +14,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-const pollSchema = z.object({
-  question: z.string().min(5, "Question must be at least 5 characters"),
-  options: z
-    .array(z.object({ text: z.string().min(1, "Option text is required") }))
-    .min(2, "At least 2 options are required"),
-  voting_deadline: z.string().min(1, "Voting deadline is required"),
-});
-
-type PollFormValues = z.infer<typeof pollSchema>;
-
 export default function CreatePollPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("CreatePoll");
   const router = useRouter();
+
+  const pollSchema = z.object({
+    question: z.string().min(5, t("questionTooShort")),
+    options: z
+      .array(z.object({ text: z.string().min(1, t("optionTextRequired")) }))
+      .min(2, t("atLeastTwoOptions")),
+    voting_deadline: z.string().min(1, t("deadlineRequired")),
+  });
+
+  type PollFormValues = z.infer<typeof pollSchema>;
 
   const {
     register,
@@ -56,18 +58,18 @@ export default function CreatePollPage({
         poll_type: "SINGLE_CHOICE",
         voting_deadline: data.voting_deadline,
       });
-      toast.success("Poll created successfully!");
+      toast.success(t("pollCreated"));
       router.push(`/mahbers/${id}/polls`);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to create poll");
+      toast.error(error.response?.data?.message || t("pollFailed"));
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <PageHeader
-        title="Create Poll"
-        description="Ask a question and let the community vote on it."
+        title={t("title")}
+        description={t("description")}
       />
 
       <Card>
@@ -75,10 +77,10 @@ export default function CreatePollPage({
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Question
+                {t("question")}
               </label>
               <Input
-                placeholder="e.g., What should we do for the next gathering?"
+                placeholder={t("questionPlaceholder")}
                 {...register("question")}
                 className={errors.question ? "border-status-error" : ""}
               />
@@ -91,13 +93,13 @@ export default function CreatePollPage({
 
             <div className="space-y-3">
               <label className="block text-sm font-medium text-text-secondary">
-                Options
+                {t("options")}
               </label>
               {fields.map((field, index) => (
                 <div key={field.id} className="flex gap-2">
                   <div className="flex-1">
                     <Input
-                      placeholder={`Option ${index + 1}`}
+                      placeholder={t("optionPlaceholder", { number: index + 1 })}
                       {...register(`options.${index}.text` as const)}
                       className={
                         errors.options?.[index]?.text
@@ -138,13 +140,13 @@ export default function CreatePollPage({
                 onClick={() => append({ text: "" })}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Option
+                {t("addOption")}
               </Button>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
-                Voting Deadline
+                {t("votingDeadline")}
               </label>
               <Input
                 type="datetime-local"
@@ -164,10 +166,10 @@ export default function CreatePollPage({
                 variant="ghost"
                 onClick={() => router.back()}
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button type="submit" isLoading={isSubmitting}>
-                Publish Poll
+                {t("publishPoll")}
               </Button>
             </div>
           </form>

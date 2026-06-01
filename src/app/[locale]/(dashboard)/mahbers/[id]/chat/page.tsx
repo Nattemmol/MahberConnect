@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState, useRef, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Send, User as UserIcon, Megaphone, BarChart3, Plus, X } from "lucide-react";
 import { communicationService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
@@ -22,6 +23,7 @@ export default function ChatPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("Chat");
   const [newMessage, setNewMessage] = useState("");
   const [isAnnouncementDialogOpen, setIsAnnouncementDialogOpen] = useState(false);
   const [isPollDialogOpen, setIsPollDialogOpen] = useState(false);
@@ -77,7 +79,7 @@ export default function ChatPage({
       queryClient.invalidateQueries({ queryKey: ["mahber-chat", id] });
       setNewMessage("");
     },
-    onError: () => toast.error("Failed to send message"),
+    onError: () => toast.error(t("sendFailed")),
   });
 
   const voteMutation = useMutation<any, Error, { pollId: string; choices: string[] }>({
@@ -89,9 +91,9 @@ export default function ChatPage({
         delete next[variables.pollId];
         return next;
       });
-      toast.success("Vote recorded!");
+      toast.success(t("voteRecorded"));
     },
-    onError: () => toast.error("Failed to record vote"),
+    onError: () => toast.error(t("voteFailed")),
   });
 
   const announceMutation = useMutation<Announcement, Error, any>({
@@ -100,9 +102,9 @@ export default function ChatPage({
       queryClient.invalidateQueries({ queryKey: ["mahber-announcements", id] });
       setIsAnnouncementDialogOpen(false);
       setAnnouncement({ title: "", content: "", priority: "Normal" });
-      toast.success("Announcement broadcasted!");
+      toast.success(t("announcementBroadcasted"));
     },
-    onError: () => toast.error("Failed to send announcement"),
+    onError: () => toast.error(t("announcementFailed")),
   });
 
   const pollMutation = useMutation<Poll, Error, any>({
@@ -122,9 +124,9 @@ export default function ChatPage({
       queryClient.invalidateQueries({ queryKey: ["mahber-polls", id] });
       setIsPollDialogOpen(false);
       setPoll({ question: "", options: ["", ""], poll_type: "SINGLE_CHOICE", voting_deadline: "" });
-      toast.success("Poll created successfully!");
+      toast.success(t("pollCreated"));
     },
-    onError: () => toast.error("Failed to create poll"),
+    onError: () => toast.error(t("pollFailed")),
   });
 
   const scrollToBottom = () => {
@@ -192,8 +194,8 @@ export default function ChatPage({
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] space-y-4">
       <PageHeader
-        title="Group Chat"
-        description="Communicate with other members of the Mahber."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="flex-1 glass rounded-card overflow-hidden flex flex-col border border-border-glass relative">
@@ -205,7 +207,7 @@ export default function ChatPage({
             </div>
           ) : !unifiedMessages.length ? (
             <div className="h-full flex items-center justify-center text-text-secondary">
-              No activity yet. Start the conversation!
+              {t("noActivity")}
             </div>
           ) : (
             unifiedMessages.map((item: any) => {
@@ -258,15 +260,15 @@ export default function ChatPage({
                       </div>
                       <div className="flex items-center gap-2 text-gold">
                         <Megaphone className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Announcement</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">{t("announcement")}</span>
                         <Badge variant="outline" className="text-[10px] border-gold/30 text-gold ml-auto">
-                          {item.priority}
+                          {t(item.priority.toLowerCase())}
                         </Badge>
                       </div>
                       <h4 className="font-bold text-text-primary">{item.title}</h4>
                       <p className="text-sm text-text-secondary whitespace-pre-wrap">{item.content}</p>
                       <div className="flex items-center justify-between pt-2">
-                        <span className="text-[10px] text-text-muted">By {item.creator?.name || "Admin"}</span>
+                        <span className="text-[10px] text-text-muted">{t("by", { name: item.creator?.name || t("admin") })}</span>
                         <span className="text-[10px] text-text-muted">{new Date(item.created_at).toLocaleString()}</span>
                       </div>
                     </div>
@@ -284,8 +286,8 @@ export default function ChatPage({
                     <div className="max-w-[85%] w-full bg-surface-active border border-border-glass rounded-card p-4 space-y-4 shadow-xl">
                       <div className="flex items-center gap-2 text-status-success">
                         <BarChart3 className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Poll</span>
-                        {item.is_closed && <Badge className="ml-auto bg-text-muted">Closed</Badge>}
+                        <span className="text-xs font-bold uppercase tracking-wider">{t("poll")}</span>
+                        {item.is_closed && <Badge className="ml-auto bg-text-muted">{t("closed")}</Badge>}
                       </div>
                       <h4 className="font-bold text-text-primary text-lg">{item.question}</h4>
                       <div className="space-y-2">
@@ -310,7 +312,7 @@ export default function ChatPage({
                               <div className="flex justify-between items-center">
                                 <span className="text-sm font-medium">{opt.text}</span>
                                 {hasVoted && votedForThis && (
-                                  <Badge className="bg-gold/20 text-gold border-gold/30 text-[10px]">Your Vote</Badge>
+                                  <Badge className="bg-gold/20 text-gold border-gold/30 text-[10px]">{t("yourVote")}</Badge>
                                 )}
                               </div>
                             </button>
@@ -326,12 +328,12 @@ export default function ChatPage({
                           isLoading={voteMutation.isPending}
                           onClick={() => voteMutation.mutate({ pollId: item.id, choices: selection })}
                         >
-                          {hasVoted ? "Voted" : "Vote"}
+                          {hasVoted ? t("voted") : t("vote")}
                         </Button>
 
                         {hasVoted && (
                           <div className="pt-2 border-t border-border-glass space-y-3">
-                            <h5 className="text-xs font-bold text-text-muted uppercase tracking-wider">Current Results</h5>
+                            <h5 className="text-xs font-bold text-text-muted uppercase tracking-wider">{t("currentResults")}</h5>
                             {item.options.map((opt: any) => {
                               const voteCount = votes.filter((v: any) => v.choices?.includes(opt.id)).length || 0;
                               const totalVotes = votes.length || 1;
@@ -341,7 +343,7 @@ export default function ChatPage({
                                 <div key={opt.id} className="space-y-1">
                                   <div className="flex justify-between text-[11px] font-medium">
                                     <span>{opt.text}</span>
-                                    <span>{voteCount} votes ({percentage}%)</span>
+                                    <span>{t("votesCount", { count: voteCount, percentage })}</span>
                                   </div>
                                   <div className="h-1.5 w-full bg-background-dark rounded-full overflow-hidden">
                                     <div 
@@ -357,7 +359,7 @@ export default function ChatPage({
                       </div>
 
                       <div className="flex items-center justify-between pt-2">
-                        <span className="text-[10px] text-text-muted">{votes.length} votes • Created by {item.creator?.name || "Admin"}</span>
+                        <span className="text-[10px] text-text-muted">{t("createdBy", { count: votes.length, name: item.creator?.name || t("admin") })}</span>
                         <span className="text-[10px] text-text-muted">{new Date(item.created_at).toLocaleString()}</span>
                       </div>
                     </div>
@@ -376,7 +378,7 @@ export default function ChatPage({
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
+              placeholder={t("typeMessage")}
               className="flex-1 bg-surface-active border-border-glass focus:border-gold/50 transition-colors"
               disabled={sendMutation.isPending}
             />
@@ -416,47 +418,47 @@ export default function ChatPage({
       <Dialog
         isOpen={isAnnouncementDialogOpen}
         onClose={() => setIsAnnouncementDialogOpen(false)}
-        title="Create Announcement"
-        description="Broadcast an important message to all members."
+        title={t("createAnnouncement")}
+        description={t("announcementDesc")}
       >
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Title</label>
+            <label className="text-sm font-medium">{t("announcementTitle")}</label>
             <Input 
-              placeholder="Announcement title" 
+              placeholder={t("announcementPlaceholder")}
               value={announcement.title}
               onChange={(e) => setAnnouncement({...announcement, title: e.target.value})}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Priority</label>
+            <label className="text-sm font-medium">{t("priority")}</label>
             <select 
               className="w-full bg-surface-active border border-border-glass rounded-input p-2 text-sm focus:outline-none focus:border-gold/50"
               value={announcement.priority}
               onChange={(e) => setAnnouncement({...announcement, priority: e.target.value})}
             >
-              <option value="Normal">Normal</option>
-              <option value="Important">Important</option>
-              <option value="Urgent">Urgent</option>
+              <option value="Normal">{t("normal")}</option>
+              <option value="Important">{t("important")}</option>
+              <option value="Urgent">{t("urgent")}</option>
             </select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Content</label>
+            <label className="text-sm font-medium">{t("content")}</label>
             <textarea 
               className="w-full h-32 bg-surface-active border border-border-glass rounded-input p-3 text-sm focus:outline-none focus:border-gold/50"
-              placeholder="Enter your message here..."
+              placeholder={t("contentPlaceholder")}
               value={announcement.content}
               onChange={(e) => setAnnouncement({...announcement, content: e.target.value})}
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setIsAnnouncementDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsAnnouncementDialogOpen(false)}>{t("cancel")}</Button>
             <Button 
               onClick={() => announceMutation.mutate(announcement)}
               isLoading={announceMutation.isPending}
               disabled={!announcement.title || !announcement.content}
             >
-              Broadcast
+              {t("broadcast")}
             </Button>
           </div>
         </div>
@@ -466,35 +468,35 @@ export default function ChatPage({
       <Dialog
         isOpen={isPollDialogOpen}
         onClose={() => setIsPollDialogOpen(false)}
-        title="Create Poll"
-        description="Gather feedback from members with a poll."
+        title={t("createPoll")}
+        description={t("pollDesc")}
       >
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Question</label>
+            <label className="text-sm font-medium">{t("pollQuestion")}</label>
             <Input 
-              placeholder="What would you like to ask?" 
+              placeholder={t("pollQuestionPlaceholder")}
               value={poll.question}
               onChange={(e) => setPoll({...poll, question: e.target.value})}
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium flex justify-between items-center">
-              Options
+              {t("options")}
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="h-6 text-gold px-2"
                 onClick={() => setPoll({...poll, options: [...poll.options, ""]})}
               >
-                <Plus className="w-3 h-3 mr-1" /> Add Option
+                <Plus className="w-3 h-3 mr-1" /> {t("addOption")}
               </Button>
             </label>
             <div className="space-y-2">
               {poll.options.map((opt, i) => (
                 <div key={i} className="flex gap-2">
                   <Input 
-                    placeholder={`Option ${i + 1}`}
+                    placeholder={t("optionPlaceholder", { number: i + 1 })}
                     value={opt}
                     onChange={(e) => {
                       const newOpts = [...poll.options];
@@ -516,7 +518,7 @@ export default function ChatPage({
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setIsPollDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsPollDialogOpen(false)}>{t("cancel")}</Button>
             <Button 
               onClick={() => pollMutation.mutate({
                 ...poll,
@@ -525,7 +527,7 @@ export default function ChatPage({
               isLoading={pollMutation.isPending}
               disabled={!poll.question || poll.options.some(o => !o.trim())}
             >
-              Create Poll
+              {t("createPollBtn")}
             </Button>
           </div>
         </div>

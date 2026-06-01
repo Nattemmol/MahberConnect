@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Compass, Users } from "lucide-react";
@@ -23,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { Link } from "@/i18n/routing";
 
 export default function DiscoverMahbersPage() {
+  const t = useTranslations("DiscoverMahbers");
   const router = useRouter();
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
@@ -58,14 +60,14 @@ export default function DiscoverMahbersPage() {
       });
 
       setRequestedIds((prev) => new Set(prev).add(joinTarget.id));
-      toast.success("Join request sent. Waiting for admin approval.");
+      toast.success(t('joinRequestSent'));
       setJoinTarget(null);
       setInvitationCode("");
     } catch (err) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const error = err as any;
       toast.error(
-        error.response?.data?.message || "Failed to join Mahber",
+        error.response?.data?.message || t('joinFailed'),
       );
     } finally {
       setJoiningId(null);
@@ -75,8 +77,8 @@ export default function DiscoverMahbersPage() {
   return (
     <div>
       <PageHeader
-        title="Discover"
-        description="Find and join public communities."
+        title={t('title')}
+        description={t('description')}
       />
 
       {isLoading ? (
@@ -97,10 +99,10 @@ export default function DiscoverMahbersPage() {
         <div className="text-center py-20 glass rounded-card">
           <Compass className="w-12 h-12 text-text-muted mx-auto mb-4" />
           <h3 className="text-lg font-medium text-text-primary mb-2">
-            No Public Mahbers Found
+            {t('noPublicFound')}
           </h3>
           <p className="text-text-secondary">
-            Check back later for new communities to join.
+            {t('noPublicDesc')}
           </p>
         </div>
       ) : (
@@ -130,7 +132,7 @@ export default function DiscoverMahbersPage() {
                 </div>
                 <CardTitle>{mahber.name}</CardTitle>
                 <CardDescription>
-                  Created {new Date(mahber.created_at).toLocaleDateString()}
+                  {t('created')} {new Date(mahber.created_at).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
               <CardFooter>
@@ -140,7 +142,7 @@ export default function DiscoverMahbersPage() {
                     variant="outline"
                     asChild
                   >
-                    <Link href={`/mahbers/${mahber.id}`}>Joined</Link>
+                    <Link href={`/mahbers/${mahber.id}`}>{t('joined')}</Link>
                   </Button>
                 ) : (
                   <Button
@@ -153,7 +155,7 @@ export default function DiscoverMahbersPage() {
                     disabled={requestedIds.has(mahber.id)}
                     variant={requestedIds.has(mahber.id) ? "outline" : "default"}
                   >
-                    {requestedIds.has(mahber.id) ? "Requested" : "Request to Join"}
+                    {requestedIds.has(mahber.id) ? t('requested') : t('requestToJoin')}
                   </Button>
                 )}
               </CardFooter>
@@ -169,34 +171,34 @@ export default function DiscoverMahbersPage() {
           setInvitationCode("");
         }}
         title={
-          joinTarget ? `Request to Join ${joinTarget.name}` : "Request to Join"
+          joinTarget ? t('requestToJoinTitle', { name: joinTarget.name }) : t('requestToJoin')
         }
-        description="Enter an invitation code if required by the community."
+        description={t('invitationCodeDialogDesc')}
       >
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">
-              Invitation Code (optional for public Mahbers)
+              {t('invitationCodeLabel')}
             </label>
             <Input
-              placeholder="e.g., ABC123"
+              placeholder={t('invitationCodePlaceholder')}
               value={invitationCode}
               onChange={(e) => setInvitationCode(e.target.value)}
             />
             <p className="text-xs text-text-muted">
-              Private Mahbers require a valid invitation code.
+              {t('invitationCodeDesc')}
             </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setJoinTarget(null)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleJoin}
               isLoading={joiningId === joinTarget?.id}
             >
-              Send Request
+              {t('sendRequest')}
             </Button>
           </div>
         </div>

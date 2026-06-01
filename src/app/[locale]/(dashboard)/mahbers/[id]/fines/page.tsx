@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { AlertCircle, CheckCircle2, ShieldBan, Filter } from "lucide-react";
 import { financialService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
@@ -17,6 +18,7 @@ export default function FinesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("Fines");
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "pending" | "paid" | "waived">(
     "all",
@@ -31,9 +33,9 @@ export default function FinesPage({
     mutationFn: (fineId: string) => financialService.waiveFine(id, fineId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-fines", id] });
-      toast.success("Fine waived successfully");
+      toast.success(t("waiveSuccess"));
     },
-    onError: () => toast.error("Failed to waive fine"),
+    onError: () => toast.error(t("waiveFailed")),
   });
 
   const filteredFines =
@@ -45,19 +47,19 @@ export default function FinesPage({
         return {
           color: "bg-status-error text-white",
           icon: AlertCircle,
-          label: "Pending",
+          label: t("pending"),
         };
       case "paid":
         return {
           color: "bg-status-success text-white",
           icon: CheckCircle2,
-          label: "Paid",
+          label: t("paid"),
         };
       case "waived":
         return {
           color: "bg-text-muted text-background-dark",
           icon: ShieldBan,
-          label: "Waived",
+          label: t("waived"),
         };
       default:
         return {
@@ -71,8 +73,8 @@ export default function FinesPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Fines Management"
-        description="Track and manage penalties for missed meetings or late payments."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -82,7 +84,7 @@ export default function FinesPage({
           onClick={() => setFilter("all")}
           className="whitespace-nowrap"
         >
-          All Fines
+          {t("allFines")}
         </Button>
         <Button
           variant={filter === "pending" ? "default" : "outline"}
@@ -90,7 +92,7 @@ export default function FinesPage({
           onClick={() => setFilter("pending")}
           className={`whitespace-nowrap ${filter === "pending" ? "bg-status-error text-white border-status-error" : "border-border-glass text-text-secondary hover:text-text-primary"}`}
         >
-          Pending
+          {t("pending")}
         </Button>
         <Button
           variant={filter === "paid" ? "default" : "outline"}
@@ -98,7 +100,7 @@ export default function FinesPage({
           onClick={() => setFilter("paid")}
           className={`whitespace-nowrap ${filter === "paid" ? "bg-status-success text-white border-status-success" : "border-border-glass text-text-secondary hover:text-text-primary"}`}
         >
-          Paid
+          {t("paid")}
         </Button>
         <Button
           variant={filter === "waived" ? "default" : "outline"}
@@ -106,7 +108,7 @@ export default function FinesPage({
           onClick={() => setFilter("waived")}
           className={`whitespace-nowrap ${filter === "waived" ? "bg-text-muted text-background-dark border-text-muted" : "border-border-glass text-text-secondary hover:text-text-primary"}`}
         >
-          Waived
+          {t("waived")}
         </Button>
       </div>
 
@@ -119,7 +121,7 @@ export default function FinesPage({
         <div className="text-center py-16 glass rounded-card">
           <ShieldBan className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
           <p className="text-text-secondary text-lg">
-            No fines found matching the current filter.
+            {t("noFinesFound")}
           </p>
         </div>
       ) : (
@@ -133,7 +135,7 @@ export default function FinesPage({
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="font-bold text-lg text-text-primary">
-                          {fine.member?.name || "Unknown Member"}
+                          {fine.member?.name || t("unknownMember")}
                         </h3>
                         <p className="text-sm text-text-secondary mt-1 line-clamp-2">
                           {fine.reason}
@@ -153,8 +155,7 @@ export default function FinesPage({
                           {fine.amount.toLocaleString()} ETB
                         </span>
                         <span className="text-xs text-text-muted">
-                          Issued:{" "}
-                          {new Date(fine.issued_at).toLocaleDateString()}
+                          {t("issued", { date: new Date(fine.issued_at).toLocaleDateString() })}
                         </span>
                       </div>
 
@@ -169,7 +170,7 @@ export default function FinesPage({
                           }
                           onClick={() => waiveMutation.mutate(fine.id)}
                         >
-                          Waive Fine
+                          {t("waiveFine")}
                         </Button>
                       )}
                     </div>

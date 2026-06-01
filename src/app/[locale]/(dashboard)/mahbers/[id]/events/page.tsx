@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
@@ -27,6 +28,7 @@ export default function EventsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations("Events");
   const { id } = use(params);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
@@ -46,7 +48,7 @@ export default function EventsPage({
   useEffect(() => {
     if (memberError) {
       console.debug("mahber-member error:", memberError);
-      toast.error("Failed to load membership info. Check console for details.");
+      toast.error(t('membershipInfoFailed'));
     }
   }, [memberError]);
 
@@ -80,10 +82,10 @@ export default function EventsPage({
                     {event.event_type.replace(/_/g, " ")}
                   </Badge>
                   {event.is_mandatory && (
-                    <Badge variant="destructive">Mandatory</Badge>
+                    <Badge variant="destructive">{t('mandatory')}</Badge>
                   )}
                   {event.is_cancelled && (
-                    <Badge variant="secondary">Cancelled</Badge>
+                    <Badge variant="secondary">{t('cancelled')}</Badge>
                   )}
                 </div>
                 <h3 className="text-xl font-bold text-text-primary group-hover:text-gold transition-colors">
@@ -128,14 +130,14 @@ export default function EventsPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Events"
-        description="Manage and track attendance for meetings, ceremonies, and gatherings."
+        title={t('title')}
+        description={t('description')}
       >
         {canManageEventsValue && (
           <Button asChild className="gap-2">
             <Link href={`/mahbers/${id}/events/create`}>
               <Plus className="w-4 h-4" />
-              Create Event
+              {t('createEvent')}
             </Link>
           </Button>
         )}
@@ -149,7 +151,7 @@ export default function EventsPage({
       ) : events.length === 0 ? (
         <div className="text-center py-12 glass rounded-card">
           <p className="text-text-secondary">
-            No events have been created yet.
+            {t('noEvents')}
           </p>
         </div>
       ) : (
@@ -157,7 +159,7 @@ export default function EventsPage({
           {upcomingEvents.length > 0 && (
             <section className="space-y-4">
               <h2 className="text-lg font-semibold text-text-primary border-b border-border-glass pb-2">
-                Upcoming Events
+                {t('upcomingEvents')}
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {upcomingEvents.map((event) => (
@@ -170,7 +172,7 @@ export default function EventsPage({
           {pastEvents.length > 0 && (
             <section className="space-y-4">
               <h2 className="text-lg font-semibold text-text-secondary border-b border-border-glass pb-2">
-                Past Events
+                {t('pastEvents')}
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {pastEvents.map((event) => (
@@ -183,9 +185,7 @@ export default function EventsPage({
           {totalPages > 1 && (
             <div className="flex items-center justify-between py-4 border-t border-border-glass">
               <div className="text-sm text-text-muted">
-                Showing {(currentPage - 1) * pageSize + 1} to{" "}
-                {Math.min(currentPage * pageSize, totalEvents)} of {totalEvents}{" "}
-                events
+                {t('showingEntries', { start: (currentPage - 1) * pageSize + 1, end: Math.min(currentPage * pageSize, totalEvents), total: totalEvents })}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -195,7 +195,7 @@ export default function EventsPage({
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Prev
+                  {t('prev')}
                 </Button>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -220,7 +220,7 @@ export default function EventsPage({
                   }
                   disabled={currentPage === totalPages}
                 >
-                  Next
+                  {t('next')}
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
