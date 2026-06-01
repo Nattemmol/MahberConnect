@@ -1,11 +1,7 @@
 "use client";
 
-import {
-  useQuery,
-  useInfiniteQuery,
-  InfiniteData,
-} from "@tanstack/react-query";
-import { use, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -20,7 +16,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { eventService, memberService } from "@/lib/api/service-factory";
-import { MemberDetail, PaginatedResponse } from "@/lib/types";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,45 +53,15 @@ export default function EventAttendancePage({
     event?.is_mandatory && isPastEvent && !isAttendanceError,
   );
 
-  const {
-    data: membersPages,
-    isLoading: isMembersLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["mahber-members", id],
-    queryFn: ({ pageParam = 1 }) =>
-      memberService.getMembers(id, pageParam, 100),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage: any) => {
-      try {
-        const meta = lastPage?.meta;
-        if (!meta || typeof meta.page !== 'number' || typeof meta.totalPages !== 'number') {
-          return undefined;
-        }
-        return meta.page < meta.totalPages ? meta.page + 1 : undefined;
-      } catch {
-        return undefined;
-      }
-    },
+  const { data: membersResponse, isLoading: isMembersLoading } = useQuery({
+    queryKey: ["mahber-members-all", id],
+    queryFn: () => memberService.getMembers(id, 1, 1000),
     enabled: showAbsentees,
   });
 
-  useEffect(() => {
-    if (showAbsentees && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [showAbsentees, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   const attendance = Array.isArray(attendanceResponse?.data) ? attendanceResponse.data : [];
   const totalAttendees = attendance.length;
-  const members = Array.isArray(membersPages?.pages)
-    ? membersPages.pages.flatMap((page) => {
-        const data = (page as any)?.data;
-        return Array.isArray(data) ? data : [];
-      })
-    : [];
+  const members = Array.isArray(membersResponse?.data) ? membersResponse.data : [];
 
   const activeMembers = members.filter((m) => m.status === "Active");
   const attendanceMemberIds = new Set(attendance.map((a) => a.member_id));
@@ -109,7 +74,7 @@ export default function EventAttendancePage({
       member.user?.phone?.includes(searchQuery),
   );
 
-  const isAbsenteesLoading = isMembersLoading || isFetchingNextPage;
+  const isAbsenteesLoading = isMembersLoading;
 
   // ── Analytics ──
   const { data: analytics } = useQuery({
@@ -180,6 +145,33 @@ export default function EventAttendancePage({
         </Button>
       </PageHeader>
 
+      {/* Future Event Notice — replaces all attendance content */}
+      {event && !isPastEvent && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <Clock className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-semibold text-text-primary mb-2">
+                Event Not Yet Started
+              </h3>
+              <p className="text-text-secondary max-w-md mx-auto">
+                This event hasn&apos;t started yet. Attendance tracking will be
+                available once the event begins on{" "}
+                {new Date(event.start_time).toLocaleDateString()} at{" "}
+                {new Date(event.start_time).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                .
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Attendance Content — only for past / current events */}
+      {(!event || isPastEvent) && (
+      <>
       {/* Analytics Section */}
       {analytics && (
         <Card className="bg-gradient-to-br from-gold/5 to-background-dark border-gold/20">
@@ -532,6 +524,8 @@ export default function EventAttendancePage({
           </CardContent>
         </Card>
       )}
+    </>
+    )}
     </div>
   );
 }

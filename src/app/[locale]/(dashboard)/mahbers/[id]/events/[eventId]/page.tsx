@@ -313,7 +313,9 @@ export default function EventDetailPage({
 
   if (!event) return <div>Event not found.</div>;
 
-  const isPastEvent = new Date(event.start_time) <= new Date();
+  const now = new Date();
+  const isPastEvent = new Date(event.start_time) <= now;
+  const isEventOngoing = now >= new Date(event.start_time) && now <= new Date(event.end_time);
 
   return (
     <div className="space-y-6">
@@ -483,7 +485,7 @@ export default function EventDetailPage({
               <CheckCircle className="h-4 w-4 text-status-success" />
             </CardHeader>
             <CardContent>
-              {!isPastEvent && !event.is_cancelled ? (
+              {isEventOngoing && !event.is_cancelled ? (
                 <div className="space-y-4">
                   {!canManageEventsValue && !isEventHost ? (
                     <>
@@ -556,7 +558,7 @@ export default function EventDetailPage({
                       )}
                       <hr className="border-border-glass" />
                       <p className="text-sm text-text-muted">
-                        Generate your personal QR code to check in at the event.
+                        Generate your personal QR code to check in.
                       </p>
                       <Button
                         className="w-full gap-2 bg-gold hover:bg-gold/90"
@@ -593,9 +595,13 @@ export default function EventDetailPage({
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-status-warning text-sm">
-                  <AlertCircle className="w-4 h-4" />
-                  Check-in is closed for this event.
+                <div className="flex items-center gap-2 text-sm">
+                  <AlertCircle className="w-4 h-4 text-status-warning" />
+                  <span className="text-text-muted">
+                    {!isPastEvent
+                      ? "Check-in opens when the event starts."
+                      : "Check-in is closed for this event."}
+                  </span>
                 </div>
               )}
             </CardContent>
