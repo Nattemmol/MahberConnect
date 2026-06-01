@@ -98,6 +98,20 @@
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "forgotPassword": "Forgot Password?",
+    "forgotPasswordTitle": "Forgot Password",
+    "forgotPasswordSubtitle": "Enter your phone number to receive a reset code",
+    "sendResetCode": "Send Reset Code",
+    "checkSmsTitle": "Check Your Phone",
+    "checkSmsSubtitle": "We sent a reset code via SMS",
+    "codeSentTo": "Code sent to",
+    "enterResetCode": "Enter Reset Code",
+    "wrongPhone": "Wrong phone number? Go back",
+    "resetPasswordTitle": "Reset Password",
+    "resetPasswordSubtitle": "Enter the code from your SMS and a new password",
+    "resetCode": "Reset Code",
+    "newPassword": "New Password",
+    "resetPassword": "Reset Password",
+    "backToLogin": "Back to Login",
     "signIn": "Sign In",
     "signUp": "Sign Up",
     "noAccount": "Don't have an account?",
@@ -110,13 +124,18 @@
       "passwordRequired": "Password is required",
       "nameMin": "Name must be at least 2 characters",
       "passwordComplex": "Password must have at least 8 chars, 1 uppercase, 1 lowercase, 1 number",
-      "passwordsMatch": "Passwords do not match"
+      "passwordsMatch": "Passwords do not match",
+      "codeInvalid": "Code must be exactly 6 digits"
     },
     "messages": {
       "loginSuccess": "Welcome back!",
       "loginError": "Failed to login. Please check your credentials.",
       "registerSuccess": "Account created successfully!",
-      "registerError": "Registration failed."
+      "registerError": "Registration failed.",
+      "resetCodeSent": "Reset code sent if the account exists.",
+      "resetCodeError": "Failed to send reset code.",
+      "resetSuccess": "Password reset successfully! Please log in.",
+      "resetError": "Failed to reset password. The code may have expired."
     }
   },
   "Settings": {

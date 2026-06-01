@@ -31,6 +31,16 @@ export const authApi = {
     await apiClient.patch('/auth/change-password', { currentPassword, newPassword });
   },
 
+  forgotPassword: async (phone: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/auth/forgot-password', { phone });
+    return response.data;
+  },
+
+  resetPassword: async (phone: string, code: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/auth/reset-password', { phone, code, newPassword });
+    return response.data;
+  },
+
   searchUserByPhone: async (phone: string): Promise<User> => {
     const response = await apiClient.get<User>('/auth/users/search', { params: { phone } });
     return response.data;

@@ -1,7 +1,7 @@
 import { delay, randomError } from "../utils";
 import { mockMemberDetails } from "../data/memberships";
 import { mockJoinRequests } from "../data/join-requests";
-import { MemberDetail, UpdateRoleDto, JoinRequestActionDto } from "@/lib/types";
+import { MemberDetail, UpdateRoleDto, JoinRequestActionDto, BatchProcessItem } from "@/lib/types";
 
 // In-memory state so actions persist during session
 let members = [...mockMemberDetails];
@@ -113,5 +113,38 @@ export const memberMock = {
     if (data.rejection_reason) request.rejection_reason = data.rejection_reason;
     request.updated_at = new Date().toISOString();
     return request;
+  },
+
+  batchHandleJoinRequests: async (mahberId: string, items: BatchProcessItem[]) => {
+    await delay(1000);
+    const results = { approved: 0, rejected: 0, failed: [] as { requestId: string; reason: string }[] };
+
+    for (const item of items) {
+      const request = joinRequests.find(
+        (jr) => jr.id === item.requestId && jr.mahber_id === mahberId,
+      );
+
+      if (!request) {
+        results.failed.push({ requestId: item.requestId, reason: "Join request not found" });
+        continue;
+      }
+
+      if (request.status !== "Pending") {
+        results.failed.push({
+          requestId: item.requestId,
+          reason: `Only pending join requests can be processed (current: ${request.status})`,
+        });
+        continue;
+      }
+
+      request.status = item.action === "approve" ? "Approved" : "Rejected";
+      if (item.rejection_reason) request.rejection_reason = item.rejection_reason;
+      request.updated_at = new Date().toISOString();
+
+      if (item.action === "approve") results.approved++;
+      else results.rejected++;
+    }
+
+    return results;
   },
 };

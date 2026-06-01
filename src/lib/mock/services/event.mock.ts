@@ -3,7 +3,8 @@ import { mockEvents } from "../data/events";
 import { mockAttendance } from "../data/attendance";
 import { mockPhotos } from "../data/photos";
 import { mockUsers } from "../data/users";
-import { CreateEventDto, EventPhoto, UploadResponse } from "@/lib/types";
+import { mockMemberDetails } from "../data/memberships";
+import { CreateEventDto, EventPhoto, UploadResponse, SendInvitationsResponse, EventInvitation, EventInvitationStatus, AttendanceAnalytics, AttendanceTrends, Event, User } from "@/lib/types";
 
 let events = [...mockEvents];
 let attendance = [...mockAttendance];
@@ -40,6 +41,9 @@ export const eventMock = {
   createEvent: async (mahberId: string, data: CreateEventDto) => {
     await delay(800);
     randomError(0.05);
+    const hostUser = data.host_id
+      ? mockUsers.find((u: User) => u.id === data.host_id)
+      : undefined;
     const newEvent = {
       id: `evt_${Date.now()}`,
       mahber_id: mahberId,
@@ -51,6 +55,9 @@ export const eventMock = {
       location: data.location,
       is_mandatory: data.is_mandatory || false,
       is_cancelled: false,
+      created_by: mockUsers[2].id,
+      host_id: data.host_id || null,
+      host_user: hostUser || null,
       created_at: new Date().toISOString(),
     };
     events = [newEvent, ...events];
@@ -81,6 +88,35 @@ export const eventMock = {
     return events[index];
   },
 
+  assignEventHost: async (mahberId: string, eventId: string, memberId: string) => {
+    await delay(500);
+    const index = events.findIndex(
+      (e) => e.mahber_id === mahberId && e.id === eventId,
+    );
+    if (index === -1) throw new Error("Event not found");
+    const hostUser = mockUsers.find((u: User) => u.id === memberId);
+    events[index] = {
+      ...events[index],
+      host_id: memberId,
+      host_user: hostUser || null,
+    };
+    return events[index];
+  },
+
+  removeEventHost: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    const index = events.findIndex(
+      (e) => e.mahber_id === mahberId && e.id === eventId,
+    );
+    if (index === -1) throw new Error("Event not found");
+    events[index] = {
+      ...events[index],
+      host_id: null,
+      host_user: null,
+    };
+    return events[index];
+  },
+
   getQRCode: async (mahberId: string, eventId: string) => {
     await delay(500);
     // Return a dummy data URI representing a mock QR code image.
@@ -107,10 +143,34 @@ export const eventMock = {
     const newAttendance = {
       id: `att_${Date.now()}`,
       event_id: eventId,
-      member_id: mockUsers[2].id, // Simulating a check-in from a specific user
+      member_id: mockUsers[2].id,
       mahber_id: mahberId,
       checked_in_at: new Date().toISOString(),
       user: mockUsers[2],
+    };
+    attendance = [newAttendance, ...attendance];
+    return newAttendance;
+  },
+
+  manualCheckIn: async (mahberId: string, eventId: string, memberId: string) => {
+    await delay(600);
+    randomError(0.05);
+
+    const existing = attendance.find(
+      (a) => a.event_id === eventId && a.member_id === memberId,
+    );
+    if (existing) {
+      throw new Error("Attendance already recorded for this member");
+    }
+
+    const member = mockUsers.find((u: User) => u.id === memberId);
+    const newAttendance = {
+      id: `att_${Date.now()}`,
+      event_id: eventId,
+      member_id: memberId,
+      mahber_id: mahberId,
+      checked_in_at: new Date().toISOString(),
+      user: member || undefined,
     };
     attendance = [newAttendance, ...attendance];
     return newAttendance;
@@ -196,6 +256,155 @@ export const eventMock = {
     photos.splice(index, 1);
   },
 
+  // ── Invitations ─────────────────────────────────────────────────────────
+  mockInvitations: [] as EventInvitation[],
+
+  sendInvitations: async (
+    mahberId: string,
+    eventId: string,
+    memberIds: string[],
+  ): Promise<SendInvitationsResponse> => {
+    await delay(800);
+    randomError(0.05);
+
+    const existing = eventMock.mockInvitations.filter(
+      (inv) => inv.event_id === eventId,
+    );
+    const alreadyInvitedIds = new Set(existing.map((inv) => inv.member_id));
+    const newMemberIds = memberIds.filter((id) => !alreadyInvitedIds.has(id));
+
+    const newInvitations: EventInvitation[] = newMemberIds.map((memberId) => {
+      const member = mockMemberDetails.find((m) => m.member_id === memberId);
+      return {
+        id: `inv_${Date.now()}_${memberId}`,
+        event_id: eventId,
+        mahber_id: mahberId,
+        member_id: memberId,
+        status: "Pending" as EventInvitationStatus,
+        sent_at: new Date().toISOString(),
+        channels_used: ["in_app", "fcm", "email", "sms"],
+        member: member?.user,
+      };
+    });
+
+    eventMock.mockInvitations = [
+      ...eventMock.mockInvitations,
+      ...newInvitations,
+    ];
+
+    return {
+      invited: newInvitations.length,
+      already_invited: memberIds.length - newInvitations.length,
+      invalid_members: 0,
+      invitations: newInvitations,
+    };
+  },
+
+  getInvitations: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    return eventMock.mockInvitations.filter((inv) => inv.event_id === eventId);
+  },
+
+  respondToInvitation: async (
+    mahberId: string,
+    eventId: string,
+    invitationId: string,
+    action: "accept" | "decline",
+  ) => {
+    await delay(600);
+    const idx = eventMock.mockInvitations.findIndex(
+      (inv) => inv.id === invitationId,
+    );
+    if (idx === -1) throw new Error("Invitation not found");
+    eventMock.mockInvitations[idx].status =
+      action === "accept" ? ("Accepted" as EventInvitationStatus) : ("Declined" as EventInvitationStatus);
+    eventMock.mockInvitations[idx].responded_at = new Date().toISOString();
+    return eventMock.mockInvitations[idx];
+  },
+
+  getMyInvitations: async (mahberId: string) => {
+    await delay(500);
+    return eventMock.mockInvitations.filter(
+      (inv) =>
+        inv.mahber_id === mahberId &&
+        inv.member_id === mockUsers[2].id &&
+        inv.status === "Pending",
+    );
+  },
+
+  // ── Registration / RSVP ──────────────────────────────────────────────────
+  registerForEvent: async (mahberId: string, eventId: string) => {
+    await delay(600);
+    randomError(0.05);
+
+    const existing = eventMock.mockInvitations.find(
+      (inv) => inv.event_id === eventId && inv.member_id === mockUsers[2].id,
+    );
+    if (existing?.status === "Accepted") {
+      throw new Error("Already registered");
+    }
+
+    const newReg: EventInvitation = {
+      id: `reg_${Date.now()}`,
+      event_id: eventId,
+      mahber_id: mahberId,
+      member_id: mockUsers[2].id,
+      status: "Accepted",
+      sent_at: new Date().toISOString(),
+      responded_at: new Date().toISOString(),
+      source: "self_register",
+      channels_used: ["in_app"],
+      member: mockUsers[2],
+    };
+
+    if (existing) {
+      const idx = eventMock.mockInvitations.findIndex(
+        (inv) => inv.id === existing.id,
+      );
+      eventMock.mockInvitations[idx] = newReg;
+    } else {
+      eventMock.mockInvitations = [...eventMock.mockInvitations, newReg];
+    }
+
+    return newReg;
+  },
+
+  cancelRegistration: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    const idx = eventMock.mockInvitations.findIndex(
+      (inv) =>
+        inv.event_id === eventId &&
+        inv.member_id === mockUsers[2].id &&
+        inv.status === "Accepted",
+    );
+    if (idx === -1) throw new Error("No active registration found");
+    eventMock.mockInvitations.splice(idx, 1);
+    return { message: "Registration cancelled successfully" };
+  },
+
+  getRegistrations: async (mahberId: string, eventId: string) => {
+    await delay(500);
+    const all = eventMock.mockInvitations.filter(
+      (inv) => inv.event_id === eventId && inv.mahber_id === mahberId,
+    );
+    const accepted = all.filter((inv) => inv.status === "Accepted");
+    const declined = all.filter((inv) => inv.status === "Declined");
+    const pending = all.filter((inv) => inv.status === "Pending");
+    return {
+      total_active_members: mockMemberDetails.filter(
+        (m) => m.mahber_id === mahberId && m.status === "Active",
+      ).length,
+      summary: {
+        registered: accepted.length,
+        declined: declined.length,
+        pending: pending.length,
+        no_response: 0,
+      },
+      registrations: accepted,
+      invitations: { declined, pending },
+    };
+  },
+
   processAttendance: async (mahberId: string, eventId: string) => {
     await delay(1000);
     randomError(0.05);
@@ -209,5 +418,45 @@ export const eventMock = {
       data,
       meta: { total: data.length, page: 1, limit: 20, totalPages: 1 },
     };
+  },
+
+  // ── Analytics (Mock) ───────────────────────────────────────────────────────
+  getAttendanceAnalytics: async (_mahberId: string, _eventId: string) => {
+    await delay(400);
+    const total_members = 12;
+    const attended = 9;
+    return {
+      event_id: _eventId,
+      total_members,
+      attended,
+      absent: total_members - attended,
+      attendance_percentage: Math.round((attended / total_members) * 100),
+      is_mandatory: true,
+      is_cancelled: false,
+    } satisfies AttendanceAnalytics;
+  },
+
+  getAttendanceTrends: async (_mahberId: string, _eventId: string, months = 6) => {
+    await delay(500);
+    const trends = [];
+    const now = new Date();
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = d.toISOString().slice(0, 7);
+      trends.push({
+        month,
+        event_count: 2 + Math.floor(Math.random() * 4),
+        total_members: 12,
+        total_attended: 7 + Math.floor(Math.random() * 4),
+        average_attendance_rate: 60 + Math.floor(Math.random() * 30),
+      });
+    }
+    return { trends, total_active_members: 12 } satisfies AttendanceTrends;
+  },
+
+  exportAttendanceReport: async (_mahberId: string, _eventId: string, _params?: any) => {
+    await delay(800);
+    const dummyPdf = new Uint8Array(100);
+    return new Blob([dummyPdf], { type: 'application/pdf' });
   },
 };

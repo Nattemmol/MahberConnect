@@ -98,6 +98,20 @@
     "password": "የይለፍ ቃል",
     "confirmPassword": "የይለፍ ቃል ያረጋግጡ",
     "forgotPassword": "የይለፍ ቃል ረስተዋል?",
+    "forgotPasswordTitle": "የይለፍ ቃል ረስተዋል",
+    "forgotPasswordSubtitle": "የማረጋገጫ ኮድ ለመቀበል የስልክ ቁጥርዎን ያስገቡ",
+    "sendResetCode": "የማረጋገጫ ኮድ ላክ",
+    "checkSmsTitle": "ስልክዎን ይፈትሹ",
+    "checkSmsSubtitle": "በኤስኤምኤስ የማረጋገጫ ኮድ ልከናል",
+    "codeSentTo": "ኮድ የተላከለት",
+    "enterResetCode": "የማረጋገጫ ኮድ አስገባ",
+    "wrongPhone": "የተሳሳተ ስልክ ቁጥር? ተመለስ",
+    "resetPasswordTitle": "የይለፍ ቃል ዳግም ያስገቡ",
+    "resetPasswordSubtitle": "ከኤስኤምኤስ የተላከውን ኮድ እና አዲስ የይለፍ ቃል ያስገቡ",
+    "resetCode": "የማረጋገጫ ኮድ",
+    "newPassword": "አዲስ የይለፍ ቃል",
+    "resetPassword": "የይለፍ ቃል ዳግም ያስገቡ",
+    "backToLogin": "ወደ መግቢያ ተመለስ",
     "signIn": "ይግቡ",
     "signUp": "ይመዝገቡ",
     "noAccount": "መለያ የለዎትም?",
@@ -110,13 +124,18 @@
       "passwordRequired": "የይለፍ ቃል ያስፈልጋል",
       "nameMin": "ስም ቢያንስ 2 ቁምፊዎች መሆን አለበት",
       "passwordComplex": "የይለፍ ቃል ቢያንስ 8 ቁምፊዎች፣ 1 ትልቅ ሆሄ፣ 1 ትንሽ ሆሄ እና 1 ቁጥር መያዝ አለበት",
-      "passwordsMatch": "የይለፍ ቃሎች አይዛመዱም"
+      "passwordsMatch": "የይለፍ ቃሎች አይዛመዱም",
+      "codeInvalid": "ኮድ በትክክል 6 አሃዝ መሆን አለበት"
     },
     "messages": {
       "loginSuccess": "እንኳን ደህና መጡ!",
       "loginError": "መግባት አልተቻለም። እባክዎ መለያዎን ያረጋግጡ።",
       "registerSuccess": "መለያዎ በትክክል ተፈጥሯል!",
-      "registerError": "ምዝገባ አልተሳካም።"
+      "registerError": "ምዝገባ አልተሳካም።",
+      "resetCodeSent": "መለያው ካለ የማረጋገጫ ኮድ ተልኳል።",
+      "resetCodeError": "የማረጋገጫ ኮድ መላክ አልተሳካም።",
+      "resetSuccess": "የይለፍ ቃል በትክክል ዳግም ተስተካክሏል! እባክዎ ይግቡ።",
+      "resetError": "የይለፍ ቃል ዳግም ማስተካከል አልተሳካም። ኮዱ ጊዜው አልፎበት ይሆናል።"
     }
   },
   "Settings": {

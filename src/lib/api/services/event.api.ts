@@ -5,8 +5,13 @@ import {
   CreateEventDto,
   QRCodeResponse,
   Attendance,
+  AttendanceAnalytics,
+  AttendanceTrends,
   EventPhoto,
   UploadResponse,
+  EventInvitation,
+  EventInvitationStatus,
+  SendInvitationsResponse,
 } from "@/lib/types";
 
 export const eventApi = {
@@ -90,6 +95,18 @@ export const eventApi = {
     return response.data;
   },
 
+  manualCheckIn: async (
+    mahberId: string,
+    eventId: string,
+    memberId: string,
+  ): Promise<Attendance> => {
+    const response = await apiClient.post<Attendance>(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/manual`,
+      { member_id: memberId },
+    );
+    return response.data;
+  },
+
   processAttendance: async (
     mahberId: string,
     eventId: string,
@@ -129,6 +146,96 @@ export const eventApi = {
     return response.data;
   },
 
+  // Invitations
+  sendInvitations: async (
+    mahberId: string,
+    eventId: string,
+    memberIds: string[],
+  ): Promise<SendInvitationsResponse> => {
+    const response = await apiClient.post<SendInvitationsResponse>(
+      `/mahbers/${mahberId}/events/${eventId}/invitations`,
+      { member_ids: memberIds },
+    );
+    return response.data;
+  },
+
+  getInvitations: async (
+    mahberId: string,
+    eventId: string,
+  ): Promise<EventInvitation[]> => {
+    const response = await apiClient.get<EventInvitation[]>(
+      `/mahbers/${mahberId}/events/${eventId}/invitations`,
+    );
+    return response.data;
+  },
+
+  respondToInvitation: async (
+    mahberId: string,
+    eventId: string,
+    invitationId: string,
+    action: "accept" | "decline",
+  ): Promise<EventInvitation> => {
+    const response = await apiClient.put<EventInvitation>(
+      `/mahbers/${mahberId}/events/${eventId}/invitations/${invitationId}/respond`,
+      { action },
+    );
+    return response.data;
+  },
+
+  getMyInvitations: async (
+    mahberId: string,
+  ): Promise<EventInvitation[]> => {
+    const response = await apiClient.get<EventInvitation[]>(
+      `/mahbers/${mahberId}/my-invitations`,
+    );
+    return response.data;
+  },
+
+  // Registration / RSVP
+  registerForEvent: async (mahberId: string, eventId: string): Promise<EventInvitation> => {
+    const response = await apiClient.post<EventInvitation>(
+      `/mahbers/${mahberId}/events/${eventId}/register`,
+    );
+    return response.data;
+  },
+
+  cancelRegistration: async (mahberId: string, eventId: string): Promise<{ message: string }> => {
+    const response = await apiClient.delete<{ message: string }>(
+      `/mahbers/${mahberId}/events/${eventId}/register`,
+    );
+    return response.data;
+  },
+
+  getRegistrations: async (mahberId: string, eventId: string): Promise<any> => {
+    const response = await apiClient.get<any>(
+      `/mahbers/${mahberId}/events/${eventId}/registrations`,
+    );
+    return response.data;
+  },
+
+  // Host management
+  assignEventHost: async (
+    mahberId: string,
+    eventId: string,
+    memberId: string,
+  ): Promise<Event> => {
+    const response = await apiClient.put<Event>(
+      `/mahbers/${mahberId}/events/${eventId}/host`,
+      { member_id: memberId },
+    );
+    return response.data;
+  },
+
+  removeEventHost: async (
+    mahberId: string,
+    eventId: string,
+  ): Promise<Event> => {
+    const response = await apiClient.delete<Event>(
+      `/mahbers/${mahberId}/events/${eventId}/host`,
+    );
+    return response.data;
+  },
+
   deletePhoto: async (
     mahberId: string,
     eventId: string,
@@ -149,5 +256,39 @@ export const eventApi = {
       `/mahbers/${mahberId}/events/${eventId}/attendance?page=${page}&limit=${limit}`,
     );
     return response.data;
+  },
+
+  // ── Analytics ──────────────────────────────────────────────────────────────
+  getAttendanceAnalytics: async (
+    mahberId: string,
+    eventId: string,
+  ): Promise<AttendanceAnalytics> => {
+    const response = await apiClient.get<AttendanceAnalytics>(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/analytics`,
+    );
+    return response.data;
+  },
+
+  getAttendanceTrends: async (
+    mahberId: string,
+    eventId: string,
+    months: number = 6,
+  ): Promise<AttendanceTrends> => {
+    const response = await apiClient.get<AttendanceTrends>(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/trends?months=${months}`,
+    );
+    return response.data;
+  },
+
+  exportAttendanceReport: async (
+    mahberId: string,
+    eventId: string,
+    params?: { startDate?: string; endDate?: string },
+  ): Promise<Blob> => {
+    const response = await apiClient.get(
+      `/mahbers/${mahberId}/events/${eventId}/attendance/report`,
+      { params, responseType: 'blob' },
+    );
+    return response.data as Blob;
   },
 };
