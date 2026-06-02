@@ -17,6 +17,7 @@ import {
   Receipt,
   PlusCircle,
   Download,
+  ExternalLink,
 } from "lucide-react";
 import {
   financialService,
@@ -358,21 +359,36 @@ export default function PaymentsDashboard({
       {tab === "expenses" ? (
         <>
           {/* Expenses Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-lg font-semibold text-text-primary">
-              {t('expensesAndDebits')}
+              Expenses & Debits
             </h2>
-            {isAdmin && (
-              <Button
-                asChild
-                className="gap-2 bg-gold hover:bg-gold-dark text-black font-medium"
-              >
-                <Link href={`/mahbers/${id}/expenses/create`}>
-                  <PlusCircle className="w-4 h-4" />
-                  {t('recordExpense')}
-                </Link>
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {isAdmin && (
+                <>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-status-warning/50 text-status-warning hover:bg-status-warning/10"
+                  >
+                    <Link href={`/mahbers/${id}/expenses/approve`}>
+                      <ExternalLink className="w-4 h-4" />
+                      Approve Expenses
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className="gap-2 bg-gold hover:bg-gold-dark text-black font-medium"
+                  >
+                    <Link href={`/mahbers/${id}/expenses/create`}>
+                      <PlusCircle className="w-4 h-4" />
+                      Record Expense
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Expenses List */}
@@ -395,13 +411,32 @@ export default function PaymentsDashboard({
                 <Card key={expense.id} className="overflow-hidden">
                   <CardContent className="p-0">
                     <div className="p-5 flex flex-col h-full">
-                      <div className="flex justify-between items-start mb-3">
-                        <Badge
-                          variant="outline"
-                          className="text-xs border-border-glass text-text-secondary"
-                        >
-                          {expense.category}
-                        </Badge>
+                      <div className="flex justify-between items-start mb-3 gap-2 flex-wrap">
+                        <div className="flex gap-1.5 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-border-glass text-text-secondary"
+                          >
+                            {expense.category}
+                          </Badge>
+                          <StatusBadge status={expense.status} />
+                        </div>
+                      </div>
+                      <p className="text-sm text-text-primary mb-4 line-clamp-3">
+                        {expense.reason}
+                      </p>
+                      <div className="mt-auto pt-4 border-t border-border-glass flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-2xl font-bold text-status-error">
+                            -{expense.amount.toLocaleString()} ETB
+                          </span>
+                          <span className="text-xs text-text-muted mt-1">
+                            {new Date(expense.created_at).toLocaleDateString()}
+                            {expense.creator?.name && ` • ${expense.creator.name}`}
+                            {expense.approver?.name && ` • Approved by ${expense.approver.name}`}
+                            {expense.status === "Pending" && " • Awaiting approval"}
+                          </span>
+                        </div>
                       </div>
                       <p className="text-sm text-text-primary mb-4 line-clamp-3">
                         {expense.reason}
@@ -705,4 +740,17 @@ export default function PaymentsDashboard({
     )}
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const variantMap: Record<string, { variant: "warning" | "success" | "destructive" | "outline"; label: string }> = {
+    Pending: { variant: "warning", label: "Pending" },
+    Rejected: { variant: "destructive", label: "Rejected" },
+    Paid: { variant: "success", label: "Paid" },
+    Failed: { variant: "destructive", label: "Failed" },
+  };
+
+  const config = variantMap[status] || { variant: "outline" as const, label: status };
+
+  return <Badge variant={config.variant}>{config.label}</Badge>;
 }

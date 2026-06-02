@@ -1,6 +1,6 @@
 import { delay, randomError, paginate } from '../utils';
 import { mockPayments, mockTransactions, mockExpenses } from '../data/financial';
-import { InitiatePaymentDto, PaymentQueryParams, CreateExpenseDto, CreatePayoutDto, Payout, PayoutCategory, PayoutSummary } from '@/lib/types';
+import { InitiatePaymentDto, PaymentQueryParams, CreateExpenseDto, CreatePayoutDto, Bank, Expense, Payout, PayoutCategory, PayoutSummary } from '@/lib/types';
 import { mockFines } from '../data/fines';
 import { mockLotteryDraws } from '../data/lottery';
 import { mockUsers } from '../data/users';
@@ -402,6 +402,35 @@ export const financialMock = {
     return new Blob([text], { type: 'application/pdf' });
   },
 
+  // ── Chapa Banks ─────────────────────────────────────────────────────────
+  getBanks: async (): Promise<Bank[]> => {
+    await delay(300);
+    return [
+      { id: 1, code: 'CBEBETAA', name: 'Commercial Bank of Ethiopia', swift: 'CBEBETAA', acc_no_length: 13 },
+      { id: 2, code: 'AWINETAA', name: 'Awash Bank', swift: 'AWINETAA', acc_no_length: 13 },
+      { id: 3, code: 'DASBETAA', name: 'Dashen Bank', swift: 'DASBETAA', acc_no_length: 13 },
+      { id: 4, code: 'ABYSETAA', name: 'Abyssinia Bank', swift: 'ABYSETAA', acc_no_length: 13 },
+      { id: 5, code: 'BUNIETAA', name: 'Bunna Bank', swift: 'BUNIETAA', acc_no_length: 13 },
+      { id: 6, code: 'ZEMBETAA', name: 'Zemen Bank', swift: 'ZEMBETAA', acc_no_length: 12 },
+      { id: 7, code: 'UBUGETAA', name: 'United Bank', swift: 'UBUGETAA', acc_no_length: 13 },
+      { id: 8, code: 'NIBBETAA', name: 'Nib International Bank', swift: 'NIBBETAA', acc_no_length: 13 },
+      { id: 9, code: 'COOPETAA', name: 'Cooperative Bank of Oromia', swift: 'COOPETAA', acc_no_length: 13 },
+      { id: 10, code: 'BERHETAA', name: 'Berhan Bank', swift: 'BERHETAA', acc_no_length: 12 },
+      { id: 11, code: 'ADISETAA', name: 'Addis International Bank', swift: 'ADISETAA', acc_no_length: 13 },
+      { id: 12, code: 'ABIEETAA', name: 'Abay Bank', swift: 'ABIEETAA', acc_no_length: 13 },
+      { id: 13, code: 'DEBUBETAA', name: 'Debub Global Bank', swift: 'DEBUBETAA', acc_no_length: 12 },
+      { id: 14, code: 'ENATETAA', name: 'Enat Bank', swift: 'ENATETAA', acc_no_length: 13 },
+      { id: 15, code: 'LIQUBETAA', name: 'Lion International Bank', swift: 'LIQUBETAA', acc_no_length: 13 },
+      { id: 16, code: 'ORIRETAA', name: 'Oromia International Bank', swift: 'ORIRETAA', acc_no_length: 13 },
+      { id: 17, code: 'SIQQETAA', name: 'Sinqe Bank', swift: 'SIQQETAA', acc_no_length: 13 },
+      { id: 18, code: 'TSEBETAA', name: 'Tsedy Bank', swift: 'TSEBETAA', acc_no_length: 12 },
+      { id: 19, code: 'ZEMZEM_BANK', name: 'Zemzem Bank', swift: 'ZEMZEM_BANK', acc_no_length: 13 },
+      { id: 20, code: 'TELEBIRR', name: 'Telebirr', is_mobile_money: true },
+      { id: 21, code: 'MPESA', name: 'M-PESA', is_mobile_money: true },
+      { id: 22, code: 'AMOLE', name: 'Amole', is_mobile_money: true },
+    ];
+  },
+
   // ── Expenses ──────────────────────────────────────────────────────────────
   getExpenses: async (mahberId: string) => {
     await delay(400);
@@ -412,18 +441,63 @@ export const financialMock = {
     };
   },
 
+  getPendingExpenses: async (mahberId: string) => {
+    await delay(300);
+    const data = expenses.filter(e => e.mahber_id === mahberId && e.status === 'Pending');
+    return {
+      data,
+      meta: { total: data.length, page: 1, limit: 20, totalPages: 1 }
+    };
+  },
+
+  approveExpense: async (mahberId: string, expenseId: string) => {
+    await delay(800);
+    const idx = expenses.findIndex(e => e.id === expenseId && e.mahber_id === mahberId);
+    if (idx === -1) throw new Error('Expense not found');
+    const updated = {
+      ...expenses[idx],
+      status: 'Paid' as const,
+      approved_by: 'usr_1',
+      approved_at: new Date().toISOString(),
+      chapa_transfer_ref: `CHT_${Date.now()}`,
+      chapa_transfer_status: 'success',
+    } as Expense;
+    expenses[idx] = updated;
+    return updated;
+  },
+
+  rejectExpense: async (mahberId: string, expenseId: string, reason: string) => {
+    await delay(500);
+    const idx = expenses.findIndex(e => e.id === expenseId && e.mahber_id === mahberId);
+    if (idx === -1) throw new Error('Expense not found');
+    const updated = {
+      ...expenses[idx],
+      status: 'Rejected' as const,
+      approved_by: 'usr_1',
+      approved_at: new Date().toISOString(),
+      rejection_reason: reason,
+    } as Expense;
+    expenses[idx] = updated;
+    return updated;
+  },
+
   createExpense: async (mahberId: string, data: CreateExpenseDto) => {
     await delay(600);
     randomError(0.05);
 
     const creator = mockUsers[0];
-    const newExpense = {
+    const newExpense: Expense = {
       id: `exp_${Date.now()}`,
       mahber_id: mahberId,
       amount: data.amount,
       reason: data.reason,
       category: data.category,
+      status: 'Pending',
       created_by: creator.id,
+      recipient_name: data.recipient_name,
+      recipient_account_type: data.recipient_account_type,
+      recipient_account: data.recipient_account,
+      recipient_bank_code: data.recipient_bank_code || undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       creator,
