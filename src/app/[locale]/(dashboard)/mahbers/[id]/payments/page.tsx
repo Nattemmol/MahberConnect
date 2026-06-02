@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -41,6 +42,7 @@ export default function PaymentsDashboard({
 }) {
   const { id } = use(params);
   const { user } = useAuthStore();
+  const t = useTranslations("Payments");
 
   // ── Pagination, search, filter, sort state ──
   const [page, setPage] = useState(1);
@@ -101,7 +103,7 @@ export default function PaymentsDashboard({
       const blob = await financialService.exportLedgerCsv(id);
       downloadBlob(blob, `financial-report-${id}-${Date.now()}.csv`);
     } catch {
-      toast.error('Failed to export CSV');
+      toast.error(t('exportCsvFailed'));
     } finally {
       setExporting(null);
     }
@@ -113,7 +115,7 @@ export default function PaymentsDashboard({
       const blob = await financialService.exportFinancialReportPdf(id);
       downloadBlob(blob, `financial-report-${id}-${Date.now()}.pdf`);
     } catch {
-      toast.error('Failed to export PDF');
+      toast.error(t('exportPdfFailed'));
     } finally {
       setExporting(null);
     }
@@ -256,8 +258,8 @@ export default function PaymentsDashboard({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Finances"
-        description="Manage your payments, contributions, and fines."
+        title={t('title')}
+        description={t('description')}
       >
         <div className="flex gap-2">
           {isAdmin && (
@@ -268,10 +270,10 @@ export default function PaymentsDashboard({
             >
               <Link href={`/mahbers/${id}/payments/audit`}>
                 <Wallet className="w-4 h-4" />
-                Financial Audit
+                {t('financialAudit')}
               </Link>
             </Button>
-          )}
+            )}
           {isEqub && (
             <Button
               asChild
@@ -280,14 +282,14 @@ export default function PaymentsDashboard({
             >
               <Link href={`/mahbers/${id}/lottery`}>
                 <Trophy className="w-4 h-4" />
-                Lottery Draw
+                {t('lotteryDraw')}
               </Link>
             </Button>
-          )}
+            )}
           <Button asChild variant="outline" className="gap-2">
             <Link href={`/mahbers/${id}/wallet`}>
               <Wallet className="w-4 h-4" />
-              Wallet Ledger
+              {t('walletLedger')}
             </Link>
           </Button>
           {isAdmin && (
@@ -299,7 +301,7 @@ export default function PaymentsDashboard({
                 isLoading={exporting === 'csv'}
               >
                 <Download className="w-4 h-4" />
-                Export CSV
+                {t('exportCSV')}
               </Button>
               <Button
                 variant="outline"
@@ -308,7 +310,7 @@ export default function PaymentsDashboard({
                 isLoading={exporting === 'pdf'}
               >
                 <Download className="w-4 h-4" />
-                Export PDF
+                {t('exportPDF')}
               </Button>
             </>
           )}
@@ -316,16 +318,16 @@ export default function PaymentsDashboard({
             <Button asChild className="gap-2">
               <Link href={`/mahbers/${id}/payments/initiate`}>
                 <CreditCard className="w-4 h-4" />
-                Make a Payment
+                {t('makePayment')}
               </Link>
             </Button>
           ) : isPaymentInProgress ? (
             <Button disabled variant="secondary" className="gap-2">
-              Payment in Progress
+              {t('paymentInProgress')}
             </Button>
           ) : (
             <Button disabled variant="secondary" className="gap-2">
-              All paid up!
+              {t('allPaidUp')}
             </Button>
           )}
         </div>
@@ -340,7 +342,7 @@ export default function PaymentsDashboard({
           className="whitespace-nowrap"
         >
           <CreditCard className="w-4 h-4 mr-1.5" />
-          Payments
+          {t('payments')}
         </Button>
         <Button
           variant={tab === "expenses" ? "default" : "outline"}
@@ -349,7 +351,7 @@ export default function PaymentsDashboard({
           className="whitespace-nowrap"
         >
           <Receipt className="w-4 h-4 mr-1.5" />
-          Expenses
+          {t('expenses')}
         </Button>
       </div>
 
@@ -358,7 +360,7 @@ export default function PaymentsDashboard({
           {/* Expenses Header */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-text-primary">
-              Expenses & Debits
+              {t('expensesAndDebits')}
             </h2>
             {isAdmin && (
               <Button
@@ -367,7 +369,7 @@ export default function PaymentsDashboard({
               >
                 <Link href={`/mahbers/${id}/expenses/create`}>
                   <PlusCircle className="w-4 h-4" />
-                  Record Expense
+                  {t('recordExpense')}
                 </Link>
               </Button>
             )}
@@ -384,7 +386,7 @@ export default function PaymentsDashboard({
             <div className="text-center py-16 glass rounded-card">
               <Receipt className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-40" />
               <p className="text-text-secondary text-lg font-medium">
-                No expenses recorded yet.
+                {t('noExpenses')}
               </p>
             </div>
           ) : (
@@ -411,7 +413,7 @@ export default function PaymentsDashboard({
                           </span>
                           <span className="text-xs text-text-muted mt-1">
                             {new Date(expense.created_at).toLocaleDateString()}
-                            {expense.creator?.name && ` • ${expense.creator.name}`}
+                            {expense.creator?.name && t('expenseBy', { name: expense.creator.name })}
                           </span>
                         </div>
                       </div>
@@ -429,7 +431,7 @@ export default function PaymentsDashboard({
         <Card className="bg-gradient-to-br from-gold/20 to-background-dark border-gold/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">
-              Total Contributions
+              {t('totalContributions')}
             </CardTitle>
             <Wallet className="h-4 w-4 text-gold" />
           </CardHeader>
@@ -443,7 +445,7 @@ export default function PaymentsDashboard({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">
-              Pending Payments
+              {t('pendingPayments')}
             </CardTitle>
             <ArrowUpRight className="h-4 w-4 text-status-warning" />
           </CardHeader>
@@ -452,7 +454,7 @@ export default function PaymentsDashboard({
               {pendingAmount.toLocaleString()} ETB
             </div>
             <p className="text-xs text-text-muted mt-1">
-              Includes pending fines and unpaid contributions
+              {t('pendingIncludes')}
             </p>
           </CardContent>
         </Card>
@@ -460,7 +462,7 @@ export default function PaymentsDashboard({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">
-              Total Expenses
+              {t('totalExpenses')}
             </CardTitle>
             <ArrowUpRight className="h-4 w-4 text-status-error" />
           </CardHeader>
@@ -474,7 +476,7 @@ export default function PaymentsDashboard({
         <Card className="bg-gradient-to-br from-status-success/20 to-background-dark border-status-success/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">
-              Current Balance
+              {t('currentBalance')}
             </CardTitle>
             <Wallet className="h-4 w-4 text-status-success" />
           </CardHeader>
@@ -489,7 +491,7 @@ export default function PaymentsDashboard({
       {!hasOutstanding && !isLoading && (
         <Card className="border-border-glass bg-background/60">
           <CardContent className="p-4 text-text-secondary">
-            You have no outstanding payments at this time.
+            {t('noOutstanding')}
           </CardContent>
         </Card>
       )}
@@ -500,7 +502,7 @@ export default function PaymentsDashboard({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             type="text"
-            placeholder="Search by name, ref, type..."
+            placeholder={t('searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-8 py-2 bg-background-dark/50 border border-border-glass rounded-input text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-gold transition-colors"
@@ -522,17 +524,17 @@ export default function PaymentsDashboard({
         <div className="flex gap-2 items-center w-full sm:w-auto">
           {/* Type filter */}
           <div className="flex items-center gap-1 bg-background-dark/50 border border-border-glass rounded-input px-1 py-1">
-            {(["All", "Contribution", "Fine", "JoinFee"] as const).map((t) => (
+            {(["All", "Contribution", "Fine", "JoinFee"] as const).map((filterType) => (
               <button
-                key={t}
-                onClick={() => onFilterChange({ type: t })}
+                key={filterType}
+                onClick={() => onFilterChange({ type: filterType })}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  typeFilter === t
+                  typeFilter === filterType
                     ? "bg-gold text-black"
                     : "text-text-secondary hover:text-text-primary"
                 }`}
               >
-                {t === "JoinFee" ? "Join Fee" : t}
+                {filterType === "JoinFee" ? t('joinFee') : t(filterType.toLowerCase())}
               </button>
             ))}
           </div>
@@ -573,25 +575,25 @@ export default function PaymentsDashboard({
         ) : paymentsList.length === 0 ? (
           <div className="text-center py-16 glass rounded-card">
             <CreditCard className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-40" />
-            <p className="text-text-secondary text-lg font-medium">
-              {search || typeFilter !== "All"
-                ? "No payments match your search."
-                : "No payment history found."}
-            </p>
-            {(search || typeFilter !== "All") && (
-              <Button
-                variant="ghost"
-                className="mt-3 text-sm"
-                onClick={() => {
-                  setSearchInput("");
-                  setSearch("");
-                  setTypeFilter("All");
-                  setPage(1);
-                }}
-              >
-                Clear filters
-              </Button>
-            )}
+              <p className="text-text-secondary text-lg font-medium">
+                {search || typeFilter !== "All"
+                  ? t('noPaymentsMatch')
+                  : t('noPaymentHistory')}
+              </p>
+              {(search || typeFilter !== "All") && (
+                <Button
+                  variant="ghost"
+                  className="mt-3 text-sm"
+                  onClick={() => {
+                    setSearchInput("");
+                    setSearch("");
+                    setTypeFilter("All");
+                    setPage(1);
+                  }}
+                >
+                  {t('clearFilters')}
+                </Button>
+              )}
           </div>
         ) : (
           <>
@@ -611,9 +613,8 @@ export default function PaymentsDashboard({
                           payment.payment_type.slice(1).toLowerCase()}
                       </p>
                       <p className="text-xs text-text-secondary truncate">
-                        {new Date(payment.created_at).toLocaleDateString()} • Ref:{" "}
-                        {payment.tx_ref.slice(0, 8)}...
-                        {payment.user?.name && ` • ${payment.user.name}`}
+                        {new Date(payment.created_at).toLocaleDateString()} • {t('ref', { ref: payment.tx_ref.slice(0, 8) })}
+                        {payment.user?.name && t('expenseBy', { name: payment.user.name })}
                       </p>
                     </div>
                   </div>
@@ -637,7 +638,7 @@ export default function PaymentsDashboard({
                       <button
                         onClick={() => downloadReceipt(payment.id)}
                         className="p-2 rounded-lg hover:bg-gold/10 text-text-muted hover:text-gold transition-colors"
-                        title="Download Receipt"
+                        title={t('downloadReceipt')}
                       >
                         <Download className="w-4 h-4" />
                       </button>
@@ -651,7 +652,7 @@ export default function PaymentsDashboard({
             {totalPages > 1 && (
               <div className="flex items-center justify-between pt-4 pb-2">
                 <p className="text-sm text-text-muted">
-                  Page {page} of {totalPages} ({total} payments)
+                  {t('pageInfo', { page, totalPages, total })}
                 </p>
                 <div className="flex items-center gap-1">
                   <Button

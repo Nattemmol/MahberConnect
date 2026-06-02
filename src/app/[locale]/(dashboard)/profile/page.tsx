@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { User } from '@/lib/types';
 import { authApi } from '@/lib/api/services/auth.api';
@@ -13,6 +14,7 @@ import { LogOut, Phone, Mail, Calendar, Info, ShieldCheck, User as UserIcon, Edi
 import { toast } from 'react-hot-toast';
 
 export default function ProfilePage() {
+  const t = useTranslations("Profile");
   const { user: storeUser, updateUser, logout } = useAuthStore();
   const [user, setUser] = useState<User | null>(storeUser);
   const [loading, setLoading] = useState(!storeUser);
@@ -39,7 +41,7 @@ export default function ProfilePage() {
           bio: profileData.bio || ''
         });
       } catch (err) {
-        setError('Failed to load profile');
+        setError(t('loadFailed'));
         console.error(err);
       } finally {
         setLoading(false);
@@ -71,10 +73,10 @@ export default function ProfilePage() {
       setUser(updatedUser);
       updateUser(updatedUser);
       setIsEditing(false);
-      toast?.success('Profile updated successfully!');
+      toast?.success(t('profileUpdated'));
     } catch (err) {
       console.error(err);
-      toast?.error('Failed to update profile');
+      toast?.error(t('profileUpdateFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -95,7 +97,7 @@ export default function ProfilePage() {
           <Info className="w-8 h-8" />
         </div>
         <p className="text-red-500 font-medium">{error}</p>
-        <Button variant="outline" onClick={() => window.location.reload()}>Try Again</Button>
+        <Button variant="outline" onClick={() => window.location.reload()}>{t('tryAgain')}</Button>
       </div>
     );
   }
@@ -141,7 +143,7 @@ export default function ProfilePage() {
               <ShieldCheck className="w-6 h-6 text-gold" />
             </h1>
             <p className="text-gold/80 flex items-center gap-2 mt-1 font-medium tracking-wide">
-              MEMBER
+              {t('memberBadge')}
             </p>
           </div>
         </div>
@@ -149,7 +151,7 @@ export default function ProfilePage() {
         <div className="absolute top-6 right-6">
           <Button variant="destructive" size="sm" onClick={logout} className="rounded-full shadow-lg hover:shadow-xl transition-all border border-red-500/20 hover:border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white">
             <LogOut className="w-4 h-4 mr-2" />
-            Sign out
+            {t('signOut')}
           </Button>
         </div>
       </motion.div>
@@ -164,24 +166,24 @@ export default function ProfilePage() {
               <div className="space-y-1.5">
                 <CardTitle className="text-2xl flex items-center gap-2 font-semibold">
                   <UserIcon className="w-6 h-6 text-gold" />
-                  Personal Details
+                  {t('personalDetails')}
                 </CardTitle>
-                <CardDescription className="text-text-secondary/80">Manage your personal information and contact details.</CardDescription>
+                <CardDescription className="text-text-secondary/80">{t('personalDetailsDesc')}</CardDescription>
               </div>
               {!isEditing ? (
                 <Button variant="outline" size="sm" onClick={handleEditToggle} className="rounded-full border-gold/30 text-gold hover:bg-gold/10 hover:text-gold">
                   <Edit2 className="w-4 h-4 mr-2" />
-                  Edit
+                  {t('edit')}
                 </Button>
               ) : (
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={handleEditToggle} disabled={isSaving} className="rounded-full text-text-secondary">
                     <X className="w-4 h-4 mr-2" />
-                    Cancel
+                    {t('cancel')}
                   </Button>
                   <Button size="sm" onClick={handleSave} disabled={isSaving} className="rounded-full bg-gold hover:bg-yellow-600 text-black font-semibold">
                     {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                    Save
+                    {t('save')}
                   </Button>
                 </div>
               )}
@@ -193,14 +195,14 @@ export default function ProfilePage() {
                 <div className="space-y-2 group col-span-1 sm:col-span-2">
                   <label className="text-sm font-medium text-text-secondary flex items-center gap-2">
                     <UserIcon className="w-4 h-4 text-gold/50 group-hover:text-gold transition-colors" />
-                    Full Name
+                    {t('fullName')}
                   </label>
                   {isEditing ? (
                     <Input 
                       value={editForm.name}
                       onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                       className="bg-background/50 border-gold/30 focus-visible:ring-gold/50 rounded-xl"
-                      placeholder="Enter your full name"
+                      placeholder={t('fullNamePlaceholder')}
                     />
                   ) : (
                     <div className="font-semibold text-lg bg-background/50 p-4 rounded-2xl border border-border-glass shadow-inner group-hover:border-gold/20 transition-all">
@@ -213,11 +215,11 @@ export default function ProfilePage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-text-secondary flex items-center gap-2">
                     <Phone className="w-4 h-4 text-gold/50 group-hover:text-gold transition-colors" />
-                    Phone Number
+                    {t('phoneNumber')}
                   </label>
                   <div className={`font-semibold text-lg bg-background/50 p-4 rounded-2xl border border-border-glass shadow-inner transition-all ${isEditing ? 'opacity-70 cursor-not-allowed' : 'group-hover:border-gold/20'}`}>
                     {user.phone}
-                    {isEditing && <span className="block text-xs text-text-secondary/70 mt-1 font-normal">Phone cannot be edited</span>}
+                    {isEditing && <span className="block text-xs text-text-secondary/70 mt-1 font-normal">{t('phoneCannotBeEdited')}</span>}
                   </div>
                 </div>
 
@@ -225,7 +227,7 @@ export default function ProfilePage() {
                 <div className="space-y-2 group">
                   <label className="text-sm font-medium text-text-secondary flex items-center gap-2">
                     <Mail className="w-4 h-4 text-gold/50 group-hover:text-gold transition-colors" />
-                    Email Address
+                    {t('emailAddress')}
                   </label>
                   {isEditing ? (
                     <Input 
@@ -233,11 +235,11 @@ export default function ProfilePage() {
                       value={editForm.email}
                       onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
                       className="bg-background/50 border-gold/30 focus-visible:ring-gold/50 rounded-xl"
-                      placeholder="name@example.com"
+                      placeholder={t('emailPlaceholder')}
                     />
                   ) : (
                     <div className="font-semibold text-lg bg-background/50 p-4 rounded-2xl border border-border-glass truncate shadow-inner group-hover:border-gold/20 transition-all">
-                      {user.email || <span className="text-text-secondary/40 italic font-normal">Not provided</span>}
+                      {user.email || <span className="text-text-secondary/40 italic font-normal">{t('notProvided')}</span>}
                     </div>
                   )}
                 </div>
@@ -247,18 +249,18 @@ export default function ProfilePage() {
               <div className="space-y-2 group pt-2">
                 <label className="text-sm font-medium text-text-secondary flex items-center gap-2">
                   <Info className="w-4 h-4 text-gold/50 group-hover:text-gold transition-colors" />
-                  Biography
+                  {t('biography')}
                 </label>
                 {isEditing ? (
                   <textarea 
                     value={editForm.bio}
                     onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
                     className="w-full min-h-[120px] p-4 bg-background/50 border border-gold/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:ring-offset-2 rounded-2xl text-base shadow-inner resize-y transition-all"
-                    placeholder="Tell us about yourself..."
+                    placeholder={t('bioPlaceholder')}
                   />
                 ) : (
                   <div className="text-base bg-background/50 p-5 rounded-2xl border border-border-glass leading-relaxed min-h-[120px] shadow-inner group-hover:border-gold/20 transition-all">
-                    {user.bio || <span className="text-text-secondary/40 italic font-normal">No biography provided yet. Update your profile to tell us about yourself!</span>}
+                    {user.bio || <span className="text-text-secondary/40 italic font-normal">{t('noBio')}</span>}
                   </div>
                 )}
               </div>
@@ -271,7 +273,7 @@ export default function ProfilePage() {
             <CardHeader className="border-b border-border-glass bg-background/20">
               <CardTitle className="flex items-center gap-2 font-semibold">
                 <Calendar className="w-5 h-5 text-gold" />
-                Account Status
+                {t('accountStatus')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8 pt-8">
@@ -280,9 +282,9 @@ export default function ProfilePage() {
                   <Calendar className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gold/80 uppercase tracking-wider mb-1">Member Since</p>
+                  <p className="text-xs font-semibold text-gold/80 uppercase tracking-wider mb-1">{t('memberSince')}</p>
                   <p className="font-bold text-text-primary">
-                    {user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}
+                    {user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : t('unknown')}
                   </p>
                 </div>
               </div>
@@ -292,9 +294,9 @@ export default function ProfilePage() {
                   <Info className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gold/80 uppercase tracking-wider mb-1">Last Updated</p>
+                  <p className="text-xs font-semibold text-gold/80 uppercase tracking-wider mb-1">{t('lastUpdated')}</p>
                   <p className="font-bold text-text-primary">
-                    {user.updated_at ? new Date(user.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}
+                    {user.updated_at ? new Date(user.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : t('unknown')}
                   </p>
                 </div>
               </div>

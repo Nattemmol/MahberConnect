@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { use, useState } from "react";
 import { HandCoins, Plus, Filter, Wallet, Banknote, Users } from "lucide-react";
@@ -10,13 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/routing";
 import { Payout, PayoutCategory } from "@/lib/types";
-
-const categoryLabels: Record<PayoutCategory, string> = {
-  Iddir_Benefit: "Iddir Benefit",
-  Event_Reimbursement: "Event Reimbursement",
-  Recurring: "Recurring",
-  General: "General",
-};
 
 const categoryColors: Record<PayoutCategory, string> = {
   Iddir_Benefit: "text-purple-400 bg-purple-400/10",
@@ -31,6 +25,14 @@ export default function PayoutsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations("Payouts");
+
+  const categoryLabels: Record<PayoutCategory, string> = {
+    Iddir_Benefit: t('iddirBenefit'),
+    Event_Reimbursement: t('eventReimbursement'),
+    Recurring: t('recurring'),
+    General: t('general'),
+  };
 
   const { data: payoutsResponse, isLoading } = useQuery({
     queryKey: ["mahber-payouts", id],
@@ -46,11 +48,11 @@ export default function PayoutsPage({
 
   return (
     <div className="space-y-8 pb-20">
-      <PageHeader title="Payouts" description="Manage disbursements to members">
+      <PageHeader title={t('title')} description={t('description')}>
         <Link href={`/mahbers/${id}/payouts/create`}>
           <Button className="gap-2">
             <Plus className="w-4 h-4" />
-            New Payout
+            {t('newPayout')}
           </Button>
         </Link>
       </PageHeader>
@@ -61,7 +63,7 @@ export default function PayoutsPage({
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-text-secondary">Total Payouts</p>
+                  <p className="text-sm text-text-secondary">{t('totalPayouts')}</p>
                   <p className="text-2xl font-bold text-text-primary">
                     ETB {summary.total_amount.toLocaleString()}
                   </p>
@@ -74,7 +76,7 @@ export default function PayoutsPage({
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-text-secondary">Count</p>
+                  <p className="text-sm text-text-secondary">{t('count')}</p>
                   <p className="text-2xl font-bold text-text-primary">
                     {summary.total_count}
                   </p>
@@ -87,7 +89,7 @@ export default function PayoutsPage({
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-text-secondary">Recipients</p>
+                  <p className="text-sm text-text-secondary">{t('recipients')}</p>
                   <p className="text-2xl font-bold text-text-primary">
                     {new Set(payouts.map((p) => p.member_id)).size}
                   </p>
@@ -100,7 +102,7 @@ export default function PayoutsPage({
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-text-secondary">Categories</p>
+                  <p className="text-sm text-text-secondary">{t('categories')}</p>
                   <p className="text-2xl font-bold text-text-primary">
                     {summary.category_breakdown.length}
                   </p>
@@ -116,7 +118,7 @@ export default function PayoutsPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-text-primary">
-              By Category
+              {t('byCategory')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -132,7 +134,7 @@ export default function PayoutsPage({
                   <p className="text-lg font-bold mt-1">
                     ETB {cat.amount.toLocaleString()}
                   </p>
-                  <p className="text-xs opacity-60">{cat.count} payout(s)</p>
+                  <p className="text-xs opacity-60">{t('payoutsCount', { count: cat.count })}</p>
                 </div>
               ))}
             </div>
@@ -142,9 +144,9 @@ export default function PayoutsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-text-primary">
-            Payout History
-          </CardTitle>
+            <CardTitle className="text-sm font-medium text-text-primary">
+              {t('payoutHistory')}
+            </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -156,11 +158,11 @@ export default function PayoutsPage({
           ) : payouts.length === 0 ? (
             <div className="text-center py-12">
               <HandCoins className="w-12 h-12 mx-auto text-text-secondary/40 mb-3" />
-              <p className="text-text-secondary">No payouts yet</p>
+              <p className="text-text-secondary">{t('noPayouts')}</p>
               <Link href={`/mahbers/${id}/payouts/create`}>
                 <Button variant="outline" size="sm" className="mt-3 gap-2">
                   <Plus className="w-3 h-3" />
-                  Create First Payout
+                  {t('createFirstPayout')}
                 </Button>
               </Link>
             </div>
@@ -177,7 +179,7 @@ export default function PayoutsPage({
                     </div>
                     <div>
                       <p className="text-sm font-medium text-text-primary">
-                        {payout.member?.name ?? "Unknown Member"}
+                        {payout.member?.name ?? t('unknownMember')}
                       </p>
                       <p className="text-xs text-text-secondary mt-0.5">
                         {payout.reason}

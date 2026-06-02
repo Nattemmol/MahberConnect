@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Bell, AlertTriangle, Info, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { communicationService } from "@/lib/api/service-factory";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -17,20 +18,22 @@ import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import toast from "react-hot-toast";
 
-const announcementSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  content: z.string().min(10, "Content must be at least 10 characters"),
-  priority: z.enum(["Normal", "Important", "Urgent"]),
-});
-
-type AnnouncementFormValues = z.infer<typeof announcementSchema>;
-
 export default function AnnouncementsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations("Announcements");
   const { id } = use(params);
+
+  const announcementSchema = z.object({
+    title: z.string().min(3, "Title must be at least 3 characters"),
+    content: z.string().min(10, "Content must be at least 10 characters"),
+    priority: z.enum(["Normal", "Important", "Urgent"]),
+  });
+
+  type AnnouncementFormValues = z.infer<typeof announcementSchema>;
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -56,11 +59,11 @@ export default function AnnouncementsPage({
       communicationService.createAnnouncement(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mahber-announcements", id] });
-      toast.success("Announcement broadcasted");
+      toast.success(t('broadcastSuccess'));
       setShowCreateModal(false);
       reset();
     },
-    onError: () => toast.error("Failed to create announcement"),
+    onError: () => toast.error(t('broadcastFailed')),
   });
 
   const readMutation = useMutation({
@@ -91,12 +94,12 @@ export default function AnnouncementsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Announcements"
-        description="Important broadcasts and updates from the Mahber leadership."
+        title={t('title')}
+        description={t('description')}
       >
         <Button onClick={() => setShowCreateModal(true)} className="gap-2">
           <Plus className="w-4 h-4" />
-          New Announcement
+          {t('newAnnouncement')}
         </Button>
       </PageHeader>
 
@@ -108,8 +111,8 @@ export default function AnnouncementsPage({
       ) : announcements.length === 0 ? (
         <div className="text-center py-12 glass rounded-card">
           <Bell className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
-          <p className="text-text-secondary">
-            No announcements have been made yet.
+            <p className="text-text-secondary">
+            {t('noAnnouncements')}
           </p>
         </div>
       ) : (
@@ -148,7 +151,7 @@ export default function AnnouncementsPage({
                               variant="default"
                               className="bg-gold text-background-dark"
                             >
-                              New
+                              {t('new')}
                             </Badge>
                           )}
                           <span className="text-xs text-text-muted">
@@ -162,7 +165,7 @@ export default function AnnouncementsPage({
                         {announcement.content}
                       </p>
                       <div className="pt-2 text-xs text-text-muted flex items-center gap-1">
-                        Posted by {announcement.creator?.name || "Admin"}
+                        {t('postedBy', { name: announcement.creator?.name || t('admin') })}
                       </div>
                     </div>
                   </div>
@@ -177,16 +180,16 @@ export default function AnnouncementsPage({
       <Dialog
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="Broadcast Announcement"
+        title={t('broadcastTitle')}
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1">
-              Title
+              {t('titleLabel')}
             </label>
             <Input
               {...register("title")}
-              placeholder="e.g., Venue Change"
+              placeholder={t('titlePlaceholder')}
               className={errors.title ? "border-status-error" : ""}
             />
             {errors.title && (
@@ -198,11 +201,11 @@ export default function AnnouncementsPage({
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1">
-              Content
+              {t('contentLabel')}
             </label>
             <textarea
               {...register("content")}
-              placeholder="Write your announcement..."
+              placeholder={t('contentPlaceholder')}
               className={`w-full min-h-[120px] px-4 py-3 bg-background-dark/50 border ${errors.content ? "border-status-error" : "border-border-glass"} rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors resize-y`}
             />
             {errors.content && (
@@ -214,15 +217,15 @@ export default function AnnouncementsPage({
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1">
-              Priority
+              {t('priorityLabel')}
             </label>
             <select
               {...register("priority")}
               className="w-full px-4 py-3 bg-background-dark/50 border border-border-glass rounded-input text-text-primary focus:outline-none focus:border-gold transition-colors appearance-none"
             >
-              <option value="Normal">Normal</option>
-              <option value="Important">Important</option>
-              <option value="Urgent">Urgent</option>
+              <option value="Normal">{t('normal')}</option>
+              <option value="Important">{t('important')}</option>
+              <option value="Urgent">{t('urgent')}</option>
             </select>
           </div>
 
@@ -232,10 +235,10 @@ export default function AnnouncementsPage({
               variant="ghost"
               onClick={() => setShowCreateModal(false)}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" isLoading={createMutation.isPending}>
-              Broadcast
+              {t('broadcast')}
             </Button>
           </div>
         </form>
