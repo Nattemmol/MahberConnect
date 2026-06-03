@@ -165,6 +165,14 @@ export default function PaymentsDashboard({
       (myMembership?.role as any)?.permissions?.includes("manage_finances")
     : false;
 
+  const canCreateExpense = membersResponse
+    ? (myMembership?.role as any)?.permissions?.includes("create_expense")
+    : false;
+
+  const canApproveExpense = membersResponse
+    ? (myMembership?.role as any)?.permissions?.includes("approve_expense")
+    : false;
+
   const isEqub =
     !mahber ||
     mahber?.type === "EQUB" ||
@@ -364,29 +372,29 @@ export default function PaymentsDashboard({
               Expenses & Debits
             </h2>
             <div className="flex gap-2">
-              {isAdmin && (
-                <>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 border-status-warning/50 text-status-warning hover:bg-status-warning/10"
-                  >
-                    <Link href={`/mahbers/${id}/expenses/approve`}>
-                      <ExternalLink className="w-4 h-4" />
-                      Approve Expenses
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    className="gap-2 bg-gold hover:bg-gold-dark text-black font-medium"
-                  >
-                    <Link href={`/mahbers/${id}/expenses/create`}>
-                      <PlusCircle className="w-4 h-4" />
-                      Record Expense
-                    </Link>
-                  </Button>
-                </>
+              {canApproveExpense && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-status-warning/50 text-status-warning hover:bg-status-warning/10"
+                >
+                  <Link href={`/mahbers/${id}/expenses/approve`}>
+                    <ExternalLink className="w-4 h-4" />
+                    Approve Expenses
+                  </Link>
+                </Button>
+              )}
+              {canCreateExpense && (
+                <Button
+                  asChild
+                  className="gap-2 bg-gold hover:bg-gold-dark text-black font-medium"
+                >
+                  <Link href={`/mahbers/${id}/expenses/create`}>
+                    <PlusCircle className="w-4 h-4" />
+                    Record Expense
+                  </Link>
+                </Button>
               )}
             </div>
           </div>
