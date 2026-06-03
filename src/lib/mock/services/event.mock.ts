@@ -357,8 +357,7 @@ export const eventMock = {
     return eventMock.mockInvitations.filter(
       (inv) =>
         inv.mahber_id === mahberId &&
-        inv.member_id === mockUsers[2].id &&
-        inv.status === "Pending",
+        inv.member_id === mockUsers[2].id,
     );
   },
 
