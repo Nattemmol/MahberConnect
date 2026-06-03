@@ -140,7 +140,9 @@ export type Permission =
   | "create_events"
   | "send_announcements"
   | "view_reports"
-  | "manage_roles";
+  | "manage_roles"
+  | "create_expense"
+  | "approve_expense";
 
 export type RoleName =
   | "Admin"

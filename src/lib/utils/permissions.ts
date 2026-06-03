@@ -7,11 +7,13 @@ export const PERMISSIONS = {
   SEND_ANNOUNCEMENTS: "send_announcements",
   VIEW_REPORTS: "view_reports",
   MANAGE_ROLES: "manage_roles",
+  CREATE_EXPENSE: "create_expense",
+  APPROVE_EXPENSE: "approve_expense",
 } as const;
 
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
-  Admin: Object.values(PERMISSIONS),
-  Treasurer: [PERMISSIONS.MANAGE_FINANCES, PERMISSIONS.VIEW_REPORTS],
+  Admin: [...Object.values(PERMISSIONS)],
+  Treasurer: [PERMISSIONS.MANAGE_FINANCES, PERMISSIONS.VIEW_REPORTS, PERMISSIONS.CREATE_EXPENSE],
   Secretary: [PERMISSIONS.CREATE_EVENTS, PERMISSIONS.SEND_ANNOUNCEMENTS],
   Advisor: [PERMISSIONS.VIEW_REPORTS],
   Member: [],
@@ -25,8 +27,8 @@ export const DEFAULT_MAHBER_ROLES: MahberRoleDefinition[] = [
   },
   {
     name: "Treasurer" as RoleName,
-    permissions: ["manage_finances", "view_reports"],
-    description: "Manage finances and view reports.",
+    permissions: ["manage_finances", "view_reports", "create_expense"],
+    description: "Manage finances, view reports, and create expenses.",
   },
   {
     name: "Secretary" as RoleName,

@@ -166,12 +166,24 @@ export default function PaymentsDashboard({
     : false;
 
   const canCreateExpense = membersResponse
-    ? (myMembership?.role as any)?.permissions?.includes("create_expense")
+    ? (myMembership?.role as any)?.permissions?.includes("create_expense") ??
+      myMembership?.permissions?.includes("create_expense")
     : false;
 
   const canApproveExpense = membersResponse
-    ? (myMembership?.role as any)?.permissions?.includes("approve_expense")
+    ? (myMembership?.role as any)?.permissions?.includes("approve_expense") ??
+      myMembership?.permissions?.includes("approve_expense")
     : false;
+
+  console.log("[PaymentsPage] membership data:", {
+    myMembershipId: myMembership?.id,
+    role: myMembership?.role,
+    role_name: myMembership?.role_name,
+    permissions: myMembership?.permissions,
+    rolePermissions: (myMembership?.role as any)?.permissions,
+    canCreateExpense,
+    canApproveExpense,
+  });
 
   const isEqub =
     !mahber ||
@@ -212,7 +224,12 @@ export default function PaymentsDashboard({
   });
 
   const expensesList = expensesData?.data || [];
-  const totalExpenses = expensesList.reduce((acc, e) => acc + Number(e.amount), 0);
+  const paidExpenses = expensesList.filter((e) => e.status === "Paid");
+  const pendingExpenses = expensesList.filter((e) => e.status === "Pending");
+  const rejectedExpenses = expensesList.filter((e) => e.status === "Rejected");
+  const totalExpenses = paidExpenses.reduce((acc, e) => acc + Number(e.amount), 0);
+  const totalPending = pendingExpenses.reduce((acc, e) => acc + Number(e.amount), 0);
+  const totalRejected = rejectedExpenses.reduce((acc, e) => acc + Number(e.amount), 0);
 
   const { data: walletData } = useQuery({
     queryKey: ["mahber-wallet-balance", id],
@@ -399,6 +416,43 @@ export default function PaymentsDashboard({
             </div>
           </div>
 
+          {/* Expenses Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="border-status-warning/30 bg-status-warning/5">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-status-warning uppercase tracking-wider">Pending</p>
+                  <p className="text-2xl font-bold text-status-warning mt-1">
+                    {totalPending.toLocaleString()} ETB
+                  </p>
+                </div>
+                <span className="text-sm text-text-muted">{pendingExpenses.length} expense{pendingExpenses.length !== 1 ? 's' : ''}</span>
+              </CardContent>
+            </Card>
+            <Card className="border-status-success/30 bg-status-success/5">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-status-success uppercase tracking-wider">Paid</p>
+                  <p className="text-2xl font-bold text-status-success mt-1">
+                    {totalExpenses.toLocaleString()} ETB
+                  </p>
+                </div>
+                <span className="text-sm text-text-muted">{paidExpenses.length} expense{paidExpenses.length !== 1 ? 's' : ''}</span>
+              </CardContent>
+            </Card>
+            <Card className="border-status-error/30 bg-status-error/5">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-status-error uppercase tracking-wider">Rejected</p>
+                  <p className="text-2xl font-bold text-status-error mt-1">
+                    {totalRejected.toLocaleString()} ETB
+                  </p>
+                </div>
+                <span className="text-sm text-text-muted">{rejectedExpenses.length} expense{rejectedExpenses.length !== 1 ? 's' : ''}</span>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Expenses List */}
           {expensesLoading ? (
             <div className="space-y-4">
@@ -416,7 +470,7 @@ export default function PaymentsDashboard({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {expensesList.map((expense) => (
-                <Card key={expense.id} className="overflow-hidden">
+                <Card key={expense.id} className="overflow-hidden hover:bg-surface-hover/50 transition-colors">
                   <CardContent className="p-0">
                     <div className="p-5 flex flex-col h-full">
                       <div className="flex justify-between items-start mb-3 gap-2 flex-wrap">
@@ -443,20 +497,6 @@ export default function PaymentsDashboard({
                             {expense.creator?.name && ` • ${expense.creator.name}`}
                             {expense.approver?.name && ` • Approved by ${expense.approver.name}`}
                             {expense.status === "Pending" && " • Awaiting approval"}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-text-primary mb-4 line-clamp-3">
-                        {expense.reason}
-                      </p>
-                      <div className="mt-auto pt-4 border-t border-border-glass flex items-center justify-between">
-                        <div className="flex flex-col">
-                          <span className="text-2xl font-bold text-status-error">
-                            -{expense.amount.toLocaleString()} ETB
-                          </span>
-                          <span className="text-xs text-text-muted mt-1">
-                            {new Date(expense.created_at).toLocaleDateString()}
-                            {expense.creator?.name && t('expenseBy', { name: expense.creator.name })}
                           </span>
                         </div>
                       </div>
@@ -505,7 +545,7 @@ export default function PaymentsDashboard({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">
-              {t('totalExpenses')}
+              Paid Expenses
             </CardTitle>
             <ArrowUpRight className="h-4 w-4 text-status-error" />
           </CardHeader>
@@ -513,6 +553,9 @@ export default function PaymentsDashboard({
             <div className="text-3xl font-bold text-status-error">
               {totalExpenses.toLocaleString()} ETB
             </div>
+            <p className="text-xs text-text-muted mt-1">
+              {paidExpenses.length} completed expense{paidExpenses.length !== 1 ? 's' : ''}
+            </p>
           </CardContent>
         </Card>
 
