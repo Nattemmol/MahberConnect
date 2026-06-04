@@ -676,7 +676,16 @@
     "pageInfo": "Page {page} of {totalPages} ({total} payments)",
     "exportCsvFailed": "Failed to export CSV",
     "exportPdfFailed": "Failed to export PDF",
-    "expenseBy": " {name}"
+    "expenseBy": " {name}",
+    "initiateRound": "Initiate Payment Round",
+    "roundInitiated": "Payment round initiated! {count} members now have a payment due.",
+    "roundFailed": "Failed to initiate payment round.",
+    "roundDialogTitle": "Initiate Payment Round",
+    "roundDialogDesc": "Set all active members' contributions as due.",
+    "roundDialogWarning": "This will mark all active members' contributions as due immediately (or on the date you select). Each member can then pay individually through their payment dashboard.",
+    "roundDueDate": "Due Date (optional)",
+    "roundDueDateDesc": "Leave empty to make payments due immediately.",
+    "confirmRound": "Confirm"
   },
   "ConfirmPayment": {
     "title": "Confirm Payment",

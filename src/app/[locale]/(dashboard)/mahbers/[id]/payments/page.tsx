@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -18,6 +18,8 @@ import {
   PlusCircle,
   Download,
   ExternalLink,
+  HandCoins,
+  Calendar,
 } from "lucide-react";
 import {
   financialService,
@@ -29,6 +31,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import toast from 'react-hot-toast';
 import type { PaymentType, Expense } from "@/lib/types";
@@ -54,6 +58,25 @@ export default function PaymentsDashboard({
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const limit = 10;
   const [tab, setTab] = useState<"payments" | "expenses">("payments");
+  const queryClient = useQueryClient();
+
+  // Admin-initiated payment round dialog state
+  const [roundDialogOpen, setRoundDialogOpen] = useState(false);
+  const [roundDueDate, setRoundDueDate] = useState("");
+
+  const initiateRoundMutation = useMutation({
+    mutationFn: (dueDate?: string) => financialService.initiatePaymentRound(id, dueDate || undefined),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["mahber-outstanding", id] });
+      queryClient.invalidateQueries({ queryKey: ["mahber-members-check", id] });
+      setRoundDialogOpen(false);
+      setRoundDueDate("");
+      toast.success(t("roundInitiated", { count: data.updatedCount }));
+    },
+    onError: (err: any) => {
+      toast.error(err.message || t("roundFailed"));
+    },
+  });
 
   // Debounce search input
   useEffect(() => {
@@ -282,6 +305,7 @@ export default function PaymentsDashboard({
   }
 
   return (
+    <>
     <div className="space-y-6">
       <PageHeader
         title={t('title')}
@@ -320,6 +344,17 @@ export default function PaymentsDashboard({
           </Button>
           {isAdmin && (
             <>
+              {isEqub && (
+                <Button
+                  variant="outline"
+                  className="gap-2 border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10"
+                  onClick={() => setRoundDialogOpen(true)}
+                  isLoading={initiateRoundMutation.isPending}
+                >
+                  <HandCoins className="w-4 h-4" />
+                  {t('initiateRound')}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="gap-2"
@@ -790,6 +825,65 @@ export default function PaymentsDashboard({
       </>
     )}
     </div>
+
+      {/* Initiate Payment Round Dialog */}
+      <Dialog
+        isOpen={roundDialogOpen}
+        onClose={() => {
+          setRoundDialogOpen(false);
+          setRoundDueDate("");
+        }}
+        title={t("roundDialogTitle")}
+        description={t("roundDialogDesc")}
+      >
+        <div className="space-y-6 pt-4">
+          <p className="text-sm text-text-secondary">
+            {t("roundDialogWarning")}
+          </p>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-text-primary">
+              {t("roundDueDate")}
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={roundDueDate}
+                onChange={(e) => setRoundDueDate(e.target.value)}
+                className="w-48"
+              />
+              <Calendar className="w-4 h-4 text-text-muted" />
+            </div>
+            <p className="text-xs text-text-muted">{t("roundDueDateDesc")}</p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setRoundDialogOpen(false);
+                setRoundDueDate("");
+              }}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              onClick={() => {
+                const dueDate = roundDueDate
+                  ? new Date(roundDueDate).toISOString()
+                  : undefined;
+                initiateRoundMutation.mutate(dueDate);
+              }}
+              isLoading={initiateRoundMutation.isPending}
+            >
+              <HandCoins className="w-4 h-4 mr-1" />
+              {t("confirmRound")}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 }
 
